@@ -4,8 +4,8 @@ import {
   deletePatient,
   getPatients,
   updatePatient,
-  type PatientForm,
 } from '../api/patients'
+import type { PatientForm } from '../types/patient'
 
 export function usePatients(tenantId: string | undefined, search: string) {
   const queryClient = useQueryClient()
