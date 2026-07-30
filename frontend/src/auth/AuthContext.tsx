@@ -76,6 +76,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// This hook lives beside its provider to keep the small demo auth setup simple.
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error('useAuth must be used inside <AuthProvider>');
