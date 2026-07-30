@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { Patient } from '../api/patients'
+import type { Patient } from '../types/patient'
 
 interface PatientStore {
   search: string

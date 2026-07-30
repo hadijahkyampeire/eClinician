@@ -1,8 +1,10 @@
-import { type Patient, type PatientForm } from '../api/patients'
 import { useAuth } from '../auth/AuthContext'
 import PatientFormModal from '../components/patients/PatientFormModal'
+import PatientPageControls from '../components/patients/PatientPageControls'
+import PatientTable from '../components/patients/PatientTable'
 import { usePatients } from '../hooks/usePatients'
 import { usePatientStore } from '../stores/usePatientStore'
+import type { Patient, PatientForm } from '../types/patient'
 
 export default function Patients() {
   const { session } = useAuth()
@@ -42,62 +44,11 @@ export default function Patients() {
 
   return (
     <>
-      <div className="page-header patient-header">
-        <div>
-          <h2>Patients</h2>
-          <p>Manage patient information</p>
-        </div>
-        <button className="btn" onClick={openNewForm}>Add patient</button>
-      </div>
-
-      <div className="card">
-        <div className="patient-toolbar">
-          <input
-            aria-label="Search patients"
-            placeholder="Search by name or phone"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-          />
-        </div>
-
+      <PatientPageControls search={search} onSearch={setSearch} onAdd={openNewForm}>
         {error && <p className="patient-error">{error.message}</p>}
-
-        {isLoading ? (
-          <p className="empty-state">Loading patients...</p>
-        ) : patients.length === 0 ? (
-          <p className="empty-state">No patients found.</p>
-        ) : (
-          <div className="table-wrap">
-            <table className="patient-table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Sex</th>
-                  <th>Date of birth</th>
-                  <th>Phone</th>
-                  <th>Email</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {patients.map((patient) => (
-                  <tr key={patient.id}>
-                    <td><strong>{patient.firstName} {patient.lastName}</strong></td>
-                    <td>{patient.sex || '—'}</td>
-                    <td>{patient.dateOfBirth || '—'}</td>
-                    <td>{patient.phone || '—'}</td>
-                    <td>{patient.email || '—'}</td>
-                    <td className="table-actions">
-                      <button className="link-button" onClick={() => openEditForm(patient)}>Edit</button>
-                      <button className="link-button danger" onClick={() => removePatient(patient)}>Delete</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+        <PatientTable patients={patients} isLoading={isLoading}
+          onEdit={openEditForm} onDelete={removePatient} />
+      </PatientPageControls>
 
       {formOpen && (
         <PatientFormModal

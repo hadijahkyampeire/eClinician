@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
-import { type Patient, type PatientForm } from '../../api/patients'
+import type { Patient, PatientForm } from '../../types/patient'
+import PatientFormFields from './PatientFormFields'
 
 interface PatientFormModalProps {
   patient: Patient | null
@@ -7,7 +8,6 @@ interface PatientFormModalProps {
   onClose: () => void
   onSave: (form: PatientForm) => Promise<void>
 }
-
 const emptyForm: PatientForm = {
   firstName: '',
   lastName: '',
@@ -18,7 +18,6 @@ const emptyForm: PatientForm = {
   nationalId: '',
   address: '',
 }
-
 export default function PatientFormModal({
   patient,
   isSaving,
@@ -43,31 +42,7 @@ export default function PatientFormModal({
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div className="patient-form-grid">
-            <FormField label="First name" required value={form.firstName}
-              onChange={(value) => setForm({ ...form, firstName: value })} />
-            <FormField label="Last name" required value={form.lastName}
-              onChange={(value) => setForm({ ...form, lastName: value })} />
-            <FormField label="Date of birth" type="date" value={form.dateOfBirth}
-              onChange={(value) => setForm({ ...form, dateOfBirth: value })} />
-            <label className="field">
-              <span>Sex</span>
-              <select value={form.sex} onChange={(event) => setForm({ ...form, sex: event.target.value })}>
-                <option value="">Select</option>
-                <option value="Female">Female</option>
-                <option value="Male">Male</option>
-                <option value="Other">Other</option>
-              </select>
-            </label>
-            <FormField label="Phone" value={form.phone}
-              onChange={(value) => setForm({ ...form, phone: value })} />
-            <FormField label="Email" type="email" value={form.email}
-              onChange={(value) => setForm({ ...form, email: value })} />
-            <FormField label="National ID" value={form.nationalId}
-              onChange={(value) => setForm({ ...form, nationalId: value })} />
-            <FormField label="Address" value={form.address}
-              onChange={(value) => setForm({ ...form, address: value })} />
-          </div>
+          <PatientFormFields form={form} setForm={setForm} />
 
           <div className="modal-actions">
             <button type="button" className="btn ghost" onClick={onClose}>Cancel</button>
@@ -92,26 +67,4 @@ function patientToForm(patient: Patient): PatientForm {
     nationalId: patient.nationalId || '',
     address: patient.address || '',
   }
-}
-
-interface FormFieldProps {
-  label: string
-  value: string
-  type?: string
-  required?: boolean
-  onChange: (value: string) => void
-}
-
-function FormField({ label, value, type = 'text', required, onChange }: FormFieldProps) {
-  return (
-    <label className="field">
-      <span>{label}</span>
-      <input
-        type={type}
-        value={value}
-        required={required}
-        onChange={(event) => onChange(event.target.value)}
-      />
-    </label>
-  )
 }
