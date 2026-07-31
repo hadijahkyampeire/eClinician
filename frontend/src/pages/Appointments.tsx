@@ -21,6 +21,7 @@ export default function Appointments() {
   const action = params.get('action')
   const tenantId = session?.tenant?.id
   const allowed =
+    session?.user.role === 'Administrator' ||
     (action === 'check-in' && session?.user.role === 'Receptionist') ||
     (action === 'start-session' && session?.user.role === 'Clinician')
 
@@ -156,11 +157,13 @@ function AppointmentTable({
               <td>{formatDateTime(appointment.scheduledAt)}</td>
               <td>{appointment.checkedInAt ? formatDateTime(appointment.checkedInAt) : '—'}</td>
               <td className="table-actions">
-                {role === 'Receptionist' && appointment.status === 'CHECKED_IN' && (
+                {(role === 'Receptionist' || role === 'Administrator')
+                  && appointment.status === 'CHECKED_IN' && (
                   <button className="link-button" disabled={busy}
                     onClick={() => onTransition(appointment.id, 'waiting')}>Mark waiting</button>
                 )}
-                {role === 'Clinician' && appointment.status === 'IN_SESSION' && (
+                {(role === 'Clinician' || role === 'Administrator')
+                  && appointment.status === 'IN_SESSION' && (
                   <button className="link-button" disabled={busy}
                     onClick={() => onTransition(appointment.id, 'complete')}>Complete visit</button>
                 )}

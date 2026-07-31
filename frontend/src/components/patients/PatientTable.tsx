@@ -106,14 +106,15 @@ function PatientActions({
 
   return (
     <>
-      {role === 'Receptionist' && !patient.activeCareStatus && (
+      {(role === 'Receptionist' || role === 'Administrator')
+        && !patient.activeCareStatus && (
         <Button size="small" variant="outlined" startIcon={<LoginOutlinedIcon />}
           onClick={(event) => {
             event.stopPropagation()
             onWorkflow('check-in')
           }}>Check in</Button>
       )}
-      {role === 'Clinician'
+      {(role === 'Clinician' || role === 'Administrator')
         && (patient.activeCareStatus === 'CHECKED_IN'
           || patient.activeCareStatus === 'WAITING') && (
         <Button size="small" variant="outlined" startIcon={<PlayCircleOutlineIcon />}
