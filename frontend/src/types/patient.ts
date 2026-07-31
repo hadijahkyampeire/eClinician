@@ -41,7 +41,7 @@ export interface PatientFilters {
   enrolledFrom: string
   enrolledTo: string
   careStatus: string
-  idStatus: string
+  nationalId: string
 }
 
 export type PatientCareStatus = 'CHECKED_IN' | 'WAITING' | 'IN_SESSION'
