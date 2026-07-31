@@ -65,13 +65,16 @@ export default function PatientDetails() {
           </div>
         </div>
         <div className="patient-header-actions">
-          {session?.user.role === 'Receptionist' && !patient.activeCareStatus && (
+          {(session?.user.role === 'Receptionist'
+            || session?.user.role === 'Administrator')
+            && !patient.activeCareStatus && (
             <button className="btn" onClick={() =>
               navigate(`/appointments?patientId=${patient.id}&action=check-in`)}>
               Check in patient
             </button>
           )}
-          {session?.user.role === 'Clinician'
+          {(session?.user.role === 'Clinician'
+            || session?.user.role === 'Administrator')
             && (patient.activeCareStatus === 'CHECKED_IN'
               || patient.activeCareStatus === 'WAITING') && (
             <button className="btn" onClick={() =>
