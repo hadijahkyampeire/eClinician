@@ -8,6 +8,7 @@ import './index.css'
 import './App.css'
 import './styles/patient-list.css'
 import './styles/patient-modal.css'
+import './styles/patient-detail.css'
 import App from './App.tsx'
 
 createRoot(document.getElementById('root')!).render(

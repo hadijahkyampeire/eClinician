@@ -6,14 +6,19 @@ import {
   updatePatient,
 } from '../api/patients'
 import type { PatientForm } from '../types/patient'
+import type { PatientFilters } from '../types/patient'
 
-export function usePatients(tenantId: string | undefined, search: string) {
+export function usePatients(
+  tenantId: string | undefined,
+  search: string,
+  filters: PatientFilters,
+) {
   const queryClient = useQueryClient()
-  const queryKey = ['patients', tenantId, search]
+  const queryKey = ['patients', tenantId, search, filters]
 
   const patientsQuery = useQuery({
     queryKey,
-    queryFn: () => getPatients(tenantId!, search),
+    queryFn: () => getPatients(tenantId!, search, filters),
     enabled: Boolean(tenantId),
   })
 
