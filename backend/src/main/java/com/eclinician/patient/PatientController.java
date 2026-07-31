@@ -37,6 +37,7 @@ public class PatientController {
             @RequestParam(required = false) String sex,
             @RequestParam(required = false) String country,
             @RequestParam(required = false) String careStatus,
+            @RequestParam(required = false) String idStatus,
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dobFrom,
             @RequestParam(required = false)
@@ -47,7 +48,7 @@ public class PatientController {
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate enrolledTo,
             @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC)
             Pageable pageable) {
-        return service.list(tenantId, q, sex, country, careStatus, dobFrom, dobTo,
+        return service.list(tenantId, q, sex, country, careStatus, idStatus, dobFrom, dobTo,
                 enrolledFrom, enrolledTo, pageable);
     }
 

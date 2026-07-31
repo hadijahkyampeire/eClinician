@@ -37,6 +37,7 @@ export default function PatientPageControls({
   const clearFilters = () => onFilters({
     sex: '', country: '', dobFrom: '', dobTo: '', enrolledFrom: '', enrolledTo: '',
     careStatus: '',
+    idStatus: '',
   })
 
   return (
@@ -93,6 +94,12 @@ export default function PatientPageControls({
                 </li>
               )}
               renderInput={(params) => <TextField {...params} label="Country of residence" />} />
+            <TextField select size="small" label="Government ID" value={filters.idStatus}
+              onChange={(event) => change('idStatus', event.target.value)}>
+              <MenuItem value="">Any ID status</MenuItem>
+              <MenuItem value="RECORDED">Recorded</MenuItem>
+              <MenuItem value="MISSING">Missing</MenuItem>
+            </TextField>
             <TextField size="small" type="date" label="Born from"
               value={filters.dobFrom} onChange={(event) => change('dobFrom', event.target.value)}
               slotProps={{ inputLabel: { shrink: true } }} />
@@ -107,8 +114,10 @@ export default function PatientPageControls({
               value={filters.enrolledTo}
               onChange={(event) => change('enrolledTo', event.target.value)}
               slotProps={{ inputLabel: { shrink: true } }} />
-            <button type="button" className="clear-filters" disabled={!activeCount}
-              onClick={clearFilters}>Clear filters</button>
+            <div className="filter-panel-actions">
+              <button type="button" className="clear-filters" disabled={!activeCount}
+                onClick={clearFilters}>Clear filters</button>
+            </div>
           </div>
         )}
         {children}

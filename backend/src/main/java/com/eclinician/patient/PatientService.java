@@ -25,7 +25,8 @@ public class PatientService {
     }
 
     Page<PatientResponse> list(String tenantId, String q, String sex, String country,
-            String careStatus, LocalDate dobFrom, LocalDate dobTo, LocalDate enrolledFrom,
+            String careStatus, String idStatus, LocalDate dobFrom, LocalDate dobTo,
+            LocalDate enrolledFrom,
             LocalDate enrolledTo, Pageable pageable) {
         Specification<Patient> filters = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
@@ -50,6 +51,15 @@ public class PatientService {
                 predicates.add(cb.equal(
                         root.<PatientCareStatus>get("activeCareStatus"),
                         PatientCareStatus.valueOf(careStatus.trim())));
+            }
+            if ("RECORDED".equals(idStatus)) {
+                predicates.add(cb.and(
+                        cb.isNotNull(root.get("nationalId")),
+                        cb.notEqual(root.<String>get("nationalId"), "")));
+            } else if ("MISSING".equals(idStatus)) {
+                predicates.add(cb.or(
+                        cb.isNull(root.get("nationalId")),
+                        cb.equal(root.<String>get("nationalId"), "")));
             }
             if (dobFrom != null) {
                 predicates.add(cb.greaterThanOrEqualTo(
