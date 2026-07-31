@@ -11,9 +11,11 @@ export default function Patients() {
   const tenantId = session?.tenant?.id
   const {
     search,
+    filters,
     formOpen,
     editingPatient,
     setSearch,
+    setFilters,
     openNewForm,
     openEditForm,
     closeForm,
@@ -26,7 +28,7 @@ export default function Patients() {
     updatePatient,
     deletePatient,
     isSaving,
-  } = usePatients(tenantId, search)
+  } = usePatients(tenantId, search, filters)
 
   async function savePatient(form: PatientForm) {
     if (editingPatient) {
@@ -44,7 +46,8 @@ export default function Patients() {
 
   return (
     <>
-      <PatientPageControls search={search} onSearch={setSearch} onAdd={openNewForm}>
+      <PatientPageControls search={search} filters={filters}
+        onSearch={setSearch} onFilters={setFilters} onAdd={openNewForm}>
         {error && <p className="patient-error">{error.message}</p>}
         <PatientTable patients={patients} isLoading={isLoading}
           onEdit={openEditForm} onDelete={removePatient} />

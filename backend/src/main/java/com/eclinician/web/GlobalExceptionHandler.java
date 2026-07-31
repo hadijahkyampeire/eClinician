@@ -18,6 +18,12 @@ public class GlobalExceptionHandler {
                 .body(Map.of("message", ex.getMessage()));
     }
 
+    @ExceptionHandler(ConflictException.class)
+    ResponseEntity<Map<String, String>> conflict(ConflictException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Map.of("message", ex.getMessage()));
+    }
+
     // Validation failures on @Valid request bodies -> 400 with field messages.
     @ExceptionHandler(MethodArgumentNotValidException.class)
     ResponseEntity<Map<String, String>> invalid(MethodArgumentNotValidException ex) {

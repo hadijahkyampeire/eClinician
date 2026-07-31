@@ -6,18 +6,51 @@
   gap: 16px;
 }
 
-.patient-toolbar { margin-bottom: 18px; }
-.patient-toolbar input {
-  width: min(100%, 360px);
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  outline: none;
+.patient-toolbar {
+  justify-content: flex-start;
+  margin-bottom: 18px;
 }
-.patient-toolbar input:focus {
+.patient-toolbar .patient-search {
+  width: min(100%, 360px);
+}
+.patient-search .MuiOutlinedInput-root {
+  min-height: 42px;
+  border-radius: 8px;
+}
+.patient-search .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
   border-color: var(--brand-light);
   box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.15);
 }
+.search-icon {
+  margin-right: 8px;
+  color: var(--text-muted);
+}
+.filter-toggle {
+  min-height: 42px;
+  text-transform: none !important;
+}
+.patient-filter-panel {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
+  gap: 14px;
+  margin: -2px 0 20px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+}
+.patient-filter-panel .MuiInputBase-root { background: var(--surface); }
+.filter-country-flag { margin-right: 9px; font-size: 18px; }
+.clear-filters {
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--brand);
+  font: inherit;
+  font-weight: 600;
+}
+.clear-filters:disabled { color: var(--text-muted); cursor: not-allowed; }
 .table-wrap { overflow-x: auto; }
 .patient-table {
   width: 100%;
@@ -37,7 +70,47 @@
   text-transform: uppercase;
 }
 .patient-table tbody tr:last-child td { border-bottom: 0; }
-.table-actions { display: flex; gap: 12px; }
+.clickable-row {
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+.clickable-row:hover,
+.clickable-row:focus-visible {
+  background: var(--brand-bg);
+  outline: none;
+}
+.patient-name-link {
+  color: var(--brand);
+  font-weight: 600;
+}
+.patient-name-link:hover { text-decoration: underline; }
+.table-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.table-actions .MuiButton-root {
+  border-color: rgba(15, 118, 110, 0.35);
+  color: var(--brand);
+  font-weight: 600;
+  text-transform: none;
+}
+.danger-menu-item { color: var(--danger) !important; }
+.care-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #4338ca;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.care-status.none { background: var(--bg); color: var(--text-muted); font-weight: 500; }
+.care-status.checked_in { background: #ecfdf5; color: #047857; }
+.care-status.waiting { background: #fffbeb; color: #b45309; }
+.care-status.in_session { background: #eff6ff; color: #1d4ed8; }
 .link-button {
   padding: 0;
   border: 0;
@@ -55,4 +128,7 @@
 }
 @media (max-width: 640px) {
   .patient-header { align-items: flex-start; }
+  .patient-toolbar { align-items: stretch; flex-direction: column; }
+  .patient-toolbar .patient-search { width: 100%; }
+  .patient-filter-panel { grid-template-columns: 1fr; }
 }

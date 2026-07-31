@@ -4,6 +4,7 @@ import DashboardLayout from './components/DashboardLayout'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Patients from './pages/Patients'
+import PatientDetails from './pages/PatientDetails'
 import Appointments from './pages/Appointments'
 import MedicalRecords from './pages/MedicalRecords'
 import Pharmacy from './pages/Pharmacy'
@@ -37,6 +38,7 @@ export default function App() {
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/patients" element={<Patients />} />
+        <Route path="/patients/:patientId" element={<PatientDetails />} />
         <Route path="/appointments" element={<Appointments />} />
         <Route path="/records" element={<MedicalRecords />} />
         <Route path="/pharmacy" element={<Pharmacy />} />

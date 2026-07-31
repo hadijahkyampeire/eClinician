@@ -1,4 +1,5 @@
-import type { Patient, PatientForm } from '../types/patient'
+import type { Patient, PatientFilters, PatientForm } from '../types/patient'
+import { getCountryCallingCode, type CountryCode } from 'libphonenumber-js'
 
 interface PatientPage {
   content: Patient[]
@@ -26,10 +27,23 @@ async function request<T>(path: string, tenantId: string, options?: RequestInit)
   return response.json()
 }
 
-export async function getPatients(tenantId: string, search: string) {
-  const query = search.trim() ? `?q=${encodeURIComponent(search.trim())}` : ''
-  const page = await request<PatientPage>(`/api/patients${query}`, tenantId)
+export async function getPatients(
+  tenantId: string,
+  search: string,
+  filters: PatientFilters,
+) {
+  const query = new URLSearchParams()
+  if (search.trim()) query.set('q', search.trim())
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value) query.set(key, value)
+  })
+  const suffix = query.size ? `?${query.toString()}` : ''
+  const page = await request<PatientPage>(`/api/patients${suffix}`, tenantId)
   return page.content
+}
+
+export function getPatient(tenantId: string, id: string) {
+  return request<Patient>(`/api/patients/${id}`, tenantId)
 }
 
 export function createPatient(tenantId: string, patient: PatientForm) {
@@ -51,8 +65,12 @@ export function deletePatient(tenantId: string, id: string) {
 }
 
 function toRequestBody(patient: PatientForm) {
+  const { phoneCountry, phone, ...details } = patient
+  const localNumber = phone.replace(/\D/g, '').replace(/^0+/, '')
+
   return {
-    ...patient,
+    ...details,
+    phone: `+${getCountryCallingCode(phoneCountry as CountryCode)}${localNumber}`,
     dateOfBirth: patient.dateOfBirth || null,
   }
 }
