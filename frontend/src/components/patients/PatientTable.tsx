@@ -63,7 +63,11 @@ export default function PatientTable({
               <td>{patient.phone || '—'}</td>
               <td>{patient.email || '—'}</td>
               <td>{formatDateAdded(patient.createdAt)}</td>
-              <td><CareStatus status={patient.activeCareStatus} /></td>
+              <td>
+                <CareStatus status={patient.activeCareStatus} role={role}
+                  onCheckIn={() =>
+                    navigate(`/appointments?patientId=${patient.id}&action=check-in`)} />
+              </td>
               <td className="table-actions">
                 <PatientActions patient={patient} role={role}
                   onEdit={onEdit} onDelete={onDelete}
@@ -78,7 +82,24 @@ export default function PatientTable({
   )
 }
 
-function CareStatus({ status }: { status: Patient['activeCareStatus'] }) {
+function CareStatus({
+  status, role, onCheckIn,
+}: {
+  status: Patient['activeCareStatus']
+  role: string | undefined
+  onCheckIn: () => void
+}) {
+  if (!status && (role === 'Receptionist' || role === 'Administrator')) {
+    return (
+      <Button size="small" variant="outlined" startIcon={<LoginOutlinedIcon />}
+        onClick={(event) => {
+          event.stopPropagation()
+          onCheckIn()
+        }}>
+        Check in
+      </Button>
+    )
+  }
   if (!status) return <span className="care-status none">No active status</span>
   const labels = {
     CHECKED_IN: 'Checked in',
@@ -106,14 +127,6 @@ function PatientActions({
 
   return (
     <>
-      {(role === 'Receptionist' || role === 'Administrator')
-        && !patient.activeCareStatus && (
-        <Button size="small" variant="outlined" startIcon={<LoginOutlinedIcon />}
-          onClick={(event) => {
-            event.stopPropagation()
-            onWorkflow('check-in')
-          }}>Check in</Button>
-      )}
       {(role === 'Clinician' || role === 'Administrator')
         && (patient.activeCareStatus === 'CHECKED_IN'
           || patient.activeCareStatus === 'WAITING') && (
