@@ -23,7 +23,7 @@ export const usePatientStore = create<PatientStore>((set) => ({
     enrolledFrom: '',
     enrolledTo: '',
     careStatus: '',
-    idStatus: '',
+    nationalId: '',
   },
   formOpen: false,
   editingPatient: null,
