@@ -1,9 +1,18 @@
 package com.eclinician.patient;
 
 import com.eclinician.web.NotFoundException;
+import com.eclinician.appointment.PatientCareStatus;
+import jakarta.persistence.criteria.Predicate;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -15,11 +24,61 @@ public class PatientService {
         this.repo = repo;
     }
 
-    Page<PatientResponse> list(String tenantId, String q, Pageable pageable) {
-        Page<Patient> page = (q == null || q.isBlank())
-                ? repo.findByTenantId(tenantId, pageable)
-                : repo.search(tenantId, q.trim(), pageable);
-        return page.map(PatientResponse::from);
+    Page<PatientResponse> list(String tenantId, String q, String sex, String country,
+            String careStatus, String nationalId, LocalDate dobFrom, LocalDate dobTo,
+            LocalDate enrolledFrom,
+            LocalDate enrolledTo, Pageable pageable) {
+        Specification<Patient> filters = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            predicates.add(cb.equal(root.<String>get("tenantId"), tenantId));
+
+            if (q != null && !q.isBlank()) {
+                String pattern = "%" + q.trim().toLowerCase(Locale.ROOT) + "%";
+                predicates.add(cb.or(
+                        cb.like(cb.lower(root.<String>get("firstName")), pattern),
+                        cb.like(cb.lower(root.<String>get("lastName")), pattern),
+                        cb.like(root.<String>get("phone"), pattern)));
+            }
+            if (sex != null && !sex.isBlank()) {
+                predicates.add(cb.equal(root.<String>get("sex"), sex.trim()));
+            }
+            if (country != null && !country.isBlank()) {
+                predicates.add(cb.equal(root.<String>get("country"), country.trim()));
+            }
+            if ("NONE".equals(careStatus)) {
+                predicates.add(cb.isNull(root.get("activeCareStatus")));
+            } else if (careStatus != null && !careStatus.isBlank()) {
+                predicates.add(cb.equal(
+                        root.<PatientCareStatus>get("activeCareStatus"),
+                        PatientCareStatus.valueOf(careStatus.trim())));
+            }
+            if (nationalId != null && !nationalId.isBlank()) {
+                predicates.add(cb.like(
+                        cb.lower(root.<String>get("nationalId")),
+                        "%" + nationalId.trim().toLowerCase(Locale.ROOT) + "%"));
+            }
+            if (dobFrom != null) {
+                predicates.add(cb.greaterThanOrEqualTo(
+                        root.<LocalDate>get("dateOfBirth"), dobFrom));
+            }
+            if (dobTo != null) {
+                predicates.add(cb.lessThanOrEqualTo(
+                        root.<LocalDate>get("dateOfBirth"), dobTo));
+            }
+            if (enrolledFrom != null) {
+                predicates.add(cb.greaterThanOrEqualTo(
+                        root.<Instant>get("createdAt"),
+                        enrolledFrom.atStartOfDay().toInstant(ZoneOffset.UTC)));
+            }
+            if (enrolledTo != null) {
+                predicates.add(cb.lessThan(
+                        root.<Instant>get("createdAt"),
+                        enrolledTo.plusDays(1).atStartOfDay().toInstant(ZoneOffset.UTC)));
+            }
+            return cb.and(predicates.toArray(Predicate[]::new));
+        };
+
+        return repo.findAll(filters, pageable).map(PatientResponse::from);
     }
 
     PatientResponse get(String tenantId, UUID id) {
@@ -56,6 +115,10 @@ public class PatientService {
         p.setPhone(r.phone());
         p.setEmail(r.email());
         p.setNationalId(r.nationalId());
-        p.setAddress(r.address());
+        p.setAddressLine(r.addressLine());
+        p.setCity(r.city());
+        p.setDistrict(r.district());
+        p.setStateProvince(r.stateProvince());
+        p.setCountry(r.country());
     }
 }

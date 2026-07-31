@@ -1,9 +1,12 @@
 package com.eclinician.patient;
 
 import jakarta.validation.Valid;
+import java.time.LocalDate;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.format.annotation.DateTimeFormat;
 
 @RestController
 @RequestMapping("/api/patients")
@@ -29,8 +33,23 @@ public class PatientController {
 
     @GetMapping
     Page<PatientResponse> list(@RequestHeader("X-Tenant-Id") String tenantId,
-            @RequestParam(required = false) String q, Pageable pageable) {
-        return service.list(tenantId, q, pageable);
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String sex,
+            @RequestParam(required = false) String country,
+            @RequestParam(required = false) String careStatus,
+            @RequestParam(required = false) String nationalId,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dobFrom,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dobTo,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate enrolledFrom,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate enrolledTo,
+            @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC)
+            Pageable pageable) {
+        return service.list(tenantId, q, sex, country, careStatus, nationalId, dobFrom, dobTo,
+                enrolledFrom, enrolledTo, pageable);
     }
 
     @GetMapping("/{id}")
