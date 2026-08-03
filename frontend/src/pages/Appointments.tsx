@@ -164,8 +164,10 @@ function AppointmentTable({
                 )}
                 {(role === 'Clinician' || role === 'Administrator')
                   && appointment.status === 'IN_SESSION' && (
-                  <button className="link-button" disabled={busy}
-                    onClick={() => onTransition(appointment.id, 'complete')}>Complete visit</button>
+                  <Link className="link-button"
+                    to={`/records?patientId=${appointment.patientId}`}>
+                    Document visit
+                  </Link>
                 )}
               </td>
             </tr>

@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { getPatient } from '../api/patients'
 import { getAppointments } from '../api/appointments'
+import { getEncounters } from '../api/encounters'
 
 export default function PatientDetails() {
   const { patientId = '' } = useParams()
@@ -21,6 +22,11 @@ export default function PatientDetails() {
     queryKey: ['appointments', tenantId, patientId],
     queryFn: () => getAppointments(tenantId!, patientId),
     enabled: Boolean(tenantId && patientId),
+  })
+  const encountersQuery = useQuery({
+    queryKey: ['encounters', tenantId, patientId],
+    queryFn: () => getEncounters(tenantId!, patientId),
+    enabled: Boolean(tenantId && patientId && canViewClinicalHistory),
   })
 
   if (isLoading) return <p className="patient-detail-state">Loading patient...</p>
@@ -80,6 +86,14 @@ export default function PatientDetails() {
             <button className="btn" onClick={() =>
               navigate(`/appointments?patientId=${patient.id}&action=start-session`)}>
               Start session
+            </button>
+          )}
+          {(session?.user.role === 'Clinician'
+            || session?.user.role === 'Administrator')
+            && patient.activeCareStatus === 'IN_SESSION' && (
+            <button className="btn" onClick={() =>
+              navigate(`/records?patientId=${patient.id}`)}>
+              Document encounter
             </button>
           )}
         </div>
@@ -146,20 +160,28 @@ export default function PatientDetails() {
             <details className="history-panel">
               <summary>
                 <span>Visits & encounters</span>
-                <small>No visits recorded</small>
+                <small>{encountersQuery.data?.length || 0} recorded</small>
               </summary>
-              <div className="history-empty">
-                Consultation and encounter history will appear here.
-              </div>
+              {encountersQuery.data?.length ? <div className="patient-appointment-history">
+                {encountersQuery.data.map(encounter => <Link
+                  to={`/records?encounterId=${encounter.id}`} key={encounter.id}>
+                  <div><b>{encounter.diagnosis || encounter.chiefComplaint || 'Draft encounter'}</b>
+                    <small>{encounter.clinicianName} · {encounter.status.toLowerCase()}</small></div>
+                  <time>{formatDateTime(encounter.finalizedAt || encounter.updatedAt)}</time>
+                </Link>)}
+              </div> : <div className="history-empty">No clinical encounters recorded.</div>}
             </details>
             <details className="history-panel">
               <summary>
                 <span>Doctor notes</span>
                 <small>Restricted clinical information</small>
               </summary>
-              <div className="history-empty">
-                Clinical notes will only be visible to roles with explicit permission.
-              </div>
+              {encountersQuery.data?.filter(encounter => encounter.examinationNotes).length
+                ? <div className="clinical-note-list">{encountersQuery.data
+                  .filter(encounter => encounter.examinationNotes)
+                  .map(encounter => <div key={encounter.id}><b>{encounter.clinicianName}</b>
+                    <p>{encounter.examinationNotes}</p></div>)}</div>
+                : <div className="history-empty">No doctor notes recorded.</div>}
             </details>
           </>
         ) : (

@@ -27,7 +27,7 @@ public class AppointmentService {
         this.patients = patients;
     }
 
-    List<AppointmentResponse> list(String tenantId, UUID patientId) {
+    public List<AppointmentResponse> list(String tenantId, UUID patientId) {
         Sort newest = Sort.by(Sort.Direction.DESC, "createdAt");
         List<Appointment> result = patientId == null
                 ? appointments.findByTenantId(tenantId, newest)
@@ -51,7 +51,7 @@ public class AppointmentService {
     }
 
     @Transactional
-    AppointmentResponse checkIn(String tenantId, AppointmentRequest request) {
+    public AppointmentResponse checkIn(String tenantId, AppointmentRequest request) {
         Patient patient = patient(tenantId, request.patientId());
         Appointment appointment = active(tenantId, patient.getId()).orElseGet(() -> {
             Appointment created = new Appointment();
@@ -85,7 +85,7 @@ public class AppointmentService {
     }
 
     @Transactional
-    AppointmentResponse startSession(String tenantId, UUID patientId) {
+    public AppointmentResponse startSession(String tenantId, UUID patientId) {
         Patient patient = patient(tenantId, patientId);
         Appointment appointment = active(tenantId, patientId)
                 .filter(value -> value.getStatus() == AppointmentStatus.CHECKED_IN
