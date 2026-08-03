@@ -1,0 +1,35 @@
+.record-list-card { padding: 20px; }
+.record-list-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.record-list-heading h3 { font-size: 16px; }
+.record-list-heading span { color: var(--text-muted); font-size: 12px; }
+.record-row { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 16px 4px; border-top: 1px solid var(--border); }
+.record-row:hover { background: var(--bg); }
+.record-row > div { display: flex; flex-direction: column; gap: 3px; }
+.record-row > div:last-child { align-items: flex-end; }
+.record-row small, .record-row time { color: var(--text-muted); font-size: 12px; }
+.record-status { align-self: flex-end; padding: 3px 8px; border-radius: 999px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+.record-status.draft { background: #fffbeb; color: #b45309; }
+.record-status.finalized { background: #ecfdf5; color: #047857; }
+.record-empty { padding: 32px; color: var(--text-muted); text-align: center; }
+.encounter-page { max-width: 1050px; margin: 0 auto; }
+.record-locked { margin-bottom: 16px; padding: 12px 16px; border: 1px solid #a7f3d0; border-radius: 8px; background: #ecfdf5; color: #047857; }
+.encounter-section { margin-bottom: 16px; padding: 20px; }
+.encounter-section h3 { margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border); font-size: 16px; }
+.encounter-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.encounter-grid label { display: flex; flex-direction: column; gap: 6px; color: var(--heading); font-size: 12px; font-weight: 600; }
+.encounter-grid label small { color: var(--text-muted); font-weight: 400; }
+.encounter-grid input, .encounter-grid textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 7px; background: white; color: var(--text); font: inherit; resize: vertical; }
+.encounter-grid input:focus, .encounter-grid textarea:focus { outline: 2px solid var(--brand-bg); border-color: var(--brand); }
+.encounter-grid input:disabled, .encounter-grid textarea:disabled { background: var(--bg); color: var(--text); }
+.encounter-wide { grid-column: 1 / -1; }
+.encounter-actions { display: flex; justify-content: flex-end; gap: 10px; padding: 4px 0 28px; }
+.record-success { color: #047857; font-weight: 600; }
+.clinical-note-list > div { padding: 14px 4px; border-top: 1px solid #f0f2f4; }
+.clinical-note-list b { font-size: 12px; }
+.clinical-note-list p { margin: 5px 0 0; white-space: pre-wrap; }
+@media (max-width: 700px) {
+  .encounter-grid { grid-template-columns: 1fr; }
+  .encounter-wide { grid-column: auto; }
+  .record-row { align-items: flex-start; flex-direction: column; }
+  .record-row > div:last-child { align-items: flex-start; }
+}
