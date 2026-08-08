@@ -1,0 +1,52 @@
+# Render blueprint: Postgres + Spring Boot API + static React frontend.
+# Deploy with: Render dashboard -> New -> Blueprint -> pick this repo.
+databases:
+  - name: eclinician-db
+    databaseName: eclinician
+    user: eclinician
+    plan: free
+
+services:
+  - type: web
+    name: eclinician-api
+    runtime: docker
+    plan: free
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /api/health
+    envVars:
+      - key: DB_HOST
+        fromDatabase: { name: eclinician-db, property: host }
+      - key: DB_PORT
+        fromDatabase: { name: eclinician-db, property: port }
+      - key: DB_NAME
+        fromDatabase: { name: eclinician-db, property: database }
+      - key: DB_USER
+        fromDatabase: { name: eclinician-db, property: user }
+      - key: DB_PASSWORD
+        fromDatabase: { name: eclinician-db, property: password }
+      # Set by hand in the dashboard after the first deploy — paste the
+      # eclinician-web hostname here. It cannot be a fromService reference
+      # because eclinician-web already references this service for its API URL,
+      # and Render rejects a cycle between two services.
+      # CorsConfig prefixes https:// when no scheme is given.
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      # Drives what "today" means on the dashboards.
+      - key: TZ
+        value: Africa/Kampala
+
+  - type: web
+    name: eclinician-web
+    runtime: static
+    rootDir: ./frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist
+    envVars:
+      - key: VITE_API_URL
+        fromService: { name: eclinician-api, type: web, property: host }
+    routes:
+      # Client-side routing: serve index.html for any unmatched path.
+      - type: rewrite
+        source: /*
+        destination: /index.html

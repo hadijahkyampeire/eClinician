@@ -5,7 +5,7 @@ interface PatientPage {
   content: Patient[]
 }
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080'
+import { API_URL } from './config'
 
 async function request<T>(path: string, tenantId: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, {
