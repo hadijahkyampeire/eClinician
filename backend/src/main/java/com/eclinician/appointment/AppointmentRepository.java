@@ -1,5 +1,6 @@
 package com.eclinician.appointment;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -17,4 +18,6 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
     List<Appointment> findByTenantId(String tenantId, Sort sort);
 
     List<Appointment> findByTenantIdAndPatientId(String tenantId, UUID patientId, Sort sort);
+
+    long countByTenantIdAndScheduledAtBetween(String tenantId, Instant from, Instant to);
 }

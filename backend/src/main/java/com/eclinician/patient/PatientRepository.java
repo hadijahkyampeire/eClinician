@@ -1,5 +1,7 @@
 package com.eclinician.patient;
 
+import com.eclinician.appointment.PatientCareStatus;
+import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -16,5 +18,11 @@ public interface PatientRepository
     Optional<Patient> findByIdAndTenantId(UUID id, String tenantId);
 
     boolean existsByTenantId(String tenantId);
+
+    long countByTenantId(String tenantId);
+
+    long countByTenantIdAndCreatedAtAfter(String tenantId, Instant createdAfter);
+
+    long countByTenantIdAndActiveCareStatus(String tenantId, PatientCareStatus status);
 
 }
