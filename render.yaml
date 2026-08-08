@@ -25,9 +25,13 @@ services:
         fromDatabase: { name: eclinician-db, property: user }
       - key: DB_PASSWORD
         fromDatabase: { name: eclinician-db, property: password }
-      # Bare hostname; CorsConfig prefixes https:// when no scheme is given.
+      # Set by hand in the dashboard after the first deploy — paste the
+      # eclinician-web hostname here. It cannot be a fromService reference
+      # because eclinician-web already references this service for its API URL,
+      # and Render rejects a cycle between two services.
+      # CorsConfig prefixes https:// when no scheme is given.
       - key: CORS_ALLOWED_ORIGINS
-        fromService: { name: eclinician-web, type: web, property: host }
+        sync: false
       # Drives what "today" means on the dashboards.
       - key: TZ
         value: Africa/Kampala

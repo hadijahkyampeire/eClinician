@@ -186,24 +186,38 @@ Open http://localhost:5173 and pick a demo user.
 ## 8. Deploying
 
 [render.yaml](render.yaml) is a blueprint that provisions all three pieces — managed
-Postgres, the Dockerized API, and the static frontend — and cross-wires them: the API
-gets its database credentials from the Postgres instance and its allowed origin from
-the frontend's hostname; the frontend gets `VITE_API_URL` from the API's hostname.
+Postgres, the Dockerized API, and the static frontend — and wires them together: the
+API gets its database credentials from the Postgres instance, and the frontend gets
+`VITE_API_URL` from the API's hostname.
 
 1. Push to GitHub → in Render, **New → Blueprint** → pick this repo → **Apply**.
-2. Wait for `eclinician-api` to go live (~5 min first build — Maven downloads
-   dependencies inside the image).
-3. Open the `eclinician-web` URL.
+2. Wait for `eclinician-api` to go live. The first build takes ~5 minutes, since Maven
+   downloads its dependencies inside the image.
+3. Copy the `eclinician-web` URL, then set `CORS_ALLOWED_ORIGINS` on `eclinician-api`
+   to that hostname (**Environment** tab) and let it redeploy. This one variable is
+   manual by design — the two services cannot reference each other, as Render rejects
+   a dependency cycle.
+4. Open the `eclinician-web` URL and log in.
 
-If your Render account rejects the `fromService` references, set `CORS_ALLOWED_ORIGINS`
-and `VITE_API_URL` by hand after the first deploy — each is the other service's URL.
+`VITE_API_URL` is read at **build** time, not runtime — Vite inlines it into the
+bundle. Changing it requires a frontend rebuild, not a restart.
+
+### Free-tier limits worth knowing
+
+| | Allowance | Catch |
+|---|---|---|
+| Postgres | 1 GB | Expires **30 days** after creation, 14-day grace, then deleted. One per workspace, no backups. |
+| API | 750 instance-hours/month | 512 MB RAM, 0.1 CPU. Sleeps after 15 min idle. |
+| Frontend | Free | Counts toward bandwidth and build minutes. |
 
 **Before the demo:**
 
-- Free web services **sleep after 15 minutes idle**; the next request takes ~50s.
-  Open the app several minutes early so it is warm.
-- Free Postgres instances **expire after 30 days** — re-provision if the demo is later.
+- A sleeping instance takes **1–3 minutes** to wake, because cold-starting a JVM on
+  0.1 CPU is slow. Open the app ten minutes early and keep a tab on it.
+- Re-provision the database if it is more than 30 days old.
 - `TZ=Africa/Kampala` in the blueprint decides what "today" means on the dashboards.
+- The Dockerfile raises the JVM heap ceiling to 75% of the container and uses the
+  serial collector; the defaults leave ~128 MB of heap and thrash.
 
 ---
 
