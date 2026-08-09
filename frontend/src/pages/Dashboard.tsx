@@ -44,9 +44,9 @@ const VIEWS: Record<Role, View> = {
   },
   Pharmacist: {
     title: 'Pharmacy Dashboard',
-    blurb: 'Prescriptions raised by clinicians',
-    stats: (s) => [['Prescriptions Raised', s.prescriptionsRaised], ['Finalized Today', s.finalizedToday], ['In Session', s.inSession], ['Total Patients', s.totalPatients]],
-    note: 'Prescriptions are currently recorded on the encounter. Dispensing is a planned module.',
+    blurb: 'Dispensing queue',
+    stats: (s) => [['Pending', s.prescriptionsPending], ['Dispensed Today', s.prescriptionsDispensedToday], ['Unavailable', s.prescriptionsUnavailable], ['Finalized Today', s.finalizedToday]],
+    note: 'Dispense from the Pharmacy queue. Every medicine on a finalized encounter becomes its own order.',
   },
   'Lab Technician': {
     title: 'Laboratory Dashboard',
@@ -96,5 +96,6 @@ export default function Dashboard() {
 const EMPTY: DashboardStats = {
   totalPatients: 0, newPatientsToday: 0, checkedIn: 0, waiting: 0, inSession: 0,
   appointmentsToday: 0, draftEncounters: 0, finalizedToday: 0, clinicians: 0,
-  prescriptionsRaised: 0, labRequestsRaised: 0,
+  prescriptionsPending: 0, prescriptionsDispensedToday: 0, prescriptionsUnavailable: 0,
+  labRequestsRaised: 0,
 }

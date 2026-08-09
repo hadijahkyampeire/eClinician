@@ -3,9 +3,11 @@ package com.eclinician.services;
 import com.eclinician.domains.dtos.DashboardStats;
 import com.eclinician.domains.enums.EncounterStatus;
 import com.eclinician.domains.enums.PatientCareStatus;
+import com.eclinician.domains.enums.PrescriptionStatus;
 import com.eclinician.repositories.AppointmentRepository;
 import com.eclinician.repositories.EncounterRepository;
 import com.eclinician.repositories.PatientRepository;
+import com.eclinician.repositories.PrescriptionOrderRepository;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -18,12 +20,14 @@ public class StatsService {
     private final PatientRepository patients;
     private final AppointmentRepository appointments;
     private final EncounterRepository encounters;
+    private final PrescriptionOrderRepository orders;
 
     public StatsService(PatientRepository patients, AppointmentRepository appointments,
-            EncounterRepository encounters) {
+            EncounterRepository encounters, PrescriptionOrderRepository orders) {
         this.patients = patients;
         this.appointments = appointments;
         this.encounters = encounters;
+        this.orders = orders;
     }
 
     public DashboardStats dashboard(String tenantId) {
@@ -41,7 +45,10 @@ public class StatsService {
                 encounters.countByTenantIdAndStatus(tenantId, EncounterStatus.DRAFT),
                 encounters.countByTenantIdAndFinalizedAtAfter(tenantId, dayStart),
                 encounters.countClinicians(tenantId),
-                encounters.countWithPrescriptions(tenantId),
+                orders.countByTenantIdAndStatus(tenantId, PrescriptionStatus.PENDING),
+                orders.countByTenantIdAndStatusAndDispensedAtAfter(tenantId,
+                        PrescriptionStatus.DISPENSED, dayStart),
+                orders.countByTenantIdAndStatus(tenantId, PrescriptionStatus.UNAVAILABLE),
                 encounters.countWithLabRequests(tenantId));
     }
 }
