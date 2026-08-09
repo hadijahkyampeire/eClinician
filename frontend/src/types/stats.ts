@@ -9,6 +9,8 @@ export interface DashboardStats {
   draftEncounters: number
   finalizedToday: number
   clinicians: number
-  prescriptionsRaised: number
+  prescriptionsPending: number
+  prescriptionsDispensedToday: number
+  prescriptionsUnavailable: number
   labRequestsRaised: number
 }
