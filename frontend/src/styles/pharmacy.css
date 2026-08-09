@@ -1,0 +1,23 @@
+.pharmacy-filters { display: flex; gap: 8px; margin-bottom: 16px; }
+.pharmacy-tab { 
+  padding: 7px 14px; 
+  border: 1px solid var(--border); 
+  border-radius: 999px; 
+  background: white; 
+  color: var(--text-muted); 
+  font: inherit; 
+  font-size: 13px; 
+  cursor: pointer; 
+}
+.pharmacy-tab:hover { background: var(--bg); }
+.pharmacy-tab.active { 
+  border-color: var(--brand); 
+  background: var(--brand-bg); 
+  color: var(--brand); 
+  font-weight: 600; 
+}
+.pharmacy-actions { display: flex; gap: 8px; }
+.pharmacy-actions .btn { padding: 6px 12px; font-size: 12px; }
+.record-status.pending { background: #fffbeb; color: #b45309; }
+.record-status.dispensed { background: #ecfdf5; color: #047857; }
+.record-status.unavailable { background: #fef2f2; color: #b91c1c; }
