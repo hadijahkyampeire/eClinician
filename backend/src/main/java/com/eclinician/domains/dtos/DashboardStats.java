@@ -11,5 +11,7 @@ public record DashboardStats(
         long draftEncounters,
         long finalizedToday,
         long clinicians,
-        long prescriptionsRaised,
+        long prescriptionsPending,
+        long prescriptionsDispensedToday,
+        long prescriptionsUnavailable,
         long labRequestsRaised) {}

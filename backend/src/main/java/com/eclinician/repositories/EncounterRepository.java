@@ -23,10 +23,7 @@ public interface EncounterRepository extends JpaRepository<Encounter, UUID> {
     @Query("select count(distinct e.clinicianName) from Encounter e where e.tenantId = ?1")
     long countClinicians(String tenantId);
 
-    @Query("select count(e) from Encounter e where e.tenantId = ?1"
-            + " and e.prescriptions is not null and length(trim(e.prescriptions)) > 0")
-    long countWithPrescriptions(String tenantId);
-
+    /** Lab requests are still encounter text; the pharmacy counts come from its own table. */
     @Query("select count(e) from Encounter e where e.tenantId = ?1"
             + " and e.labRequests is not null and length(trim(e.labRequests)) > 0")
     long countWithLabRequests(String tenantId);
