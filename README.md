@@ -3,6 +3,10 @@
 A multi-tenant hospital management system that digitizes the outpatient visit — from the
 moment a patient walks in to the moment their medicines are dispensed.
 
+**▶ Live: [eclinician-web.onrender.com](https://eclinician-web.onrender.com/login)** —
+sign in with the demo dropdown (password `demo1234`). The API sleeps when idle, so the
+**first request takes 1–2 minutes**; open it before you need it.
+
 **Stack:** Java 21 · Spring Boot 4 · PostgreSQL 16 · React 19 · TypeScript · Vite
 
 **Documentation:** [Vision](docs/vision.md) · [SRS & use cases](docs/srs.md) ·
@@ -74,12 +78,16 @@ start. Full setup and cloud deployment: [docs/deployment.md](docs/deployment.md)
 | 11 | **Lab Technician** | Laboratory | The two tests are waiting. **Record result** on one; **Cancel** the other with "No reagent" |
 | 12 | **Administrator** | Dashboard | Facility-wide roll-up across every role's work |
 
-> Deploying on the free tier? A sleeping instance takes 1–3 minutes to wake — open the
-> app ten minutes before presenting.
+> **Presenting from the live URL?** The free instance sleeps after 15 minutes idle and a
+> cold start measured **96 seconds**. Open
+> [the app](https://eclinician-web.onrender.com/login) ten minutes early and leave the
+> tab open.
 
 ### Prove the isolation in ten seconds
 
-The tenant lives inside a signed token, so there is nothing left for a caller to edit:
+The tenant lives inside a signed token, so there is nothing left for a caller to edit.
+Swap `localhost:8080` for `https://eclinician-api.onrender.com` to run this against the
+live deployment:
 
 ```bash
 # No token at all
@@ -140,7 +148,7 @@ in [docs/architecture.md](docs/architecture.md).
 | 10. GitHub and code quality | This repo — ten reviewed PRs, one per phase ([history](docs/roadmap.md#development-history)) |
 | 11. Presentation | The demo script, then the architecture doc for questions |
 | 12. Security *(extra credit)* | Spring Security + BCrypt + HS256 JWT, signature and expiry verified server-side, secret from the environment — [architecture §8](docs/architecture.md#8-multi-tenancy-end-to-end) |
-| 13. Cloud deployment *(extra credit)* | [docs/deployment.md](docs/deployment.md) — Render blueprint, credentials via environment variables |
+| 13. Cloud deployment *(extra credit)* | Live at [eclinician-web.onrender.com](https://eclinician-web.onrender.com/login), API at [/api/health](https://eclinician-api.onrender.com/api/health) — Render blueprint, managed Postgres, all credentials from environment variables ([docs/deployment.md](docs/deployment.md)) |
 
 ## What is not built
 
