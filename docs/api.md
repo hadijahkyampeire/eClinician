@@ -23,6 +23,9 @@ ever names one.
 | `POST` | `/api/pharmacy/prescriptions/{id}` | Dispense a medicine, or mark it unavailable with a reason |
 | `GET` | `/api/lab/orders` | The lab queue, filterable by `?status=` |
 | `POST` | `/api/lab/orders/{id}` | Record a result, or cancel a test with a reason |
+| `GET` | `/api/staff` | Staff accounts for this clinic |
+| `POST` `PUT` | `/api/staff` `/{id}` | Add a colleague, or change their name, role or password |
+| `POST` | `/api/staff/{id}/active` | Deactivate or restore an account |
 | `GET` | `/api/stats/dashboard` | 13 live counts behind the role dashboards |
 
 ## Errors
@@ -84,6 +87,7 @@ in the UI. Anything not listed is open to any authenticated member of the tenant
 | `POST` `PUT /api/encounters`, `/{id}/finalize` | Clinician · Administrator |
 | `GET` `POST /api/pharmacy/prescriptions` | Pharmacist · Administrator |
 | `GET` `POST /api/lab/orders` | Lab Technician · Administrator |
+| Everything under `/api/staff` | Administrator |
 | `GET /api/patients`, `/api/appointments`, `/api/encounters`, `/api/stats/dashboard` | Any signed-in staff member of the tenant |
 
 Audit fields are never accepted from the client: `dispensedBy`, `resultedBy` and

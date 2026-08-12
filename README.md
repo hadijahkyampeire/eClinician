@@ -77,6 +77,7 @@ start. Full setup and cloud deployment: [docs/deployment.md](docs/deployment.md)
 | 10 | | Back to Dashboard | Pending 1 · Dispensed Today 1 · Unavailable 1 — tiles and queue read the same table |
 | 11 | **Lab Technician** | Laboratory | The two tests are waiting. **Record result** on one; **Cancel** the other with "No reagent" |
 | 12 | **Administrator** | Dashboard | Facility-wide roll-up across every role's work |
+| 13 | | Staff → **Add staff member** | A new account signs in immediately; **Deactivate** locks it out just as fast |
 
 > **Presenting from the live URL?** The free instance sleeps after 15 minutes idle and a
 > cold start measured **96 seconds**. Open
@@ -146,7 +147,7 @@ in [docs/architecture.md](docs/architecture.md).
 | 6. Repository layer | `backend/.../repositories/` — Spring Data JPA, tenant-scoped finders |
 | 7. Entity and database design | `backend/.../domains/entities/` + the ERD in the architecture doc |
 | 8. Functional demonstration | The demo script above |
-| 9. Testing | [docs/testing.md](docs/testing.md) — 16 JUnit tests, normal / boundary / error / security |
+| 9. Testing | [docs/testing.md](docs/testing.md) — 25 JUnit tests, normal / boundary / error / security |
 | 10. GitHub and code quality | This repo — ten reviewed PRs, one per phase ([history](docs/roadmap.md#development-history)) |
 | 11. Presentation | The demo script, then the architecture doc for questions |
 | 12. Security *(extra credit)* | Spring Security + BCrypt + HS256 JWT, signature and expiry verified server-side, secret from the environment; **plus per-role `@PreAuthorize` on the API**, guarded routes, validated input — [architecture §8](docs/architecture.md#8-multi-tenancy-end-to-end) and §8b |

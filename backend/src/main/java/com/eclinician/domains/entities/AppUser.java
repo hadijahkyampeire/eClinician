@@ -50,6 +50,16 @@ public class AppUser {
     @Column(nullable = false)
     private boolean platformAdmin;
 
+    /**
+     * Deactivated accounts keep their history but can no longer sign in.
+     *
+     * <p>The explicit default matters: without it, Hibernate's {@code ddl-auto=update}
+     * cannot add a NOT NULL column to a table that already holds rows, and every
+     * existing account would be locked out. Exactly the sort of thing Flyway exists for.
+     */
+    @Column(nullable = false, columnDefinition = "boolean not null default true")
+    private boolean active = true;
+
     private Instant createdAt;
 
     @PrePersist

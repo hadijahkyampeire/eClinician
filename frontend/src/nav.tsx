@@ -23,7 +23,7 @@ export const navItems: NavItem[] = [
   { to: '/patients',     label: 'Patients',     roles: ['Administrator', 'Clinician', 'Receptionist'], moduleKey: 'patients',     icon: <GroupsOutlinedIcon fontSize="small" /> },
   { to: '/appointments', label: 'Appointments', roles: ['Administrator', 'Clinician', 'Receptionist'], moduleKey: 'appointments', icon: <CalendarMonthOutlinedIcon fontSize="small" /> },
   { to: '/records',      label: 'Records',      roles: ['Administrator', 'Clinician'],                 moduleKey: 'records',      icon: <DescriptionOutlinedIcon fontSize="small" /> },
-  { to: '/pharmacy',     label: 'Pharmacy',     roles: ['Administrator', 'Clinician', 'Pharmacist'],   moduleKey: 'pharmacy',     icon: <MedicationOutlinedIcon fontSize="small" /> },
-  { to: '/laboratory',   label: 'Lab Results',  roles: ['Administrator', 'Clinician', 'Lab Technician'], moduleKey: 'laboratory', icon: <ScienceOutlinedIcon fontSize="small" /> },
+  { to: '/pharmacy',     label: 'Pharmacy',     roles: ['Administrator', 'Pharmacist'],               moduleKey: 'pharmacy',     icon: <MedicationOutlinedIcon fontSize="small" /> },
+  { to: '/laboratory',   label: 'Lab Results',  roles: ['Administrator', 'Lab Technician'],           moduleKey: 'laboratory', icon: <ScienceOutlinedIcon fontSize="small" /> },
   { to: '/staff',        label: 'Staff',        roles: ['Administrator'],                               icon: <BadgeOutlinedIcon fontSize="small" /> },
 ]

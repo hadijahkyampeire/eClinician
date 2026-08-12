@@ -13,6 +13,7 @@ public interface EncounterRepository extends JpaRepository<Encounter, UUID> {
     List<Encounter> findByTenantIdOrderByCreatedAtDesc(String tenantId);
     List<Encounter> findByTenantIdAndPatientIdOrderByCreatedAtDesc(String tenantId, UUID patientId);
     Optional<Encounter> findByIdAndTenantId(UUID id, String tenantId);
+    boolean existsByTenantIdAndPatientId(String tenantId, UUID patientId);
     Optional<Encounter> findByAppointmentIdAndTenantId(UUID appointmentId, String tenantId);
 
     long countByTenantIdAndStatus(String tenantId, EncounterStatus status);
