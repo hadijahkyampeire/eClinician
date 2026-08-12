@@ -4,7 +4,10 @@ import com.eclinician.domains.dtos.PatientRequest;
 import com.eclinician.domains.dtos.PatientResponse;
 import com.eclinician.domains.entities.Patient;
 import com.eclinician.domains.enums.PatientCareStatus;
+import com.eclinician.repositories.AppointmentRepository;
+import com.eclinician.repositories.EncounterRepository;
 import com.eclinician.repositories.PatientRepository;
+import com.eclinician.web.ConflictException;
 import com.eclinician.web.NotFoundException;
 import jakarta.persistence.criteria.Predicate;
 import java.time.Instant;
@@ -22,10 +25,18 @@ import org.springframework.stereotype.Service;
 @Service
 public class PatientService {
 
-    private final PatientRepository repo;
+    // A UUID no patient can have, so the "and not this one" guard also works on create.
+    private static final UUID NEW_PATIENT = new UUID(0L, 0L);
 
-    public PatientService(PatientRepository repo) {
+    private final PatientRepository repo;
+    private final AppointmentRepository appointments;
+    private final EncounterRepository encounters;
+
+    public PatientService(PatientRepository repo, AppointmentRepository appointments,
+            EncounterRepository encounters) {
         this.repo = repo;
+        this.appointments = appointments;
+        this.encounters = encounters;
     }
 
     public Page<PatientResponse> list(String tenantId, String q, String sex, String country,
@@ -92,18 +103,40 @@ public class PatientService {
     public PatientResponse create(String tenantId, PatientRequest req) {
         Patient p = new Patient();
         p.setTenantId(tenantId);
+        requireUnique(tenantId, req, NEW_PATIENT);
         apply(p, req);
         return PatientResponse.from(repo.save(p));
     }
 
     public PatientResponse update(String tenantId, UUID id, PatientRequest req) {
         Patient p = find(tenantId, id);
+        requireUnique(tenantId, req, id);
         apply(p, req);
         return PatientResponse.from(repo.save(p));
     }
 
     public void delete(String tenantId, UUID id) {
-        repo.delete(find(tenantId, id));
+        Patient patient = find(tenantId, id);
+        // SRS: a profile linked to visits or records is history, not a mistake to erase.
+        if (appointments.existsByTenantIdAndPatientId(tenantId, id)
+                || encounters.existsByTenantIdAndPatientId(tenantId, id)) {
+            throw new ConflictException(
+                    "This patient has visits or records and cannot be deleted");
+        }
+        repo.delete(patient);
+    }
+
+    /** SRS: no two patients in one clinic may share a phone number or national ID. */
+    private void requireUnique(String tenantId, PatientRequest req, UUID selfId) {
+        if (req.phone() != null && !req.phone().isBlank()
+                && repo.existsByTenantIdAndPhoneAndIdNot(tenantId, req.phone().trim(), selfId)) {
+            throw new ConflictException("Another patient already uses this phone number");
+        }
+        if (req.nationalId() != null && !req.nationalId().isBlank()
+                && repo.existsByTenantIdAndNationalIdIgnoreCaseAndIdNot(
+                        tenantId, req.nationalId().trim(), selfId)) {
+            throw new ConflictException("Another patient already uses this national ID");
+        }
     }
 
     private Patient find(String tenantId, UUID id) {

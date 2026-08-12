@@ -34,6 +34,7 @@ public class AuthService {
 
     public LoginResponse login(LoginRequest request) {
         AppUser user = users.findByEmailIgnoreCase(request.email().trim())
+                .filter(AppUser::isActive)
                 .filter(found -> passwords.matches(request.password(), found.getPasswordHash()))
                 // One message for both a wrong email and a wrong password, so the response
                 // cannot be used to discover which accounts exist.
