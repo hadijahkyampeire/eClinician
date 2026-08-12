@@ -15,17 +15,17 @@ export default function PatientDetails() {
 
   const { data: patient, isLoading, error } = useQuery({
     queryKey: ['patient', tenantId, patientId],
-    queryFn: () => getPatient(tenantId!, patientId),
+    queryFn: () => getPatient(patientId),
     enabled: Boolean(tenantId && patientId),
   })
   const appointmentsQuery = useQuery({
     queryKey: ['appointments', tenantId, patientId],
-    queryFn: () => getAppointments(tenantId!, patientId),
+    queryFn: () => getAppointments(patientId),
     enabled: Boolean(tenantId && patientId),
   })
   const encountersQuery = useQuery({
     queryKey: ['encounters', tenantId, patientId],
-    queryFn: () => getEncounters(tenantId!, patientId),
+    queryFn: () => getEncounters(patientId),
     enabled: Boolean(tenantId && patientId && canViewClinicalHistory),
   })
 

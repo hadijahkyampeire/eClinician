@@ -63,7 +63,8 @@ independently.
 
 ## 3. Live demo script
 
-> Log in from the demo user picker (no password). Seed patients are created on first
+> Pick a role from the demo dropdown — it fills in that account's real credentials
+> (password `demo1234`, or whatever `DEMO_PASSWORD` is set to). Seed patients are created on first
 > backend start. **Warm the app a few minutes before presenting** — see §8.
 
 | # | Log in as | Do this | Point out |
@@ -82,12 +83,27 @@ independently.
 | 12 | **Lab Technician** | Laboratory | The two tests are waiting as separate rows. **Record result** on one; **Cancel** the other with "No reagent" |
 | 13 | **Administrator** | Dashboard | Facility-wide roll-up across every role's work |
 
-**Prove multi-tenancy in ten seconds** — same endpoint, different tenant header:
+**Prove the isolation in ten seconds** — the tenant is inside the token, so there is
+nothing left to edit:
 
 ```bash
-curl -s localhost:8080/api/patients -H 'X-Tenant-Id: sample-hospital' | head -c 300
-curl -s localhost:8080/api/patients -H 'X-Tenant-Id: other-hospital'   # → empty
+# No token at all
+curl -s -o /dev/null -w '%{http_code}\n' localhost:8080/api/patients          # → 401
+
+# Log in, then read with the token you were given
+TOKEN=$(curl -s -X POST localhost:8080/api/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"sjenkins@stmarys.eclinician.com","password":"demo1234"}' \
+  | python3 -c 'import sys,json; print(json.load(sys.stdin)["token"])')
+curl -s localhost:8080/api/patients -H "Authorization: Bearer $TOKEN" | head -c 300
+
+# The old trick — claiming a tenant in a header
+curl -s -o /dev/null -w '%{http_code}\n' localhost:8080/api/patients \
+  -H 'X-Tenant-Id: sample-hospital'                                            # → 401
 ```
+
+Paste the token into [jwt.io](https://jwt.io) to show the `tenant` claim: readable by
+anyone, changeable by nobody without the signing key.
 
 ---
 
@@ -98,9 +114,9 @@ curl -s localhost:8080/api/patients -H 'X-Tenant-Id: other-hospital'   # → emp
   ┌──────────────────────┐               ┌─────────────────────┐          ┌────────────┐
   │  pages/  components/ │               │  Controller  (HTTP) │          │  patients  │
   │  React Query (cache) │  ── REST ──►  │  Service     (rules)│  ─JPA─►  │appointments│
-  │  Zustand (UI state)  │  X-Tenant-Id  │  Repository  (data) │          │ encounters │
-  │  AuthContext (session)│              │  ─────────────────  │          └────────────┘
-  └──────────────────────┘               │  Global error handler│
+  │  Zustand (UI state)  │  Bearer <jwt> │  Repository  (data) │          │ encounters │
+  │  AuthContext (session)│              │  ─────────────────  │          │ app_users  │
+  └──────────────────────┘               │  JWT filter + advice│          └────────────┘
                                          └─────────────────────┘
 ```
 
@@ -108,12 +124,13 @@ curl -s localhost:8080/api/patients -H 'X-Tenant-Id: other-hospital'   # → emp
 
 ```
 com.eclinician
-├── controllers/      HTTP only — read the tenant header, delegate, return a DTO
+├── controllers/      HTTP only — take the tenant from the token, delegate, return a DTO
 ├── services/         every business rule lives here; this is what the tests point at
 ├── repositories/     data access, every finder tenant-scoped
+├── security/         the filter chain, the signing key, and @CurrentTenant
 ├── domains/
 │   ├── entities/     JPA classes — mutable, because Hibernate constructs then populates
-│   ├── enums/        AppointmentStatus, PatientCareStatus, EncounterStatus, PrescriptionStatus
+│   ├── enums/        AppointmentStatus, PatientCareStatus, EncounterStatus, PrescriptionStatus, LabStatus, UserRole
 │   └── dtos/         records — immutable, what crosses the HTTP boundary
 └── web/              one @RestControllerAdvice normalizing every error
 ```
@@ -141,15 +158,25 @@ as its first argument — `findByIdAndTenantId`, `countByTenantIdAndStatus`. The
 query in the codebase that can return another tenant's row, because none of them can
 be called without a tenant.
 
+**And that tenant is no longer the caller's to choose.** Login is the one place a
+tenant is decided; from then on it rides inside a signed token as the `tenant` claim.
+`@CurrentTenant` — a one-line argument resolver — reads it off the verified token and
+hands controllers the same `String tenantId` they always took, so the swap from
+`@RequestHeader` touched one annotation per method and no service at all.
+
+`UserRepository` is the single deliberately un-scoped repository: at login there is no
+tenant yet, and the email is what decides which one the caller gets.
+
 ---
 
 ## 5. API
 
-Every endpoint requires an `X-Tenant-Id` header.
+Every endpoint except health and login requires an `Authorization: Bearer <jwt>` header.
 
 | Method | Path | Purpose |
 |---|---|---|
-| `GET` | `/api/health` | Liveness probe (used by Render) |
+| `GET` | `/api/health` | Liveness probe (used by Render) — open |
+| `POST` | `/api/auth/login` | Email + password → a signed token carrying the tenant — open |
 | `GET` | `/api/patients` | Paged list — search, filter, sort |
 | `POST` `PUT` `DELETE` | `/api/patients` `/{id}` | Register, update, remove |
 | `GET` | `/api/appointments` | List, optionally by patient |
@@ -167,7 +194,9 @@ Every endpoint requires an `X-Tenant-Id` header.
 
 Errors are normalized by a single `@RestControllerAdvice`: `404` for a missing record,
 `409` for a workflow violation (checking in a patient who is already checked in), `400`
-with field-level messages for validation failures.
+with field-level messages for validation failures, and `401` for a bad login or a
+missing, expired or tampered token. A wrong email and a wrong password return the same
+message on purpose, so the response cannot be used to discover which accounts exist.
 
 ---
 
@@ -199,7 +228,8 @@ make run               # backend on :8080, frontend on :5173
 make test              # backend test suite
 ```
 
-Open http://localhost:5173 and pick a demo user.
+Open http://localhost:5173, pick a role from the demo dropdown and sign in — the six
+staff accounts are seeded on first start.
 
 ### Configuration
 
@@ -208,9 +238,14 @@ Open http://localhost:5173 and pick a demo user.
 | `DB_HOST` `DB_PORT` `DB_NAME` `DB_USER` `DB_PASSWORD` | backend | `localhost:5433`, `eclinician` |
 | `PORT` | backend | `8080` |
 | `CORS_ALLOWED_ORIGINS` | backend | `http://localhost:5173` |
+| `JWT_SECRET` | backend | a development key — override everywhere else |
+| `JWT_TTL_MINUTES` | backend | `480` |
+| `DEMO_PASSWORD` | backend | `demo1234` |
 | `VITE_API_URL` | frontend | `http://localhost:8080` |
 
 `CORS_ALLOWED_ORIGINS` is comma-separated and accepts bare hostnames (https assumed).
+`JWT_SECRET` must be at least 32 bytes — HS256 refuses a shorter key — and changing it
+signs out everyone holding an old token.
 
 ---
 
@@ -254,13 +289,17 @@ bundle. Changing it requires a frontend rebuild, not a restart.
 
 ## 9. Testing
 
-`make test` — 5 backend tests, all green, aimed at the service layer where the rules live:
+`make test` — 9 backend tests, all green, aimed at the service layer where the rules live:
 
 - `AppointmentServiceTests` — check-in transitions and the conflict rules that reject them
 - `EncounterServiceTests` — encounter creation and update
-- `ClinicalEncounterFlowTests` — the full loop end to end: check in → start session →
-  document → finalize → result the lab order, asserting the appointment completes, care
-  status clears, and the requested test reaches the lab queue as its own row
+- `ClinicalEncounterFlowTests` — the full loop end to end: log in → check in → start
+  session → document → finalize → result the lab order, asserting the appointment
+  completes, care status clears, and the requested test reaches the lab queue as its
+  own row. It sends no tenant anywhere; the token carries it.
+- `AuthTests` — login succeeds and answers with the role the frontend renders, a wrong
+  password is refused, the API is closed without a token, and **a valid token for one
+  hospital reads an empty list while another hospital's patients exist**
 - `BackendApplicationTests` — context loads
 
 Tests run against in-memory H2, so no database is needed in CI.
@@ -273,10 +312,11 @@ Named honestly, with the reason:
 
 | Not built | Why / what it needs |
 |---|---|
-| **Real authentication** | The single biggest gap. Login is a client-side picker and the tenant travels as a plain header, so any caller can read any tenant's data. Needs Spring Security + JWT, with the tenant claim inside the signed token instead of the header. |
+| **Password self-service** | Accounts are real and signed in with, but there is no reset flow, no password change, no lockout after repeated failures, and no refresh token — when the 8-hour token expires you sign in again. |
+| **Authorization per role** | Authentication is done; authorization is coarse. Any signed-in user of a hospital can call any of its endpoints — a receptionist could POST to the pharmacy queue. The role is already a claim in the token, so this is `@PreAuthorize` on the handful of methods that need it. |
 | **Pharmacy stock** | Dispensing works; inventory does not. "Unavailable" is a pharmacist's judgement, not a stock level. Needs a drug catalogue and quantity tracking. |
 | **Structured lab results** | A technician records a result, but as free text. Values, units and reference ranges need a test catalogue — the same argument as pharmacy stock. |
-| **Staff management** | Blocked behind real auth: staff records are only meaningful once accounts exist. |
+| **Staff management** | `app_users` rows exist and are seeded, but nothing in the UI creates or edits them — an administrator cannot yet add a nurse. |
 | **Platform admin console** | Tenant onboarding, per-tenant module toggles, billing. The module-toggle plumbing already exists in the frontend; the console to drive it does not. |
 | **Database migrations** | Hibernate generates the schema (`ddl-auto=update`). Flyway before anything resembling production. |
 
@@ -294,8 +334,11 @@ changed to accommodate either.
 
 ## 11. What I would do next, in order
 
-1. **Spring Security + JWT** — close the tenant-isolation hole; everything else depends on it.
-2. **Flyway migrations** — before any real data exists.
-3. **Lab tiles off `lab_orders`** — a small commit, the one the pharmacy tiles already had.
-4. **Platform admin console** — turns the multi-tenant design into a product.
-5. **A test catalogue** — the shared answer to both pharmacy stock and structured lab results.
+1. **Flyway migrations** — before any real data exists, and now with an `app_users`
+   table holding password hashes, before anything I would hate to lose.
+2. **`@PreAuthorize` per role** — authentication landed; authorization is still coarse.
+3. **Staff management** — an administrator adding accounts, on top of the entity that
+   now exists.
+4. **Lab tiles off `lab_orders`** — a small commit, the one the pharmacy tiles already had.
+5. **Platform admin console** — turns the multi-tenant design into a product.
+6. **A test catalogue** — the shared answer to both pharmacy stock and structured lab results.

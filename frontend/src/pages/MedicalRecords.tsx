@@ -26,7 +26,7 @@ function RecordList() {
   const { session } = useAuth()
   const tenantId = session?.tenant?.id
   const { data = [], isLoading, error } = useQuery({
-    queryKey: ['encounters', tenantId], queryFn: () => getEncounters(tenantId!),
+    queryKey: ['encounters', tenantId], queryFn: () => getEncounters(),
     enabled: Boolean(tenantId),
   })
   return <>
@@ -63,16 +63,16 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
   const [message, setMessage] = useState('')
   const encounterQuery = useQuery({
     queryKey: ['encounter', tenantId, encounterId],
-    queryFn: () => getEncounter(tenantId!, encounterId), enabled: Boolean(tenantId && encounterId),
+    queryFn: () => getEncounter(encounterId), enabled: Boolean(tenantId && encounterId),
   })
   const patientId = routePatientId || encounterQuery.data?.patientId || ''
   const patientQuery = useQuery({
-    queryKey: ['patient', tenantId, patientId], queryFn: () => getPatient(tenantId!, patientId),
+    queryKey: ['patient', tenantId, patientId], queryFn: () => getPatient(patientId),
     enabled: Boolean(tenantId && patientId),
   })
   const appointmentsQuery = useQuery({
     queryKey: ['appointments', tenantId, patientId],
-    queryFn: () => getAppointments(tenantId!, patientId), enabled: Boolean(tenantId && patientId),
+    queryFn: () => getAppointments(patientId), enabled: Boolean(tenantId && patientId),
   })
   const activeAppointment = appointmentsQuery.data?.find(value => value.status === 'IN_SESSION')
 
@@ -97,10 +97,10 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
     if (!tenantId) return
     setBusy(true); setMessage('')
     try {
-      const saved = await saveEncounter(tenantId, form, savedId || undefined)
+      const saved = await saveEncounter(form, savedId || undefined)
       setSavedId(saved.id)
       if (finalize) {
-        await finalizeEncounter(tenantId, saved.id)
+        await finalizeEncounter(saved.id)
         await queryClient.invalidateQueries()
         navigate(`/patients/${saved.patientId}`)
       } else {

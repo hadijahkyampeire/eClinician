@@ -27,12 +27,12 @@ export default function Appointments() {
 
   const patientQuery = useQuery({
     queryKey: ['patient', tenantId, patientId],
-    queryFn: () => getPatient(tenantId!, patientId!),
+    queryFn: () => getPatient(patientId!),
     enabled: Boolean(tenantId && patientId && allowed),
   })
   const appointmentsQuery = useQuery({
     queryKey: ['appointments', tenantId],
-    queryFn: () => getAppointments(tenantId!),
+    queryFn: () => getAppointments(),
     enabled: Boolean(tenantId),
   })
 
@@ -45,15 +45,15 @@ export default function Appointments() {
   }
   const workflow = useMutation({
     mutationFn: () => action === 'check-in'
-      ? checkInPatient(tenantId!, patientId!)
-      : startPatientSession(tenantId!, patientId!),
+      ? checkInPatient(patientId!)
+      : startPatientSession(patientId!),
     onSuccess: refresh,
   })
   const transition = useMutation({
     mutationFn: ({ id, next }: { id: string; next: 'waiting' | 'complete' }) =>
       next === 'waiting'
-        ? markAppointmentWaiting(tenantId!, id)
-        : completeAppointment(tenantId!, id),
+        ? markAppointmentWaiting(id)
+        : completeAppointment(id),
     onSuccess: refresh,
   })
 
