@@ -1,5 +1,28 @@
 # Deployment
 
+## Live deployment
+
+| | |
+|---|---|
+| **App** | https://eclinician-web.onrender.com/login |
+| **API health** | https://eclinician-api.onrender.com/api/health |
+| Hosting | Render — managed Postgres + Dockerized API + static site, from [`render.yaml`](../render.yaml) |
+| Sign in | The demo dropdown fills real credentials; password `demo1234` |
+
+Verified against the live instance:
+
+```
+GET  /api/health                        → 200 {"status":"UP"}
+POST /api/auth/login  (demo clinician)  → 200 + JWT carrying tenant "sample-hospital"
+GET  /api/patients    with the token    → 200
+GET  /api/patients    without a token   → 401
+OPTIONS preflight from the web origin   → 200, allow-origin: https://eclinician-web.onrender.com,
+                                          allow-headers: authorization
+```
+
+**Cold start: 96 seconds measured.** The free instance sleeps after 15 minutes idle and
+a JVM on 0.1 CPU is slow to wake. Open the app well before a demo.
+
 ## Running locally
 
 ```bash
