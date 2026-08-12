@@ -3,6 +3,7 @@ package com.eclinician.controllers;
 import com.eclinician.domains.dtos.DispenseRequest;
 import com.eclinician.domains.dtos.PrescriptionResponse;
 import com.eclinician.domains.enums.PrescriptionStatus;
+import com.eclinician.security.CurrentTenant;
 import com.eclinician.services.PharmacyService;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
@@ -20,13 +21,13 @@ public class PharmacyController {
     }
 
     @GetMapping
-    public List<PrescriptionResponse> listPrescriptions(@RequestHeader("X-Tenant-Id") String tenantId,
+    public List<PrescriptionResponse> listPrescriptions(@CurrentTenant String tenantId,
                                                         @RequestParam(required = false) PrescriptionStatus status) {
         return pharmacyService.list(tenantId, status);
     }
 
     @PostMapping("/{id}")
-    public PrescriptionResponse update(@RequestHeader("X-Tenant-Id") String tenantId,
+    public PrescriptionResponse update(@CurrentTenant String tenantId,
                                        @PathVariable UUID id, @Valid @RequestBody DispenseRequest request) {
         return pharmacyService.update(tenantId, id, request);
     }

@@ -8,6 +8,11 @@ const SAMPLE_HOSPITAL: Tenant = {
   enabledModules: ['patients', 'appointments', 'records', 'pharmacy', 'laboratory'],
 }
 
+/** Login returns a tenant id; the branding that goes with it still lives here. */
+export function tenantById(id: string | null): Tenant | null {
+  return id === SAMPLE_HOSPITAL.id ? SAMPLE_HOSPITAL : null
+}
+
 export interface DemoUser {
   id: string
   label: string

@@ -1,11 +1,12 @@
 import type { Encounter, EncounterForm } from '../types/encounter'
 
 import { API_URL } from './config'
+import { authHeaders } from './session'
 
-async function request<T>(path: string, tenantId: string, options?: RequestInit): Promise<T> {
+async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, {
     ...options,
-    headers: { 'Content-Type': 'application/json', 'X-Tenant-Id': tenantId, ...options?.headers },
+    headers: { 'Content-Type': 'application/json', ...authHeaders(), ...options?.headers },
   })
   if (!response.ok) {
     const details = await response.json().catch(() => null)
@@ -14,18 +15,18 @@ async function request<T>(path: string, tenantId: string, options?: RequestInit)
   return response.json()
 }
 
-export function getEncounters(tenantId: string, patientId?: string) {
+export function getEncounters(patientId?: string) {
   const query = patientId ? `?patientId=${encodeURIComponent(patientId)}` : ''
-  return request<Encounter[]>(`/api/encounters${query}`, tenantId)
+  return request<Encounter[]>(`/api/encounters${query}`)
 }
 
-export function getEncounter(tenantId: string, id: string) {
-  return request<Encounter>(`/api/encounters/${id}`, tenantId)
+export function getEncounter(id: string) {
+  return request<Encounter>(`/api/encounters/${id}`)
 }
 
-export function saveEncounter(tenantId: string, form: EncounterForm, id?: string) {
+export function saveEncounter(form: EncounterForm, id?: string) {
   const number = (value: string) => value === '' ? null : Number(value)
-  return request<Encounter>(id ? `/api/encounters/${id}` : '/api/encounters', tenantId, {
+  return request<Encounter>(id ? `/api/encounters/${id}` : '/api/encounters', {
     method: id ? 'PUT' : 'POST',
     body: JSON.stringify({
       ...form,
@@ -36,6 +37,6 @@ export function saveEncounter(tenantId: string, form: EncounterForm, id?: string
   })
 }
 
-export function finalizeEncounter(tenantId: string, id: string) {
-  return request<Encounter>(`/api/encounters/${id}/finalize`, tenantId, { method: 'POST' })
+export function finalizeEncounter(id: string) {
+  return request<Encounter>(`/api/encounters/${id}/finalize`, { method: 'POST' })
 }
