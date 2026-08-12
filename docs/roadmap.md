@@ -9,7 +9,6 @@ Named honestly, with the reason.
 | **Password self-service** | Accounts are real and signed in with, but there is no reset flow, no password change, no lockout after repeated failures, and no refresh token — when the 8-hour token expires you sign in again. |
 | **Pharmacy stock** | Dispensing works; inventory does not. "Unavailable" is a pharmacist's judgement, not a stock level. Needs a drug catalogue and quantity tracking. |
 | **Structured lab results** | A technician records a result, but as free text. Values, units and reference ranges need a test catalogue — the same argument as pharmacy stock. |
-| **Staff management** | `app_users` rows exist and are seeded, but nothing in the UI creates or edits them — an administrator cannot yet add a nurse. |
 | **Platform admin console** | Tenant onboarding, per-tenant module toggles, billing. The module-toggle plumbing already exists in the frontend; the console to drive it does not. |
 | **Database migrations** | Hibernate generates the schema (`ddl-auto=update`). Flyway before anything resembling production. |
 
@@ -26,13 +25,13 @@ to accommodate either.
 
 ## What I would do next, in order
 
-1. **Flyway migrations** — before any real data exists, and now with an `app_users`
-   table holding password hashes, before anything I would hate to lose.
-2. **Staff management** — an administrator adding accounts, on top of the entity that
-   now exists.
-3. **Lab tiles off `lab_orders`** — a small commit, the one the pharmacy tiles already had.
-4. **Platform admin console** — turns the multi-tenant design into a product.
-5. **A test catalogue** — the shared answer to both pharmacy stock and structured lab
+1. **Flyway migrations** — the most overdue item, and adding the `active` column proved
+   why: `ddl-auto=update` cannot add a NOT NULL column to a table with rows, so the
+   change silently failed and every existing account was locked out until the column
+   was given an explicit default. A versioned migration would have said so up front.
+2. **Lab tiles off `lab_orders`** — a small commit, the one the pharmacy tiles already had.
+3. **Platform admin console** — turns the multi-tenant design into a product.
+4. **A test catalogue** — the shared answer to both pharmacy stock and structured lab
    results.
 
 ## Development history
@@ -54,3 +53,4 @@ Each phase was a branch and a reviewed pull request, so the work is bisectable:
 | #11 | Docs split out of the README; analysis documents brought into the repo |
 | #12 | Live deployment linked |
 | #13 | Per-role authorization enforced on the API |
+| #14 | Staff management, plus the two patient business rules from the SRS |

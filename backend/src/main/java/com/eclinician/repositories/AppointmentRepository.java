@@ -14,6 +14,8 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
 
     Optional<Appointment> findByIdAndTenantId(UUID id, String tenantId);
 
+    boolean existsByTenantIdAndPatientId(String tenantId, UUID patientId);
+
     Optional<Appointment> findFirstByTenantIdAndPatientIdAndStatusInOrderByCreatedAtDesc(
             String tenantId, UUID patientId, Collection<AppointmentStatus> statuses);
 
