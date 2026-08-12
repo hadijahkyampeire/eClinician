@@ -15,7 +15,6 @@ export default function Laboratory() {
   const { session } = useAuth()
   const queryClient = useQueryClient()
   const tenantId = session?.tenant?.id
-  const technicianName = session?.user.name ?? 'Unknown'
   const [filter, setFilter] = useState<LabStatus | 'ALL'>('PENDING')
   const [error, setError] = useState('')
 
@@ -27,7 +26,7 @@ export default function Laboratory() {
 
   const mutation = useMutation({
     mutationFn: (input: { id: string; status: 'COMPLETED' | 'CANCELLED'; result: string; notes: string }) =>
-      updateLabOrder(input.id, { ...input, technicianName }),
+      updateLabOrder(input.id, { status: input.status, result: input.result, notes: input.notes }),
     onSuccess: () => {
       setError('')
       void queryClient.invalidateQueries({ queryKey: ['lab-orders'] })

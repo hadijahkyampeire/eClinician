@@ -118,7 +118,9 @@ anyone, changeable by nobody without the signing key.
 
 Controllers hold no rules, services hold all of them, and every repository finder takes a
 `tenantId` — so no query in the codebase *can* return another clinic's row. The tenant
-comes from the token via `@CurrentTenant`, never from client input.
+comes from the token via `@CurrentTenant`, never from client input, and the role in that
+same token decides which endpoints the caller may reach: a receptionist asking for the
+pharmacy queue gets a `403` from the server, not a hidden button.
 
 Diagrams (architecture, VOPC, sequence, collaboration, ERD) and the design trade-offs are
 in [docs/architecture.md](docs/architecture.md).
@@ -144,10 +146,10 @@ in [docs/architecture.md](docs/architecture.md).
 | 6. Repository layer | `backend/.../repositories/` — Spring Data JPA, tenant-scoped finders |
 | 7. Entity and database design | `backend/.../domains/entities/` + the ERD in the architecture doc |
 | 8. Functional demonstration | The demo script above |
-| 9. Testing | [docs/testing.md](docs/testing.md) — 9 JUnit tests, normal / boundary / error / security |
+| 9. Testing | [docs/testing.md](docs/testing.md) — 16 JUnit tests, normal / boundary / error / security |
 | 10. GitHub and code quality | This repo — ten reviewed PRs, one per phase ([history](docs/roadmap.md#development-history)) |
 | 11. Presentation | The demo script, then the architecture doc for questions |
-| 12. Security *(extra credit)* | Spring Security + BCrypt + HS256 JWT, signature and expiry verified server-side, secret from the environment — [architecture §8](docs/architecture.md#8-multi-tenancy-end-to-end) |
+| 12. Security *(extra credit)* | Spring Security + BCrypt + HS256 JWT, signature and expiry verified server-side, secret from the environment; **plus per-role `@PreAuthorize` on the API**, guarded routes, validated input — [architecture §8](docs/architecture.md#8-multi-tenancy-end-to-end) and §8b |
 | 13. Cloud deployment *(extra credit)* | Live at [eclinician-web.onrender.com](https://eclinician-web.onrender.com/login), API at [/api/health](https://eclinician-api.onrender.com/api/health) — Render blueprint, managed Postgres, all credentials from environment variables ([docs/deployment.md](docs/deployment.md)) |
 
 ## What is not built

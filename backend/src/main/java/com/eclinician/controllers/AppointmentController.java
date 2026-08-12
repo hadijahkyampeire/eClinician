@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -34,6 +35,7 @@ public class AppointmentController {
         return service.list(tenantId, patientId);
     }
 
+    @PreAuthorize("hasAnyRole('RECEPTIONIST', 'ADMINISTRATOR')")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public AppointmentResponse schedule(
@@ -42,6 +44,7 @@ public class AppointmentController {
         return service.schedule(tenantId, request);
     }
 
+    @PreAuthorize("hasAnyRole('RECEPTIONIST', 'ADMINISTRATOR')")
     @PostMapping("/check-in")
     public AppointmentResponse checkIn(
             @CurrentTenant String tenantId,
@@ -49,6 +52,7 @@ public class AppointmentController {
         return service.checkIn(tenantId, request);
     }
 
+    @PreAuthorize("hasAnyRole('RECEPTIONIST', 'ADMINISTRATOR')")
     @PostMapping("/{id}/waiting")
     public AppointmentResponse markWaiting(
             @CurrentTenant String tenantId,
@@ -56,6 +60,7 @@ public class AppointmentController {
         return service.markWaiting(tenantId, id);
     }
 
+    @PreAuthorize("hasAnyRole('CLINICIAN', 'ADMINISTRATOR')")
     @PostMapping("/patients/{patientId}/start-session")
     public AppointmentResponse startSession(
             @CurrentTenant String tenantId,
@@ -63,6 +68,7 @@ public class AppointmentController {
         return service.startSession(tenantId, patientId);
     }
 
+    @PreAuthorize("hasAnyRole('CLINICIAN', 'ADMINISTRATOR')")
     @PostMapping("/{id}/complete")
     public AppointmentResponse complete(
             @CurrentTenant String tenantId,

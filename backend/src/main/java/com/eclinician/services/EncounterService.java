@@ -48,7 +48,8 @@ public class EncounterService {
     }
 
     @Transactional
-    public EncounterResponse save(String tenantId, UUID id, EncounterRequest request) {
+    public EncounterResponse save(String tenantId, String clinicianName, UUID id,
+            EncounterRequest request) {
         Encounter existing = id == null ? null : encounter(tenantId, id);
         if (existing != null) requireDraft(existing);
         Patient patient = patient(tenantId, request.patientId());
@@ -79,6 +80,8 @@ public class EncounterService {
         }
         requireDraft(value);
         copy(request, value);
+        // The clinician is whoever is signed in, not whoever the form claims.
+        value.setClinicianName(clinicianName);
         return response(patient, encounters.save(value));
     }
 
@@ -107,7 +110,6 @@ public class EncounterService {
     }
 
     private void copy(EncounterRequest source, Encounter target) {
-        target.setClinicianName(source.clinicianName().trim());
         target.setChiefComplaint(source.chiefComplaint());
         target.setBloodPressure(source.bloodPressure());
         target.setTemperatureCelsius(source.temperatureCelsius());

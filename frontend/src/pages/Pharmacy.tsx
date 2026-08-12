@@ -15,7 +15,6 @@ export default function Pharmacy() {
   const { session } = useAuth()
   const queryClient = useQueryClient()
   const tenantId = session?.tenant?.id
-  const pharmacistName = session?.user.name ?? 'Unknown'
   const [filter, setFilter] = useState<PrescriptionStatus | 'ALL'>('PENDING')
   const [error, setError] = useState('')
 
@@ -28,7 +27,7 @@ export default function Pharmacy() {
 
   const mutation = useMutation({
     mutationFn: (input: { id: string; status: 'DISPENSED' | 'UNAVAILABLE'; notes: string }) =>
-      updatePrescription(input.id, { status: input.status, pharmacistName, notes: input.notes }),
+      updatePrescription(input.id, { status: input.status, notes: input.notes }),
     onSuccess: () => {
       setError('')
       void queryClient.invalidateQueries({ queryKey: ['prescriptions'] })
