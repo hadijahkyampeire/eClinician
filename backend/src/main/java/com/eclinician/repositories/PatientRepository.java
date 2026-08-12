@@ -26,4 +26,10 @@ public interface PatientRepository
 
     long countByTenantIdAndActiveCareStatus(String tenantId, PatientCareStatus status);
 
+    /** SRS: a patient is uniquely identified by phone or national ID within a clinic. */
+    boolean existsByTenantIdAndPhoneAndIdNot(String tenantId, String phone, UUID id);
+
+    boolean existsByTenantIdAndNationalIdIgnoreCaseAndIdNot(
+            String tenantId, String nationalId, UUID id);
+
 }

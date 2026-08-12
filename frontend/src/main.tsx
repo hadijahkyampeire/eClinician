@@ -11,6 +11,7 @@ import './styles/patient-modal.css'
 import './styles/patient-detail.css'
 import './styles/medical-records.css'
 import './styles/pharmacy.css'
+import './styles/staff.css'
 import App from './App.tsx'
 
 createRoot(document.getElementById('root')!).render(

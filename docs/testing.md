@@ -4,11 +4,11 @@
 make test        # or: cd backend && ./mvnw test
 ```
 
-**16 tests, all green.** They run against in-memory H2, so no database is needed in CI,
+**25 tests, all green.** They run against in-memory H2, so no database is needed in CI,
 and they point at the service layer — where every rule lives.
 
 ```
-Tests run: 16, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 25, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
 ```
 
@@ -20,6 +20,8 @@ BUILD SUCCESS
 | `EncounterServiceTests` | 2 | A draft finalizes and completes its visit; finalization is refused without a diagnosis and plan, and a finalized record is locked |
 | `ClinicalEncounterFlowTests` | 1 | The whole loop through HTTP: log in → check in → start session → document → finalize → result the lab order |
 | `AuthTests` | 4 | Login, credential rejection, a closed API, and tenant isolation |
+| `StaffManagementTests` | 4 | An administrator adds an account that can then sign in, deactivating it stops the login, an email is unique, and an administrator cannot deactivate themselves |
+| `PatientRuleTests` | 5 | The SRS rules: no shared phone or national ID inside one clinic, the same number is fine in another clinic, updating a patient does not collide with itself, and a patient with visits cannot be deleted |
 | `RoleAuthorizationTests` | 7 | A role may do only its own work — a receptionist cannot dispense, a pharmacist cannot take a patient into session or register one, pharmacy and lab cannot read each other's queues, an administrator may act for every department |
 | `BackendApplicationTests` | 1 | The Spring context loads — every bean wires |
 
