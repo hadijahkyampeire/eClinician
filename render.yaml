@@ -32,6 +32,14 @@ services:
       # CorsConfig prefixes https:// when no scheme is given.
       - key: CORS_ALLOWED_ORIGINS
         sync: false
+      # Signing key for login tokens — Render generates one and keeps it secret.
+      # Changing it invalidates every token already issued, which is the point.
+      - key: JWT_SECRET
+        generateValue: true
+      # Shared password for the seeded demo accounts. Set it in the dashboard;
+      # leaving it unset falls back to the development default.
+      - key: DEMO_PASSWORD
+        sync: false
       # Drives what "today" means on the dashboards.
       - key: TZ
         value: Africa/Kampala
