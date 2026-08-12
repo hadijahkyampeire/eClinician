@@ -24,13 +24,16 @@ public class EncounterService {
     private final PatientRepository patients;
     private final AppointmentRepository appointments;
     private final PharmacyService pharmacyService;
+    private final LabService labService;
 
     public EncounterService(EncounterRepository encounters, PatientRepository patients,
-            AppointmentRepository appointments, PharmacyService pharmacyService) {
+            AppointmentRepository appointments, PharmacyService pharmacyService,
+            LabService labService) {
         this.encounters = encounters;
         this.patients = patients;
         this.appointments = appointments;
         this.pharmacyService = pharmacyService;
+        this.labService = labService;
     }
 
     public List<EncounterResponse> list(String tenantId, UUID patientId) {
@@ -99,6 +102,7 @@ public class EncounterService {
         appointments.save(appointment);
         patients.save(patient);
         pharmacyService.createFromEncounter(tenantId, value.getId(), value.getPatientId(), value.getPrescriptions());
+        labService.createFromEncounter(tenantId, value.getId(), value.getPatientId(), value.getLabRequests());
         return response(patient, encounters.save(value));
     }
 
