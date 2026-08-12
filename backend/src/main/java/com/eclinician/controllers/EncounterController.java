@@ -2,6 +2,7 @@ package com.eclinician.controllers;
 
 import com.eclinician.domains.dtos.EncounterRequest;
 import com.eclinician.domains.dtos.EncounterResponse;
+import com.eclinician.security.CurrentTenant;
 import com.eclinician.services.EncounterService;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -12,7 +13,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -28,32 +28,32 @@ public class EncounterController {
     }
 
     @GetMapping
-    public List<EncounterResponse> list(@RequestHeader("X-Tenant-Id") String tenantId,
+    public List<EncounterResponse> list(@CurrentTenant String tenantId,
             @RequestParam(required = false) UUID patientId) {
         return service.list(tenantId, patientId);
     }
 
     @GetMapping("/{id}")
-    public EncounterResponse get(@RequestHeader("X-Tenant-Id") String tenantId,
+    public EncounterResponse get(@CurrentTenant String tenantId,
             @PathVariable UUID id) {
         return service.get(tenantId, id);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public EncounterResponse create(@RequestHeader("X-Tenant-Id") String tenantId,
+    public EncounterResponse create(@CurrentTenant String tenantId,
             @Valid @RequestBody EncounterRequest request) {
         return service.save(tenantId, null, request);
     }
 
     @PutMapping("/{id}")
-    public EncounterResponse update(@RequestHeader("X-Tenant-Id") String tenantId,
+    public EncounterResponse update(@CurrentTenant String tenantId,
             @PathVariable UUID id, @Valid @RequestBody EncounterRequest request) {
         return service.save(tenantId, id, request);
     }
 
     @PostMapping("/{id}/finalize")
-    public EncounterResponse finalizeEncounter(@RequestHeader("X-Tenant-Id") String tenantId,
+    public EncounterResponse finalizeEncounter(@CurrentTenant String tenantId,
             @PathVariable UUID id) {
         return service.finalizeEncounter(tenantId, id);
     }
