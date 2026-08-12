@@ -1,7 +1,7 @@
 # eClinician
 
 A multi-tenant hospital management system that digitizes the outpatient visit —
-from the moment a patient walks in to the moment the clinician signs off the notes.
+from the moment a patient walks in to the moment their medicines are dispensed.
 
 **Stack:** Java 21 · Spring Boot 4 · PostgreSQL · React 19 · TypeScript · Vite
 
@@ -29,16 +29,15 @@ clinic can actually afford.
 The system is built around one workflow, implemented end to end:
 
 ```
-  Receptionist          Receptionist        Clinician            Clinician
-       │                     │                  │                    │
-   Register  ──────────►  Check in  ────────►  Start  ──────────►  Document  ──────► Finalize
-   patient                              (WAITING)  session      (vitals, symptoms,      │
-       │                     │                  │   exam, diagnosis, plan,              │
-       │                     │                  │   prescriptions, labs)                │
-       ▼                     ▼                  ▼                    ▼                  ▼
-   patients            appointments        appointment          encounter          appointment
-    table             row + CHECKED_IN     → IN_SESSION        row (DRAFT)         → COMPLETED
-                                                                                 care status cleared
+  Receptionist            Clinician                              Pharmacist
+       │                      │                                       │
+   Register ──► Check in ──► Start ──► Document ──► Finalize ──► Dispense each medicine
+   patient      (WAITING)    session   (vitals, dx,     │         (or mark unavailable)
+       │            │           │       plan, meds)     │                │
+       ▼            ▼           ▼            ▼          ▼                ▼
+   patients   appointments  appointment  encounter  appointment   prescription_orders
+    table     + CHECKED_IN  → IN_SESSION  (DRAFT)   → COMPLETED   one row per medicine
+                                                   care cleared   PENDING → DISPENSED
 ```
 
 Two status fields track this, and the distinction matters:
@@ -50,8 +49,12 @@ Two status fields track this, and the distinction matters:
   a single indexed query instead of a scan over appointment history.
 
 Finalizing an encounter is the one action that closes the loop: it stamps
-`finalizedAt`, completes the appointment, and clears the patient's care status —
-atomically, in one transaction.
+`finalizedAt`, completes the appointment, clears the patient's care status, and splits
+the prescription text into one order per medicine — atomically, in one transaction.
+
+That last step is what makes the pharmacy a real handoff rather than a screen. A
+clinician writes three medicines on one line each; the pharmacy receives three
+independent orders, so it can dispense two and flag the third as out of stock.
 
 ---
 
@@ -68,10 +71,12 @@ atomically, in one transaction.
 | 4 | | Back to Dashboard | **Checked In** and **Registered Today** both incremented |
 | 5 | **Clinician** | Dashboard | Same endpoint, different four tiles — role decides the view |
 | 6 | | Appointments → **Start session** | Status moves `WAITING → IN_SESSION`; a `DRAFT` encounter is created |
-| 7 | | Records → open the encounter | Fill vitals, symptoms, exam, diagnosis, plan, prescriptions, lab requests |
-| 8 | | **Finalize** | Appointment completes, care status clears, patient leaves the waiting list |
-| 9 | **Pharmacist** / **Lab Tech** | Dashboard | Prescriptions and lab requests raised in step 7 surface here — the handoff exists as data, the dispensing UI is the next module |
-| 10 | **Administrator** | Dashboard | Facility-wide roll-up across every role's work |
+| 7 | | Records → open the encounter | Fill vitals, symptoms, exam, diagnosis, plan. **Put three medicines in Prescriptions, one per line** |
+| 8 | | **Finalize** | Appointment completes, care status clears, patient leaves the waiting list — and three prescription orders are created |
+| 9 | **Pharmacist** | Dashboard | Three tiles that were empty a moment ago: **Pending 3** |
+| 10 | | Pharmacy | The three medicines are here as separate rows. **Dispense** one; **Unavailable** another, with "Out of stock" as the reason |
+| 11 | | Back to Dashboard | Pending 1 · Dispensed Today 1 · Unavailable 1 — the tiles and the queue read the same table |
+| 12 | **Administrator** | Dashboard | Facility-wide roll-up across every role's work |
 
 **Prove multi-tenancy in ten seconds** — same endpoint, different tenant header:
 
@@ -95,14 +100,29 @@ curl -s localhost:8080/api/patients -H 'X-Tenant-Id: other-hospital'   # → emp
                                          └─────────────────────┘
 ```
 
-**Backend — package by feature, not by layer.** `patient/`, `appointment/`,
-`encounter/`, `stats/` each hold their own controller, service, repository, entity and
-DTOs. Adding the pharmacy module means adding one package, not touching four.
+**Backend — package by layer.**
 
-Controllers stay thin: read the tenant header, delegate, return a DTO. All business
-rules live in the service layer, which is where the tests point. Entities never cross
-the HTTP boundary — request/response records do, so the database schema and the API
-contract can move independently.
+```
+com.eclinician
+├── controllers/      HTTP only — read the tenant header, delegate, return a DTO
+├── services/         every business rule lives here; this is what the tests point at
+├── repositories/     data access, every finder tenant-scoped
+├── domains/
+│   ├── entities/     JPA classes — mutable, because Hibernate constructs then populates
+│   ├── enums/        AppointmentStatus, PatientCareStatus, EncounterStatus, PrescriptionStatus
+│   └── dtos/         records — immutable, what crosses the HTTP boundary
+└── web/              one @RestControllerAdvice normalizing every error
+```
+
+Entities never cross the HTTP boundary — request/response records do — so the database
+schema and the API contract can move independently. `PrescriptionResponse` carries a
+`patientName` that exists in no table; `DispenseRequest` accepts only the three fields
+a pharmacist may set, so no caller can post its own `tenantId`.
+
+The trade-off is honest: package-by-feature would let a service stay package-private,
+unreachable outside its own feature. Splitting by layer means a controller and its
+service sit in different packages, so **41 declarations had to become `public`**.
+Navigability was worth more here than compiler-enforced module boundaries.
 
 **Frontend — server state and UI state are kept apart.** React Query owns everything
 that came from the API (caching, refetching, loading and error states); Zustand owns
@@ -134,8 +154,10 @@ Every endpoint requires an `X-Tenant-Id` header.
 | `POST` | `/api/appointments/patients/{id}/start-session` | Clinician takes the patient |
 | `POST` | `/api/appointments/{id}/complete` | Close the visit |
 | `GET` `POST` `PUT` | `/api/encounters` `/{id}` | Read and document the encounter |
-| `POST` | `/api/encounters/{id}/finalize` | Sign off — completes the whole loop |
-| `GET` | `/api/stats/dashboard` | 11 live counts behind the role dashboards |
+| `POST` | `/api/encounters/{id}/finalize` | Sign off — completes the visit and raises the prescription orders |
+| `GET` | `/api/pharmacy/prescriptions` | The dispensing queue, filterable by `?status=` |
+| `POST` | `/api/pharmacy/prescriptions/{id}` | Dispense a medicine, or mark it unavailable with a reason |
+| `GET` | `/api/stats/dashboard` | 13 live counts behind the role dashboards |
 
 Errors are normalized by a single `@RestControllerAdvice`: `404` for a missing record,
 `409` for a workflow violation (checking in a patient who is already checked in), `400`
@@ -154,7 +176,7 @@ subscribes to.
 | Administrator | Everything | Total patients · Appointments today · Open encounters · Clinicians documenting |
 | Clinician | Patients, appointments, records | Waiting now · In session · Open encounters · Finalized today |
 | Receptionist | Patients, appointments | Checked in · Waiting · Appointments today · Registered today |
-| Pharmacist | Pharmacy | Prescriptions raised · Finalized today · In session · Total patients |
+| Pharmacist | Pharmacy | Pending · Dispensed today · Unavailable · Finalized today |
 | Lab Technician | Lab results | Lab requests raised · Finalized today · In session · Waiting |
 
 ---
@@ -242,16 +264,21 @@ Named honestly, with the reason:
 | Not built | Why / what it needs |
 |---|---|
 | **Real authentication** | The single biggest gap. Login is a client-side picker and the tenant travels as a plain header, so any caller can read any tenant's data. Needs Spring Security + JWT, with the tenant claim inside the signed token instead of the header. |
-| **Pharmacy dispensing** | Prescriptions are recorded as encounter text. Needs its own entity, a stock/inventory model, and a dispense action. |
-| **Lab result entry** | Same shape — requests exist on the encounter; results need an entity and a technician workflow. |
+| **Pharmacy stock** | Dispensing works; inventory does not. "Unavailable" is a pharmacist's judgement, not a stock level. Needs a drug catalogue and quantity tracking. |
+| **Lab result entry** | Requests still live as encounter text. Results need their own entity and a technician workflow — the same shape the pharmacy now has. |
 | **Staff management** | Blocked behind real auth: staff records are only meaningful once accounts exist. |
 | **Platform admin console** | Tenant onboarding, per-tenant module toggles, billing. The module-toggle plumbing already exists in the frontend; the console to drive it does not. |
 | **Database migrations** | Hibernate generates the schema (`ddl-auto=update`). Flyway before anything resembling production. |
 
-**Deliberate scope decision:** rather than build five shallow modules, I built one
+**Deliberate scope decision:** rather than build five shallow modules, I built the
 clinical workflow all the way through — UI, API, business rules, database, tests, and
-deployment. The architecture is what makes the remaining modules additive: each is a
-new feature package alongside the existing ones, not a rewrite.
+deployment — then added pharmacy dispensing on top of it as proof the architecture is
+additive.
+
+That second module is the evidence. It needed one entity, one repository, two DTOs, one
+service and one controller, plus a **single line** inside `finalizeEncounter`. Nothing
+in the patient, appointment or encounter code changed to accommodate it. Lab results
+would follow the same shape.
 
 ---
 
@@ -259,6 +286,6 @@ new feature package alongside the existing ones, not a rewrite.
 
 1. **Spring Security + JWT** — close the tenant-isolation hole; everything else depends on it.
 2. **Flyway migrations** — before any real data exists.
-3. **Pharmacy module** — first vertical slice on top of the now-proven pattern.
-4. **Lab results** — mirrors pharmacy closely.
-5. **Platform admin console** — turns the multi-tenant design into a product.
+3. **Lab results** — same shape as pharmacy, now a proven pattern to copy.
+4. **Platform admin console** — turns the multi-tenant design into a product.
+5. **Pharmacy stock** — a drug catalogue and quantities behind the dispense action.
