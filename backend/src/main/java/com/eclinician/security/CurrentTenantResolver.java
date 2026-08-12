@@ -13,22 +13,27 @@ import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-/** Reads the {@code tenant} claim off the verified token and hands it to controllers. */
+/**
+ * Hands controllers values off the verified token: the {@code tenant} claim for
+ * {@link CurrentTenant}, and the {@code name} claim for {@link CurrentUserName}.
+ */
 @Component
 public class CurrentTenantResolver implements HandlerMethodArgumentResolver, WebMvcConfigurer {
 
     @Override
     public boolean supportsParameter(MethodParameter parameter) {
-        return parameter.hasParameterAnnotation(CurrentTenant.class)
-                && String.class.equals(parameter.getParameterType());
+        return String.class.equals(parameter.getParameterType())
+                && (parameter.hasParameterAnnotation(CurrentTenant.class)
+                        || parameter.hasParameterAnnotation(CurrentUserName.class));
     }
 
     @Override
     public Object resolveArgument(MethodParameter parameter, ModelAndViewContainer mav,
             NativeWebRequest request, WebDataBinderFactory binderFactory) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !(authentication.getPrincipal() instanceof Jwt jwt)) {
-            throw new AccessDeniedException("Authentication required");
+        Jwt jwt = token();
+        if (parameter.hasParameterAnnotation(CurrentUserName.class)) {
+            String name = jwt.getClaimAsString("name");
+            return name == null || name.isBlank() ? "Unknown" : name;
         }
         String tenantId = jwt.getClaimAsString("tenant");
         if (tenantId == null || tenantId.isBlank()) {
@@ -36,6 +41,14 @@ public class CurrentTenantResolver implements HandlerMethodArgumentResolver, Web
             throw new AccessDeniedException("This account is not attached to a hospital");
         }
         return tenantId;
+    }
+
+    private Jwt token() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof Jwt jwt)) {
+            throw new AccessDeniedException("Authentication required");
+        }
+        return jwt;
     }
 
     @Override

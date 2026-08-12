@@ -3,7 +3,6 @@ export type EncounterStatus = 'DRAFT' | 'FINALIZED'
 export interface EncounterForm {
   patientId: string
   appointmentId: string
-  clinicianName: string
   chiefComplaint: string
   bloodPressure: string
   temperatureCelsius: string
@@ -21,6 +20,8 @@ export interface Encounter extends Omit<EncounterForm,
   'temperatureCelsius' | 'pulseBpm' | 'weightKg'> {
   id: string
   patientName: string
+  /** Response-only: stamped by the API from the signed-in clinician's token. */
+  clinicianName: string
   status: EncounterStatus
   temperatureCelsius: number | null
   pulseBpm: number | null

@@ -35,7 +35,7 @@ class EncounterServiceTests {
         appointments.startSession(patient.getTenantId(), patient.getId());
 
         EncounterRequest request = request(patient, checkedIn, "Malaria", "Begin treatment");
-        EncounterResponse draft = encounters.save(patient.getTenantId(), null, request);
+        EncounterResponse draft = encounters.save(patient.getTenantId(), "Dr Test", null, request);
         assertThat(draft.status()).isEqualTo(EncounterStatus.DRAFT);
 
         EncounterResponse finalized = encounters.finalizeEncounter(patient.getTenantId(), draft.id());
@@ -54,16 +54,16 @@ class EncounterServiceTests {
                 new AppointmentRequest(patient.getId(), null, "Review"));
         appointments.startSession(patient.getTenantId(), patient.getId());
         EncounterRequest incomplete = request(patient, checkedIn, null, null);
-        EncounterResponse draft = encounters.save(patient.getTenantId(), null, incomplete);
+        EncounterResponse draft = encounters.save(patient.getTenantId(), "Dr Test", null, incomplete);
 
         assertThatThrownBy(() -> encounters.finalizeEncounter(patient.getTenantId(), draft.id()))
                 .isInstanceOf(ConflictException.class)
                 .hasMessageContaining("Diagnosis and treatment plan");
 
-        EncounterResponse updated = encounters.save(patient.getTenantId(), draft.id(),
+        EncounterResponse updated = encounters.save(patient.getTenantId(), "Dr Test", draft.id(),
                 request(patient, checkedIn, "Diagnosis", "Plan"));
         encounters.finalizeEncounter(patient.getTenantId(), updated.id());
-        assertThatThrownBy(() -> encounters.save(patient.getTenantId(), updated.id(),
+        assertThatThrownBy(() -> encounters.save(patient.getTenantId(), "Dr Test", updated.id(),
                 request(patient, checkedIn, "Changed", "Changed")))
                 .isInstanceOf(ConflictException.class)
                 .hasMessageContaining("cannot be changed");
@@ -82,7 +82,7 @@ class EncounterServiceTests {
 
     private EncounterRequest request(Patient patient, AppointmentResponse appointment,
             String diagnosis, String plan) {
-        return new EncounterRequest(patient.getId(), appointment.id(), "Dr Test", "Fever",
+        return new EncounterRequest(patient.getId(), appointment.id(), "Fever",
                 "120/80", 37.2, 80, 65.0, "Fever and chills", "Alert", diagnosis, plan,
                 "Medication once daily", "Full blood count");
     }

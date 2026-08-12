@@ -1,6 +1,7 @@
 package com.eclinician;
 
 import com.eclinician.domains.entities.Patient;
+import com.eclinician.domains.enums.UserRole;
 import com.eclinician.repositories.PatientRepository;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -32,11 +33,14 @@ class ClinicalEncounterFlowTests {
     @Test
     void clinicianCanMovePatientFromCheckInThroughAVisibleFinalizedRecord() throws Exception {
         Patient patient = patient();
-        // The tenant is never sent — it rides inside the token this login returns.
-        String token = accounts.bearerFor(TENANT);
+        // The tenant is never sent — it rides inside each token. One token per role,
+        // because the server now enforces who may do what.
+        String reception = accounts.bearerFor(TENANT, UserRole.RECEPTIONIST);
+        String clinician = accounts.bearerFor(TENANT, UserRole.CLINICIAN);
+        String labTech = accounts.bearerFor(TENANT, UserRole.LAB_TECHNICIAN);
 
         String checkedInBody = mvc.perform(post("/api/appointments/check-in")
-                        .header("Authorization", token)
+                        .header("Authorization", reception)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"patientId\":\"" + patient.getId() + "\",\"reason\":\"Fever\"}"))
                 .andExpect(status().isOk())
@@ -45,14 +49,13 @@ class ClinicalEncounterFlowTests {
         String appointmentId = mapper.readTree(checkedInBody).get("id").asText();
 
         mvc.perform(post("/api/appointments/patients/{patientId}/start-session", patient.getId())
-                        .header("Authorization", token))
+                        .header("Authorization", clinician))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("IN_SESSION"));
 
         String encounterJson = mapper.writeValueAsString(mapper.createObjectNode()
                 .put("patientId", patient.getId().toString())
                 .put("appointmentId", appointmentId)
-                .put("clinicianName", "Dr End to End")
                 .put("chiefComplaint", "Fever and chills")
                 .put("bloodPressure", "120/80")
                 .put("temperatureCelsius", 38.1)
@@ -66,7 +69,7 @@ class ClinicalEncounterFlowTests {
                 .put("labRequests", "Malaria rapid diagnostic test"));
 
         String draftBody = mvc.perform(post("/api/encounters")
-                        .header("Authorization", token)
+                        .header("Authorization", clinician)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(encounterJson))
                 .andExpect(status().isCreated())
@@ -75,27 +78,27 @@ class ClinicalEncounterFlowTests {
         JsonNode draft = mapper.readTree(draftBody);
 
         mvc.perform(post("/api/encounters/{id}/finalize", draft.get("id").asText())
-                        .header("Authorization", token))
+                        .header("Authorization", clinician))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("FINALIZED"))
                 .andExpect(jsonPath("$.diagnosis").value("Uncomplicated malaria"));
 
         mvc.perform(get("/api/encounters")
-                        .header("Authorization", token)
+                        .header("Authorization", clinician)
                         .queryParam("patientId", patient.getId().toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].patientName").value("E2E Patient"))
                 .andExpect(jsonPath("$[0].status").value("FINALIZED"));
 
         mvc.perform(get("/api/appointments")
-                        .header("Authorization", token)
+                        .header("Authorization", clinician)
                         .queryParam("patientId", patient.getId().toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].status").value("COMPLETED"));
 
         // Finalizing raised the lab request as a PENDING order the technician can result.
         String queueBody = mvc.perform(get("/api/lab/orders")
-                        .header("Authorization", token)
+                        .header("Authorization", labTech)
                         .queryParam("status", "PENDING"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].testName").value("Malaria rapid diagnostic test"))
@@ -103,13 +106,13 @@ class ClinicalEncounterFlowTests {
                 .andReturn().getResponse().getContentAsString();
 
         mvc.perform(post("/api/lab/orders/{id}", mapper.readTree(queueBody).get(0).get("id").asText())
-                        .header("Authorization", token)
+                        .header("Authorization", labTech)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"status\":\"COMPLETED\",\"technicianName\":\"Lab Tech\","
-                                + "\"result\":\"Positive for P. falciparum\"}"))
+                        .content("{\"status\":\"COMPLETED\",\"result\":\"Positive for P. falciparum\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("COMPLETED"))
-                .andExpect(jsonPath("$.resultedBy").value("Lab Tech"));
+                // stamped from the technician's token, not from the request body
+                .andExpect(jsonPath("$.resultedBy").value(TestAccounts.nameFor(UserRole.LAB_TECHNICIAN)));
     }
 
     private Patient patient() {

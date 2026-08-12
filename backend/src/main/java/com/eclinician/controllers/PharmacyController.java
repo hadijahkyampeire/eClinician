@@ -4,8 +4,10 @@ import com.eclinician.domains.dtos.DispenseRequest;
 import com.eclinician.domains.dtos.PrescriptionResponse;
 import com.eclinician.domains.enums.PrescriptionStatus;
 import com.eclinician.security.CurrentTenant;
+import com.eclinician.security.CurrentUserName;
 import com.eclinician.services.PharmacyService;
 import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,15 +22,18 @@ public class PharmacyController {
         this.pharmacyService = pharmacyService;
     }
 
+    @PreAuthorize("hasAnyRole('PHARMACIST', 'ADMINISTRATOR')")
     @GetMapping
     public List<PrescriptionResponse> listPrescriptions(@CurrentTenant String tenantId,
                                                         @RequestParam(required = false) PrescriptionStatus status) {
         return pharmacyService.list(tenantId, status);
     }
 
+    @PreAuthorize("hasAnyRole('PHARMACIST', 'ADMINISTRATOR')")
     @PostMapping("/{id}")
     public PrescriptionResponse update(@CurrentTenant String tenantId,
+                                       @CurrentUserName String pharmacistName,
                                        @PathVariable UUID id, @Valid @RequestBody DispenseRequest request) {
-        return pharmacyService.update(tenantId, id, request);
+        return pharmacyService.update(tenantId, pharmacistName, id, request);
     }
 }

@@ -311,6 +311,22 @@ clinic's order even by guessing its UUID.
 `UserRepository` is the single deliberately un-scoped repository: at login there is no
 tenant yet, and the email is what decides which one the caller gets.
 
+## 8b. Authorization — what the role may do
+
+Tenancy answers *whose data*; the role answers *which actions*.
+
+1. **The role is a claim**, set at login from the `app_users` row.
+2. **A converter turns it into an authority** — `PHARMACIST` becomes `ROLE_PHARMACIST`
+   in the security context (`SecurityConfig.roleConverter`).
+3. **Controllers carry `@PreAuthorize`** — `hasAnyRole('PHARMACIST','ADMINISTRATOR')` on
+   dispensing, `CLINICIAN` on documenting, `RECEPTIONIST` on registration and arrival.
+   A refusal is a `403` from the server, not a hidden button.
+4. **Audit fields come from the token, never the body.** `@CurrentUserName` stamps
+   `dispensedBy`, `resultedBy` and `clinicianName`, so a caller cannot record work under
+   another person's name. The three request DTOs no longer carry a name field at all.
+5. **The frontend mirrors the same table** in `ProtectedRoute` and the navigation, which
+   is convenience only — the API refuses the call independently.
+
 ## 9. Why the architecture is the point
 
 The claim "adding a module is additive, not a rewrite" was tested twice.

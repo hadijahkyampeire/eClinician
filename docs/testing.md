@@ -4,11 +4,11 @@
 make test        # or: cd backend && ./mvnw test
 ```
 
-**9 tests, all green.** They run against in-memory H2, so no database is needed in CI,
+**16 tests, all green.** They run against in-memory H2, so no database is needed in CI,
 and they point at the service layer — where every rule lives.
 
 ```
-Tests run: 9, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 16, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
 ```
 
@@ -20,6 +20,7 @@ BUILD SUCCESS
 | `EncounterServiceTests` | 2 | A draft finalizes and completes its visit; finalization is refused without a diagnosis and plan, and a finalized record is locked |
 | `ClinicalEncounterFlowTests` | 1 | The whole loop through HTTP: log in → check in → start session → document → finalize → result the lab order |
 | `AuthTests` | 4 | Login, credential rejection, a closed API, and tenant isolation |
+| `RoleAuthorizationTests` | 7 | A role may do only its own work — a receptionist cannot dispense, a pharmacist cannot take a patient into session or register one, pharmacy and lab cannot read each other's queues, an administrator may act for every department |
 | `BackendApplicationTests` | 1 | The Spring context loads — every bean wires |
 
 ## The two that matter most
@@ -38,13 +39,26 @@ mvc.perform(get("/api/patients")
         .andExpect(jsonPath("$.content").isEmpty());
 ```
 
+**Role enforcement** (`RoleAuthorizationTests`). Hiding a button is not security, so
+each rule is asserted against the API itself:
+
+```java
+mvc.perform(post("/api/pharmacy/prescriptions/{id}", UUID.randomUUID())
+                .header("Authorization", accounts.bearerFor(TENANT, UserRole.RECEPTIONIST))
+                .content("{\"status\":\"DISPENSED\"}"))
+        .andExpect(status().isForbidden());
+```
+
 **The full loop** (`ClinicalEncounterFlowTests`). One test walks the entire clinical
 workflow over real HTTP with a real token, asserting at each step: the appointment
 reaches `CHECKED_IN`, then `IN_SESSION`; the encounter is created `DRAFT`; finalizing
 returns `FINALIZED`; the appointment is `COMPLETED`; and the test the clinician
 requested is waiting in the lab queue as its own row, ready to be resulted.
 
-It sends no tenant anywhere. The token carries it.
+It sends no tenant anywhere — the token carries it — and it now uses **three** tokens,
+one per role, because the server refuses to let a receptionist do the clinician's work.
+The assertion on `resultedBy` proves the audit trail comes from the technician's token
+rather than from the request body.
 
 ## Types of case covered
 
@@ -53,7 +67,7 @@ It sends no tenant anywhere. The token carries it.
 | Normal | A draft with diagnosis and plan finalizes and completes the visit |
 | Boundary | A lab order cannot be completed with an empty result |
 | Error | Checking in a patient who already has an active visit → `409` |
-| Security | No token → `401`; wrong password → `401`; wrong tenant → empty |
+| Security | No token → `401`; wrong password → `401`; wrong tenant → empty; wrong role → `403` |
 
 ## Frontend checks
 
