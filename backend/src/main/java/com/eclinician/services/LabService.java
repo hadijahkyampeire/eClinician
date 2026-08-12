@@ -49,7 +49,8 @@ public class LabService {
     }
 
     @Transactional
-    public LabOrderResponse update(String tenantId, UUID id, LabResultRequest request) {
+    public LabOrderResponse update(String tenantId, String technicianName, UUID id,
+            LabResultRequest request) {
         LabOrder value = orders.findByIdAndTenantId(id, tenantId)
                 .orElseThrow(() -> new NotFoundException("Lab order not found"));
         if (value.getStatus() == LabStatus.COMPLETED) {
@@ -66,7 +67,7 @@ public class LabService {
         value.setNotes(request.notes());
         if (request.status() == LabStatus.COMPLETED) {
             value.setResult(request.result().trim());
-            value.setResultedBy(request.technicianName().trim());
+            value.setResultedBy(technicianName);
             value.setResultedAt(Instant.now());
         }
         return response(tenantId, orders.save(value));

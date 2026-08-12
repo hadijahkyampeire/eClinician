@@ -49,7 +49,8 @@ public class PharmacyService {
     }
 
     @Transactional
-    public PrescriptionResponse update(String tenantId, UUID id, DispenseRequest request) {
+    public PrescriptionResponse update(String tenantId, String pharmacistName, UUID id,
+            DispenseRequest request) {
         PrescriptionOrder value = orders.findByIdAndTenantId(id, tenantId)
                 .orElseThrow(() -> new NotFoundException("Prescription not found"));
         if (value.getStatus() == PrescriptionStatus.DISPENSED) {
@@ -61,7 +62,7 @@ public class PharmacyService {
         value.setStatus(request.status());
         value.setNotes(request.notes());
         if (request.status() == PrescriptionStatus.DISPENSED) {
-            value.setDispensedBy(request.pharmacistName().trim());
+            value.setDispensedBy(pharmacistName);
             value.setDispensedAt(Instant.now());
         }
         return response(tenantId, orders.save(value));

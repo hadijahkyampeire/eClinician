@@ -33,7 +33,7 @@ One `@RestControllerAdvice` normalizes every failure:
 |---|---|---|
 | `400` | Validation failed on a request body | `{ "<field>": "<message>" }` per invalid field |
 | `401` | Bad login, or a missing, expired or tampered token | `{ "message": "Invalid email or password" }` |
-| `403` | Authenticated, but the token carries no tenant (platform admin) | Spring's default |
+| `403` | The caller's role may not perform this action, or the token carries no tenant (platform admin) | Spring's default |
 | `404` | No such record *for this tenant* | `{ "message": "..." }` |
 | `409` | A workflow rule was violated | `{ "message": "This medicine has already been dispensed" }` |
 
@@ -70,6 +70,25 @@ curl -s -X POST localhost:8080/api/lab/orders/<uuid> \
   -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
   -d '{"status":"COMPLETED","technicianName":"Peter Ssali","result":"Positive"}'
 ```
+
+## Who may call what
+
+Enforced on the server with `@PreAuthorize` against the `role` claim — not merely hidden
+in the UI. Anything not listed is open to any authenticated member of the tenant.
+
+| Endpoint | Allowed roles |
+|---|---|
+| `POST` `PUT` `DELETE /api/patients` | Receptionist · Administrator |
+| `POST /api/appointments`, `/check-in`, `/{id}/waiting` | Receptionist · Administrator |
+| `POST /api/appointments/.../start-session`, `/{id}/complete` | Clinician · Administrator |
+| `POST` `PUT /api/encounters`, `/{id}/finalize` | Clinician · Administrator |
+| `GET` `POST /api/pharmacy/prescriptions` | Pharmacist · Administrator |
+| `GET` `POST /api/lab/orders` | Lab Technician · Administrator |
+| `GET /api/patients`, `/api/appointments`, `/api/encounters`, `/api/stats/dashboard` | Any signed-in staff member of the tenant |
+
+Audit fields are never accepted from the client: `dispensedBy`, `resultedBy` and
+`clinicianName` are stamped from the caller's token, so no request can record work under
+someone else's name.
 
 ## Roles and dashboards
 

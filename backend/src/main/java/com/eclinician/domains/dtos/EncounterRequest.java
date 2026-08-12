@@ -10,7 +10,6 @@ import java.util.UUID;
 public record EncounterRequest(
         @NotNull UUID patientId,
         @NotNull UUID appointmentId,
-        @NotBlank @Size(max = 150) String clinicianName,
         @Size(max = 500) String chiefComplaint,
         @Size(max = 30) String bloodPressure,
         @PositiveOrZero Double temperatureCelsius,

@@ -12,6 +12,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -60,6 +61,7 @@ public class PatientController {
         return service.get(tenantId, id);
     }
 
+    @PreAuthorize("hasAnyRole('RECEPTIONIST', 'ADMINISTRATOR')")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public PatientResponse create(@CurrentTenant String tenantId,
@@ -67,12 +69,14 @@ public class PatientController {
         return service.create(tenantId, req);
     }
 
+    @PreAuthorize("hasAnyRole('RECEPTIONIST', 'ADMINISTRATOR')")
     @PutMapping("/{id}")
     public PatientResponse update(@CurrentTenant String tenantId,
             @PathVariable UUID id, @Valid @RequestBody PatientRequest req) {
         return service.update(tenantId, id, req);
     }
 
+    @PreAuthorize("hasAnyRole('RECEPTIONIST', 'ADMINISTRATOR')")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@CurrentTenant String tenantId, @PathVariable UUID id) {

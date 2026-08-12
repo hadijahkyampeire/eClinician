@@ -26,19 +26,32 @@ public class TestAccounts {
 
     /** @return an Authorization header value for a clinician of this tenant. */
     String bearerFor(String tenantId) {
-        return "Bearer " + auth.login(new LoginRequest(create(tenantId), PASSWORD)).token();
+        return bearerFor(tenantId, UserRole.CLINICIAN);
+    }
+
+    String bearerFor(String tenantId, UserRole role) {
+        return "Bearer " + auth.login(new LoginRequest(create(tenantId, role), PASSWORD)).token();
     }
 
     String create(String tenantId) {
-        String email = "staff." + tenantId + "@example.com";
+        return create(tenantId, UserRole.CLINICIAN);
+    }
+
+    /** The account's name is derived from its role, so audit fields are readable in assertions. */
+    String create(String tenantId, UserRole role) {
+        String email = role.name().toLowerCase() + "." + tenantId + "@example.com";
         if (users.existsByEmailIgnoreCase(email)) return email;
         AppUser user = new AppUser();
-        user.setName("Test Staff");
+        user.setName(nameFor(role));
         user.setEmail(email);
         user.setPasswordHash(passwords.encode(PASSWORD));
-        user.setRole(UserRole.CLINICIAN);
+        user.setRole(role);
         user.setTenantId(tenantId);
         users.save(user);
         return email;
+    }
+
+    static String nameFor(UserRole role) {
+        return "Test " + role.label();
     }
 }
