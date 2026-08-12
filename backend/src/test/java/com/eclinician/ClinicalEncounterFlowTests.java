@@ -27,13 +27,16 @@ class ClinicalEncounterFlowTests {
     @Autowired MockMvc mvc;
     @Autowired ObjectMapper mapper;
     @Autowired PatientRepository patients;
+    @Autowired TestAccounts accounts;
 
     @Test
     void clinicianCanMovePatientFromCheckInThroughAVisibleFinalizedRecord() throws Exception {
         Patient patient = patient();
+        // The tenant is never sent — it rides inside the token this login returns.
+        String token = accounts.bearerFor(TENANT);
 
         String checkedInBody = mvc.perform(post("/api/appointments/check-in")
-                        .header("X-Tenant-Id", TENANT)
+                        .header("Authorization", token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"patientId\":\"" + patient.getId() + "\",\"reason\":\"Fever\"}"))
                 .andExpect(status().isOk())
@@ -42,7 +45,7 @@ class ClinicalEncounterFlowTests {
         String appointmentId = mapper.readTree(checkedInBody).get("id").asText();
 
         mvc.perform(post("/api/appointments/patients/{patientId}/start-session", patient.getId())
-                        .header("X-Tenant-Id", TENANT))
+                        .header("Authorization", token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("IN_SESSION"));
 
@@ -63,7 +66,7 @@ class ClinicalEncounterFlowTests {
                 .put("labRequests", "Malaria rapid diagnostic test"));
 
         String draftBody = mvc.perform(post("/api/encounters")
-                        .header("X-Tenant-Id", TENANT)
+                        .header("Authorization", token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(encounterJson))
                 .andExpect(status().isCreated())
@@ -72,27 +75,27 @@ class ClinicalEncounterFlowTests {
         JsonNode draft = mapper.readTree(draftBody);
 
         mvc.perform(post("/api/encounters/{id}/finalize", draft.get("id").asText())
-                        .header("X-Tenant-Id", TENANT))
+                        .header("Authorization", token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("FINALIZED"))
                 .andExpect(jsonPath("$.diagnosis").value("Uncomplicated malaria"));
 
         mvc.perform(get("/api/encounters")
-                        .header("X-Tenant-Id", TENANT)
+                        .header("Authorization", token)
                         .queryParam("patientId", patient.getId().toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].patientName").value("E2E Patient"))
                 .andExpect(jsonPath("$[0].status").value("FINALIZED"));
 
         mvc.perform(get("/api/appointments")
-                        .header("X-Tenant-Id", TENANT)
+                        .header("Authorization", token)
                         .queryParam("patientId", patient.getId().toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].status").value("COMPLETED"));
 
         // Finalizing raised the lab request as a PENDING order the technician can result.
         String queueBody = mvc.perform(get("/api/lab/orders")
-                        .header("X-Tenant-Id", TENANT)
+                        .header("Authorization", token)
                         .queryParam("status", "PENDING"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].testName").value("Malaria rapid diagnostic test"))
@@ -100,7 +103,7 @@ class ClinicalEncounterFlowTests {
                 .andReturn().getResponse().getContentAsString();
 
         mvc.perform(post("/api/lab/orders/{id}", mapper.readTree(queueBody).get(0).get("id").asText())
-                        .header("X-Tenant-Id", TENANT)
+                        .header("Authorization", token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"status\":\"COMPLETED\",\"technicianName\":\"Lab Tech\","
                                 + "\"result\":\"Positive for P. falciparum\"}"))

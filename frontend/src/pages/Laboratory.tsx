@@ -21,13 +21,13 @@ export default function Laboratory() {
 
   const { data = [], isLoading } = useQuery({
     queryKey: ['lab-orders', tenantId, filter],
-    queryFn: () => getLabOrders(tenantId!, filter === 'ALL' ? undefined : filter),
+    queryFn: () => getLabOrders(filter === 'ALL' ? undefined : filter),
     enabled: Boolean(tenantId),
   })
 
   const mutation = useMutation({
     mutationFn: (input: { id: string; status: 'COMPLETED' | 'CANCELLED'; result: string; notes: string }) =>
-      updateLabOrder(tenantId!, input.id, { ...input, technicianName }),
+      updateLabOrder(input.id, { ...input, technicianName }),
     onSuccess: () => {
       setError('')
       void queryClient.invalidateQueries({ queryKey: ['lab-orders'] })

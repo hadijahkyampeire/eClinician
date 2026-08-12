@@ -64,7 +64,7 @@ export default function Dashboard() {
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['dashboard-stats', tenantId],
-    queryFn: () => getDashboardStats(tenantId!),
+    queryFn: () => getDashboardStats(),
     enabled: Boolean(tenantId),
   })
 

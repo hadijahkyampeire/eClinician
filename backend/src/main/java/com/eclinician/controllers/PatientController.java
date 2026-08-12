@@ -2,6 +2,7 @@ package com.eclinician.controllers;
 
 import com.eclinician.domains.dtos.PatientRequest;
 import com.eclinician.domains.dtos.PatientResponse;
+import com.eclinician.security.CurrentTenant;
 import com.eclinician.services.PatientService;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
@@ -17,7 +18,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -35,7 +35,7 @@ public class PatientController {
     }
 
     @GetMapping
-    public Page<PatientResponse> list(@RequestHeader("X-Tenant-Id") String tenantId,
+    public Page<PatientResponse> list(@CurrentTenant String tenantId,
             @RequestParam(required = false) String q,
             @RequestParam(required = false) String sex,
             @RequestParam(required = false) String country,
@@ -56,26 +56,26 @@ public class PatientController {
     }
 
     @GetMapping("/{id}")
-    public PatientResponse get(@RequestHeader("X-Tenant-Id") String tenantId, @PathVariable UUID id) {
+    public PatientResponse get(@CurrentTenant String tenantId, @PathVariable UUID id) {
         return service.get(tenantId, id);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public PatientResponse create(@RequestHeader("X-Tenant-Id") String tenantId,
+    public PatientResponse create(@CurrentTenant String tenantId,
             @Valid @RequestBody PatientRequest req) {
         return service.create(tenantId, req);
     }
 
     @PutMapping("/{id}")
-    public PatientResponse update(@RequestHeader("X-Tenant-Id") String tenantId,
+    public PatientResponse update(@CurrentTenant String tenantId,
             @PathVariable UUID id, @Valid @RequestBody PatientRequest req) {
         return service.update(tenantId, id, req);
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@RequestHeader("X-Tenant-Id") String tenantId, @PathVariable UUID id) {
+    public void delete(@CurrentTenant String tenantId, @PathVariable UUID id) {
         service.delete(tenantId, id);
     }
 }

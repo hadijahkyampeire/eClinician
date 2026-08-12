@@ -21,14 +21,14 @@ export default function Pharmacy() {
 
   const { data = [], isLoading } = useQuery({
     queryKey: ['prescriptions', tenantId, filter],
-    queryFn: () => getPrescriptions(tenantId!, filter === 'ALL' ? undefined : filter),
+    queryFn: () => getPrescriptions(filter === 'ALL' ? undefined : filter),
     enabled: Boolean(tenantId),
   })
 
 
   const mutation = useMutation({
     mutationFn: (input: { id: string; status: 'DISPENSED' | 'UNAVAILABLE'; notes: string }) =>
-      updatePrescription(tenantId!, input.id, { status: input.status, pharmacistName, notes: input.notes }),
+      updatePrescription(input.id, { status: input.status, pharmacistName, notes: input.notes }),
     onSuccess: () => {
       setError('')
       void queryClient.invalidateQueries({ queryKey: ['prescriptions'] })
