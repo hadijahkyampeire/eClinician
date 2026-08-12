@@ -1,10 +1,11 @@
 import { API_URL } from './config'
+import { authHeaders } from './session'
 import type { Prescription, DispenseForm, PrescriptionStatus } from '../types/pharmacy'
 
-async function request<T>(path: string, tenantId: string, options?: RequestInit): Promise<T> {
+async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, {
     ...options,
-    headers: { 'Content-Type': 'application/json', 'X-Tenant-Id': tenantId, ...options?.headers },
+    headers: { 'Content-Type': 'application/json', ...authHeaders(), ...options?.headers },
   })
   if (!response.ok) {
     const details = await response.json().catch(() => null)
@@ -13,13 +14,13 @@ async function request<T>(path: string, tenantId: string, options?: RequestInit)
   return response.json()
 }
 
-export function getPrescriptions(tenantId: string, status?: PrescriptionStatus) {
+export function getPrescriptions(status?: PrescriptionStatus) {
   const query = status ? `?status=${status}` : ''
-  return request<Prescription[]>(`/api/pharmacy/prescriptions${query}`, tenantId)
+  return request<Prescription[]>(`/api/pharmacy/prescriptions${query}`)
 }
 
-export function updatePrescription(tenantId: string, id: string, form: DispenseForm) {
-  return request<Prescription>(`/api/pharmacy/prescriptions/${id}`, tenantId, {
+export function updatePrescription(id: string, form: DispenseForm) {
+  return request<Prescription>(`/api/pharmacy/prescriptions/${id}`, {
     method: 'POST',
     body: JSON.stringify(form),
   })

@@ -6,13 +6,14 @@ interface PatientPage {
 }
 
 import { API_URL } from './config'
+import { authHeaders } from './session'
 
-async function request<T>(path: string, tenantId: string, options?: RequestInit): Promise<T> {
+async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      'X-Tenant-Id': tenantId,
+      ...authHeaders(),
       ...options?.headers,
     },
   })
@@ -28,7 +29,6 @@ async function request<T>(path: string, tenantId: string, options?: RequestInit)
 }
 
 export async function getPatients(
-  tenantId: string,
   search: string,
   filters: PatientFilters,
 ) {
@@ -38,30 +38,30 @@ export async function getPatients(
     if (value) query.set(key, value)
   })
   const suffix = query.size ? `?${query.toString()}` : ''
-  const page = await request<PatientPage>(`/api/patients${suffix}`, tenantId)
+  const page = await request<PatientPage>(`/api/patients${suffix}`)
   return page.content
 }
 
-export function getPatient(tenantId: string, id: string) {
-  return request<Patient>(`/api/patients/${id}`, tenantId)
+export function getPatient(id: string) {
+  return request<Patient>(`/api/patients/${id}`)
 }
 
-export function createPatient(tenantId: string, patient: PatientForm) {
-  return request<Patient>('/api/patients', tenantId, {
+export function createPatient(patient: PatientForm) {
+  return request<Patient>('/api/patients', {
     method: 'POST',
     body: JSON.stringify(toRequestBody(patient)),
   })
 }
 
-export function updatePatient(tenantId: string, id: string, patient: PatientForm) {
-  return request<Patient>(`/api/patients/${id}`, tenantId, {
+export function updatePatient(id: string, patient: PatientForm) {
+  return request<Patient>(`/api/patients/${id}`, {
     method: 'PUT',
     body: JSON.stringify(toRequestBody(patient)),
   })
 }
 
-export function deletePatient(tenantId: string, id: string) {
-  return request<void>(`/api/patients/${id}`, tenantId, { method: 'DELETE' })
+export function deletePatient(id: string) {
+  return request<void>(`/api/patients/${id}`, { method: 'DELETE' })
 }
 
 function toRequestBody(patient: PatientForm) {

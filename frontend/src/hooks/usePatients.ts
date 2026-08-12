@@ -18,7 +18,7 @@ export function usePatients(
 
   const patientsQuery = useQuery({
     queryKey,
-    queryFn: () => getPatients(tenantId!, search, filters),
+    queryFn: () => getPatients(search, filters),
     enabled: Boolean(tenantId),
   })
 
@@ -26,18 +26,18 @@ export function usePatients(
     queryClient.invalidateQueries({ queryKey: ['patients', tenantId] })
 
   const createMutation = useMutation({
-    mutationFn: (patient: PatientForm) => createPatient(tenantId!, patient),
+    mutationFn: (patient: PatientForm) => createPatient(patient),
     onSuccess: refreshPatients,
   })
 
   const updateMutation = useMutation({
     mutationFn: ({ id, patient }: { id: string; patient: PatientForm }) =>
-      updatePatient(tenantId!, id, patient),
+      updatePatient(id, patient),
     onSuccess: refreshPatients,
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => deletePatient(tenantId!, id),
+    mutationFn: (id: string) => deletePatient(id),
     onSuccess: refreshPatients,
   })
 

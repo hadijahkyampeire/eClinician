@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { login as requestLogin } from '../api/auth'
 import { useAuth } from '../auth/AuthContext'
-import { demoUsers } from '../auth/demoUsers'
+import { demoUsers, tenantById } from '../auth/demoUsers'
+import type { Role } from '../auth/AuthContext'
 
-// Demo-only placeholder password used when a demo role is selected.
+// The seeded demo accounts all share this password (see UserSeeder on the API).
 const DEMO_PASSWORD = 'demo1234'
 
 export default function Login() {
@@ -13,8 +15,9 @@ export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
 
-  const canSubmit = email.trim() !== '' && password.trim() !== ''
+  const canSubmit = email.trim() !== '' && password.trim() !== '' && !busy
 
   // Picking a demo role prepopulates the fields (which enables the button).
   function handleDemoSelect(e: React.ChangeEvent<HTMLSelectElement>) {
@@ -29,17 +32,26 @@ export default function Login() {
     setError('')
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    // TODO (backend): POST /api/auth/login { email, password } and set the
-    // returned Session. For now we resolve the email against the demo users.
-    const demo = demoUsers.find((u) => u.session.user.email === email.trim())
-    if (!demo) {
-      setError('Unknown account. Choose a demo login below for now.')
-      return
+    setBusy(true)
+    setError('')
+    try {
+      const result = await requestLogin(email.trim(), password)
+      login(
+        {
+          user: { name: result.name, email: result.email, role: result.role as Role },
+          isPlatformAdmin: result.platformAdmin,
+          tenant: tenantById(result.tenantId),
+        },
+        result.token,
+      )
+      navigate(result.platformAdmin ? '/admin' : '/dashboard')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not sign in')
+    } finally {
+      setBusy(false)
     }
-    login(demo.session)
-    navigate(demo.session.isPlatformAdmin ? '/admin' : '/dashboard')
   }
 
   return (

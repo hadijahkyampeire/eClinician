@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
+import { clearToken, getToken, setToken } from '../api/session';
 
 export type Role =
   | 'Administrator'
@@ -36,7 +37,7 @@ export interface Session {
 
 interface AuthContextValue {
   session: Session | null;
-  login: (session: Session) => void;
+  login: (session: Session, token: string) => void;
   logout: () => void;
 }
 
@@ -49,22 +50,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       const parsed = saved ? (JSON.parse(saved) as Session) : null;
-      return parsed?.user?.role ? parsed : null; // ignore stale/old-shape data
+      // A session without a token is left over from before login was real: the UI
+      // would look signed in while every API call came back 401.
+      return parsed?.user?.role && getToken() ? parsed : null;
     } catch {
       return null;
     }
   });
 
-  // Demo login: caller passes a full Session (see demoUsers.ts).
-  // TODO (backend): replace callers with POST /api/auth/login and set the
-  // returned Session (+ token) here. The rest of the app already reads Session,
-  // so nothing downstream needs to change when we wire the real API.
-  function login(next: Session) {
+  // The session is what the UI renders; the token is what the API trusts. Login.tsx
+  // builds both from POST /api/auth/login.
+  function login(next: Session, token: string) {
+    setToken(token);
     setSession(next);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
   }
 
   function logout() {
+    clearToken();
     setSession(null);
     localStorage.removeItem(STORAGE_KEY);
   }
