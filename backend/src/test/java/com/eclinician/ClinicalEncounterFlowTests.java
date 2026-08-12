@@ -89,6 +89,24 @@ class ClinicalEncounterFlowTests {
                         .queryParam("patientId", patient.getId().toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].status").value("COMPLETED"));
+
+        // Finalizing raised the lab request as a PENDING order the technician can result.
+        String queueBody = mvc.perform(get("/api/lab/orders")
+                        .header("X-Tenant-Id", TENANT)
+                        .queryParam("status", "PENDING"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].testName").value("Malaria rapid diagnostic test"))
+                .andExpect(jsonPath("$[0].patientName").value("E2E Patient"))
+                .andReturn().getResponse().getContentAsString();
+
+        mvc.perform(post("/api/lab/orders/{id}", mapper.readTree(queueBody).get(0).get("id").asText())
+                        .header("X-Tenant-Id", TENANT)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"COMPLETED\",\"technicianName\":\"Lab Tech\","
+                                + "\"result\":\"Positive for P. falciparum\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("COMPLETED"))
+                .andExpect(jsonPath("$.resultedBy").value("Lab Tech"));
     }
 
     private Patient patient() {

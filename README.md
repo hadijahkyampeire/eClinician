@@ -29,15 +29,15 @@ clinic can actually afford.
 The system is built around one workflow, implemented end to end:
 
 ```
-  Receptionist            Clinician                              Pharmacist
+  Receptionist            Clinician                        Pharmacist · Lab Tech
        │                      │                                       │
    Register ──► Check in ──► Start ──► Document ──► Finalize ──► Dispense each medicine
-   patient      (WAITING)    session   (vitals, dx,     │         (or mark unavailable)
-       │            │           │       plan, meds)     │                │
-       ▼            ▼           ▼            ▼          ▼                ▼
+   patient      (WAITING)    session   (vitals, dx,     │         Result each test
+       │            │           │      plan, meds,      │                │
+       ▼            ▼           ▼      tests)           ▼                ▼
    patients   appointments  appointment  encounter  appointment   prescription_orders
-    table     + CHECKED_IN  → IN_SESSION  (DRAFT)   → COMPLETED   one row per medicine
-                                                   care cleared   PENDING → DISPENSED
+    table     + CHECKED_IN  → IN_SESSION  (DRAFT)   → COMPLETED    lab_orders
+                                                   care cleared   one row per line
 ```
 
 Two status fields track this, and the distinction matters:
@@ -50,11 +50,14 @@ Two status fields track this, and the distinction matters:
 
 Finalizing an encounter is the one action that closes the loop: it stamps
 `finalizedAt`, completes the appointment, clears the patient's care status, and splits
-the prescription text into one order per medicine — atomically, in one transaction.
+the prescription and lab request text into one order per line — atomically, in one
+transaction.
 
-That last step is what makes the pharmacy a real handoff rather than a screen. A
-clinician writes three medicines on one line each; the pharmacy receives three
-independent orders, so it can dispense two and flag the third as out of stock.
+That last step is what makes the pharmacy and the lab real handoffs rather than
+screens. A clinician writes three medicines on one line each; the pharmacy receives
+three independent orders, so it can dispense two and flag the third as out of stock.
+Lab requests travel the same path: one order per test, resulted or cancelled
+independently.
 
 ---
 
@@ -71,12 +74,13 @@ independent orders, so it can dispense two and flag the third as out of stock.
 | 4 | | Back to Dashboard | **Checked In** and **Registered Today** both incremented |
 | 5 | **Clinician** | Dashboard | Same endpoint, different four tiles — role decides the view |
 | 6 | | Appointments → **Start session** | Status moves `WAITING → IN_SESSION`; a `DRAFT` encounter is created |
-| 7 | | Records → open the encounter | Fill vitals, symptoms, exam, diagnosis, plan. **Put three medicines in Prescriptions, one per line** |
-| 8 | | **Finalize** | Appointment completes, care status clears, patient leaves the waiting list — and three prescription orders are created |
+| 7 | | Records → open the encounter | Fill vitals, symptoms, exam, diagnosis, plan. **Put three medicines in Prescriptions and two tests in Lab requests, one per line** |
+| 8 | | **Finalize** | Appointment completes, care status clears, patient leaves the waiting list — and three prescription orders plus two lab orders are created |
 | 9 | **Pharmacist** | Dashboard | Three tiles that were empty a moment ago: **Pending 3** |
 | 10 | | Pharmacy | The three medicines are here as separate rows. **Dispense** one; **Unavailable** another, with "Out of stock" as the reason |
 | 11 | | Back to Dashboard | Pending 1 · Dispensed Today 1 · Unavailable 1 — the tiles and the queue read the same table |
-| 12 | **Administrator** | Dashboard | Facility-wide roll-up across every role's work |
+| 12 | **Lab Technician** | Laboratory | The two tests are waiting as separate rows. **Record result** on one; **Cancel** the other with "No reagent" |
+| 13 | **Administrator** | Dashboard | Facility-wide roll-up across every role's work |
 
 **Prove multi-tenancy in ten seconds** — same endpoint, different tenant header:
 
@@ -154,9 +158,11 @@ Every endpoint requires an `X-Tenant-Id` header.
 | `POST` | `/api/appointments/patients/{id}/start-session` | Clinician takes the patient |
 | `POST` | `/api/appointments/{id}/complete` | Close the visit |
 | `GET` `POST` `PUT` | `/api/encounters` `/{id}` | Read and document the encounter |
-| `POST` | `/api/encounters/{id}/finalize` | Sign off — completes the visit and raises the prescription orders |
+| `POST` | `/api/encounters/{id}/finalize` | Sign off — completes the visit and raises the prescription and lab orders |
 | `GET` | `/api/pharmacy/prescriptions` | The dispensing queue, filterable by `?status=` |
 | `POST` | `/api/pharmacy/prescriptions/{id}` | Dispense a medicine, or mark it unavailable with a reason |
+| `GET` | `/api/lab/orders` | The lab queue, filterable by `?status=` |
+| `POST` | `/api/lab/orders/{id}` | Record a result, or cancel a test with a reason |
 | `GET` | `/api/stats/dashboard` | 13 live counts behind the role dashboards |
 
 Errors are normalized by a single `@RestControllerAdvice`: `404` for a missing record,
@@ -177,7 +183,10 @@ subscribes to.
 | Clinician | Patients, appointments, records | Waiting now · In session · Open encounters · Finalized today |
 | Receptionist | Patients, appointments | Checked in · Waiting · Appointments today · Registered today |
 | Pharmacist | Pharmacy | Pending · Dispensed today · Unavailable · Finalized today |
-| Lab Technician | Lab results | Lab requests raised · Finalized today · In session · Waiting |
+| Lab Technician | Laboratory | Lab requests raised · Finalized today · In session · Waiting |
+
+The lab tiles still count encounters carrying lab request text rather than the
+`lab_orders` rows behind the queue — the same follow-up the pharmacy tiles already had.
 
 ---
 
@@ -250,7 +259,8 @@ bundle. Changing it requires a frontend rebuild, not a restart.
 - `AppointmentServiceTests` — check-in transitions and the conflict rules that reject them
 - `EncounterServiceTests` — encounter creation and update
 - `ClinicalEncounterFlowTests` — the full loop end to end: check in → start session →
-  document → finalize, asserting the appointment completes and care status clears
+  document → finalize → result the lab order, asserting the appointment completes, care
+  status clears, and the requested test reaches the lab queue as its own row
 - `BackendApplicationTests` — context loads
 
 Tests run against in-memory H2, so no database is needed in CI.
@@ -265,20 +275,20 @@ Named honestly, with the reason:
 |---|---|
 | **Real authentication** | The single biggest gap. Login is a client-side picker and the tenant travels as a plain header, so any caller can read any tenant's data. Needs Spring Security + JWT, with the tenant claim inside the signed token instead of the header. |
 | **Pharmacy stock** | Dispensing works; inventory does not. "Unavailable" is a pharmacist's judgement, not a stock level. Needs a drug catalogue and quantity tracking. |
-| **Lab result entry** | Requests still live as encounter text. Results need their own entity and a technician workflow — the same shape the pharmacy now has. |
+| **Structured lab results** | A technician records a result, but as free text. Values, units and reference ranges need a test catalogue — the same argument as pharmacy stock. |
 | **Staff management** | Blocked behind real auth: staff records are only meaningful once accounts exist. |
 | **Platform admin console** | Tenant onboarding, per-tenant module toggles, billing. The module-toggle plumbing already exists in the frontend; the console to drive it does not. |
 | **Database migrations** | Hibernate generates the schema (`ddl-auto=update`). Flyway before anything resembling production. |
 
 **Deliberate scope decision:** rather than build five shallow modules, I built the
 clinical workflow all the way through — UI, API, business rules, database, tests, and
-deployment — then added pharmacy dispensing on top of it as proof the architecture is
-additive.
+deployment — then added pharmacy dispensing and lab results on top of it as proof the
+architecture is additive.
 
-That second module is the evidence. It needed one entity, one repository, two DTOs, one
-service and one controller, plus a **single line** inside `finalizeEncounter`. Nothing
-in the patient, appointment or encounter code changed to accommodate it. Lab results
-would follow the same shape.
+Those two modules are the evidence, and the second one cost exactly what the first did:
+one entity, one repository, two DTOs, one service and one controller, plus a **single
+line** inside `finalizeEncounter`. Nothing in the patient, appointment or encounter code
+changed to accommodate either.
 
 ---
 
@@ -286,6 +296,6 @@ would follow the same shape.
 
 1. **Spring Security + JWT** — close the tenant-isolation hole; everything else depends on it.
 2. **Flyway migrations** — before any real data exists.
-3. **Lab results** — same shape as pharmacy, now a proven pattern to copy.
+3. **Lab tiles off `lab_orders`** — a small commit, the one the pharmacy tiles already had.
 4. **Platform admin console** — turns the multi-tenant design into a product.
-5. **Pharmacy stock** — a drug catalogue and quantities behind the dispense action.
+5. **A test catalogue** — the shared answer to both pharmacy stock and structured lab results.
