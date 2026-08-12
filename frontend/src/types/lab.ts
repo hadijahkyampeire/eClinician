@@ -15,10 +15,12 @@ export interface LabOrder {
   createdAt: string
 }
 
-/** Mirrors LabResultRequest. A technician can never set PENDING. */
+/**
+ * Mirrors LabResultRequest. A technician can never set PENDING, and never says who
+ * they are — the API stamps that from their token.
+ */
 export interface LabResultForm {
   status: Exclude<LabStatus, 'PENDING'>
-  technicianName: string
   result: string
   notes: string
 }

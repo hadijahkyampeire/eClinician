@@ -2,17 +2,21 @@ package com.eclinician.security;
 
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
@@ -23,8 +27,12 @@ import org.springframework.security.web.SecurityFilterChain;
  * Stateless JWT security. Only health and login are open; everything else needs a
  * token this service signed, and the tenant is read from that token rather than a
  * header the caller controls.
+ *
+ * <p>{@code @EnableMethodSecurity} switches on the {@code @PreAuthorize} rules the
+ * controllers carry, so a role is enforced on the server and not merely hidden in the UI.
  */
 @Configuration
+@EnableMethodSecurity
 public class SecurityConfig {
 
     private final SecretKey key;
@@ -43,8 +51,23 @@ public class SecurityConfig {
                 .authorizeHttpRequests(requests -> requests
                         .requestMatchers("/api/health", "/api/auth/login").permitAll()
                         .anyRequest().authenticated())
-                .oauth2ResourceServer(server -> server.jwt(Customizer.withDefaults()))
+                .oauth2ResourceServer(server -> server.jwt(jwt -> jwt
+                        .jwtAuthenticationConverter(roleConverter())))
                 .build();
+    }
+
+    /**
+     * Turns the token's {@code role} claim into a Spring Security authority, so
+     * {@code hasAnyRole('PHARMACIST')} works against a claim the caller cannot forge.
+     */
+    private JwtAuthenticationConverter roleConverter() {
+        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
+        converter.setJwtGrantedAuthoritiesConverter(jwt -> {
+            String role = jwt.getClaimAsString("role");
+            return role == null ? List.of()
+                    : List.of(new SimpleGrantedAuthority("ROLE_" + role));
+        });
+        return converter;
     }
 
     @Bean

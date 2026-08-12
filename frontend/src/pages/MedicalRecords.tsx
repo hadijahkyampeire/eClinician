@@ -8,7 +8,7 @@ import { useAuth } from '../auth/AuthContext'
 import type { Encounter, EncounterForm } from '../types/encounter'
 
 const emptyForm: EncounterForm = {
-  patientId: '', appointmentId: '', clinicianName: '', chiefComplaint: '',
+  patientId: '', appointmentId: '', chiefComplaint: '',
   bloodPressure: '', temperatureCelsius: '', pulseBpm: '', weightKg: '', symptoms: '',
   examinationNotes: '', diagnosis: '', treatmentPlan: '', prescriptions: '', labRequests: '',
 }
@@ -85,9 +85,8 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
     // Seed a new record after the active appointment query resolves.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!encounterId && patientId) setForm(value => ({ ...value, patientId,
-      appointmentId: value.appointmentId || activeAppointment?.id || '',
-      clinicianName: value.clinicianName || session?.user.name || '' }))
-  }, [activeAppointment?.id, encounterId, patientId, session?.user.name])
+      appointmentId: value.appointmentId || activeAppointment?.id || '' }))
+  }, [activeAppointment?.id, encounterId, patientId])
 
   const locked = encounterQuery.data?.status === 'FINALIZED'
   const set = (field: keyof EncounterForm, value: string) =>
@@ -126,7 +125,8 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
     {locked && <div className="record-locked">Finalized {formatDateTime(encounterQuery.data!.finalizedAt!)} · This record is read-only.</div>}
     <form className="encounter-form" onSubmit={submit}>
       <FormSection title="Visit overview">
-        <Field label="Clinician" value={form.clinicianName} onChange={v => set('clinicianName', v)} required disabled={locked} />
+        {/* Not a field: the API records whoever's token signed the request. */}
+        <Field label="Clinician" value={encounterQuery.data?.clinicianName || session?.user.name || ''} onChange={() => {}} disabled />
         <Field label="Chief complaint" value={form.chiefComplaint} onChange={v => set('chiefComplaint', v)} wide disabled={locked} />
       </FormSection>
       <FormSection title="Vitals">

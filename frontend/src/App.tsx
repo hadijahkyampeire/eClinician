@@ -11,6 +11,13 @@ import Pharmacy from './pages/Pharmacy'
 import Laboratory from './pages/Laboratory'
 import Staff from './pages/Staff'
 import PlatformAdmin from './pages/PlatformAdmin'
+import type { Role } from './auth/AuthContext'
+
+// Mirrors the @PreAuthorize rules on the API. The server is the one that enforces
+// them; these keep a typed URL from landing on a screen that would only 403.
+const PHARMACY: Role[] = ['Pharmacist', 'Administrator']
+const LABORATORY: Role[] = ['Lab Technician', 'Administrator']
+const ADMIN: Role[] = ['Administrator']
 
 export default function App() {
   return (
@@ -41,9 +48,12 @@ export default function App() {
         <Route path="/patients/:patientId" element={<PatientDetails />} />
         <Route path="/appointments" element={<Appointments />} />
         <Route path="/records" element={<MedicalRecords />} />
-        <Route path="/pharmacy" element={<Pharmacy />} />
-        <Route path="/laboratory" element={<Laboratory />} />
-        <Route path="/staff" element={<Staff />} />
+        <Route path="/pharmacy" element={
+          <ProtectedRoute roles={PHARMACY}><Pharmacy /></ProtectedRoute>} />
+        <Route path="/laboratory" element={
+          <ProtectedRoute roles={LABORATORY}><Laboratory /></ProtectedRoute>} />
+        <Route path="/staff" element={
+          <ProtectedRoute roles={ADMIN}><Staff /></ProtectedRoute>} />
       </Route>
 
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
