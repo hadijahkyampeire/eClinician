@@ -24,11 +24,11 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<Login />} />
 
-      {/* Platform super-admin surface (no tenant). TODO: full admin console. */}
+      {/* Platform super-admin console: no tenant, and no clinical data. */}
       <Route
         path="/admin"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute platformOnly>
             <PlatformAdmin />
           </ProtectedRoute>
         }
