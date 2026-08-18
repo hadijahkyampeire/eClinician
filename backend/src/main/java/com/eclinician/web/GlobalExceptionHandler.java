@@ -2,6 +2,7 @@ package com.eclinician.web;
 
 import java.util.HashMap;
 import java.util.Map;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -23,6 +24,17 @@ public class GlobalExceptionHandler {
     ResponseEntity<Map<String, String>> conflict(ConflictException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(Map.of("message", ex.getMessage()));
+    }
+
+    /**
+     * A database constraint the service checks first — the tenant-scoped unique indexes
+     * on a patient's phone and national ID. Reaching here means two requests raced, so
+     * it is the same 409 the service would have raised, not a 500.
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    ResponseEntity<Map<String, String>> integrity(DataIntegrityViolationException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Map.of("message", "That record conflicts with one already saved"));
     }
 
     // A wrong email or password -> 401 with one deliberately vague message.
