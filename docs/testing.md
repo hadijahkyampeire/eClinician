@@ -21,7 +21,8 @@ BUILD SUCCESS
 | `ClinicalEncounterFlowTests` | 1 | The whole loop through HTTP: log in → check in → start session → document → finalize → result the lab order |
 | `AuthTests` | 4 | Login, credential rejection, a closed API, and tenant isolation |
 | `StaffManagementTests` | 4 | An administrator adds an account that can then sign in, deactivating it stops the login, an email is unique, and an administrator cannot deactivate themselves |
-| `PatientRuleTests` | 5 | The SRS rules: no shared phone or national ID inside one clinic, the same number is fine in another clinic, updating a patient does not collide with itself, and a patient with visits cannot be deleted |
+| `PatientRuleTests` | 6 | The SRS rules: no shared phone or national ID inside one clinic, the same number is fine in another clinic, updating a patient does not collide with itself, a patient with visits cannot be deleted, and the national ID cannot be changed after registration |
+| `AppointmentSchedulingTests` | 3 | The SRS scheduling rules: one doctor cannot hold two appointments at a time, cancelling frees the slot, and a visit that has already taken place cannot be cancelled |
 | `RoleAuthorizationTests` | 7 | A role may do only its own work — a receptionist cannot dispense, a pharmacist cannot take a patient into session or register one, pharmacy and lab cannot read each other's queues, an administrator may act for every department |
 | `BackendApplicationTests` | 1 | The Spring context loads — every bean wires |
 
