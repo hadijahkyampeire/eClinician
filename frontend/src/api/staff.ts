@@ -19,6 +19,11 @@ export function getStaff() {
   return request<Staff[]>('/api/staff')
 }
 
+/** Receptionists may read this one list, so a booking form can name a doctor. */
+export function getClinicians() {
+  return request<Staff[]>('/api/staff/clinicians')
+}
+
 export function createStaff(form: StaffForm) {
   return request<Staff>('/api/staff', { method: 'POST', body: JSON.stringify(form) })
 }

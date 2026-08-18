@@ -19,6 +19,10 @@ export function getLabOrders(status?: LabStatus) {
   return request<LabOrder[]>(`/api/lab/orders${query}`)
 }
 
+export function getPatientLabOrders(patientId: string) {
+  return request<LabOrder[]>(`/api/lab/orders/patients/${patientId}`)
+}
+
 export function updateLabOrder(id: string, form: LabResultForm) {
   return request<LabOrder>(`/api/lab/orders/${id}`, {
     method: 'POST',

@@ -48,6 +48,12 @@ public class LabService {
         return found.stream().map(value -> response(tenantId, value)).toList();
     }
 
+    /** SRS 5.1.3: the clinician reads their patient's results, not the technician's queue. */
+    public List<LabOrderResponse> listForPatient(String tenantId, UUID patientId) {
+        return orders.findByTenantIdAndPatientIdOrderByCreatedAtDesc(tenantId, patientId)
+                .stream().map(value -> response(tenantId, value)).toList();
+    }
+
     @Transactional
     public LabOrderResponse update(String tenantId, String technicianName, UUID id,
             LabResultRequest request) {

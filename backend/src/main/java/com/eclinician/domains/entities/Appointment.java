@@ -32,6 +32,9 @@ public class Appointment {
     @Column(nullable = false)
     private UUID patientId;
 
+    /** The clinician the visit is booked with. Null for a walk-in, taken by whoever is free. */
+    private UUID doctorId;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private AppointmentStatus status;

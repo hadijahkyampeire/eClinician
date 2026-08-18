@@ -79,13 +79,13 @@ Both are shown here rather than quietly reconciled.
 
 | # | Use case | Built? | Where | Deviation from the SRS |
 |---|---|---|---|---|
-| 1 | Patient Management | ✅ Full CRUD | `PatientController` · `/api/patients` | Matches the specification, including both business rules: no two patients in one clinic may share a phone or national ID, and a profile with visits or records cannot be deleted. The national ID is editable, unlike the SRS's "unwritable" rule. |
-| 2 | Appointment Management | ⚠️ Reshaped | `AppointmentController` · `/api/appointments` | The SRS specifies *scheduling* — a doctor, a date, a time, conflict checks. The system instead models **arrival**: check in → waiting → in session → completed, with a reason. The `CANCELLED` and `NO_SHOW` statuses exist in the enum but no endpoint sets them. This is the largest deviation, and a deliberate one: for a walk-in outpatient clinic, who is waiting *now* mattered more than who is booked for Thursday. |
+| 1 | Patient Management | ✅ Full CRUD | `PatientController` · `/api/patients` | Matches the specification, including all three business rules: no two patients in one clinic may share a phone or national ID, a profile with visits or records cannot be deleted, and the national ID is written once at registration. A patient registered without one may still have it filled in later — the field is unwritable, not permanently empty. |
+| 2 | Appointment Management | ✅ Both models | `AppointmentController` · `/api/appointments` | Scheduling is built as the SRS specifies — a patient, a doctor, a date and time, and both conflict rules — alongside the **arrival** model the clinic actually runs on: check in → waiting → in session → completed. Booking is additive: a walk-in carries no doctor, so it can never clash. Update and cancel are built, with "an appointment that has already taken place cannot be cancelled" read as *has started or finished*. `NO_SHOW` remains in the enum unused — the SRS describes no flow that sets it. |
 | 3 | Medical Record Management | ✅ Plus more | `EncounterController` · `/api/encounters` | Called an **encounter** rather than a consultation record, and carries more than the SRS listed: vitals, chief complaint, examination notes, treatment plan. Adds **finalization**, which the SRS does not describe — the act that closes the visit and raises pharmacy and lab work. |
-| 4 | Prescription Management | ✅ Reshaped | `PharmacyController` · `/api/pharmacy/prescriptions` | Prescriptions are **free text, one medicine per line**, split into one order per line when the encounter is finalized — not a form with dosage, frequency and duration fields. Adds an `UNAVAILABLE` status the SRS did not anticipate, because a pharmacy that cannot supply a medicine still has to record that. |
-| 5 | Laboratory Management | ✅ Reshaped | `LabController` · `/api/lab/orders` | Same shape as prescriptions: lab requests are free text, one test per line, raised at finalization. Results are free text. "View results by patient" is not built — results are read from the lab queue. Adds `CANCELLED` for a test that cannot be run. |
+| 4 | Prescription Management | ✅ Reshaped | `PharmacyController` · `/api/pharmacy/prescriptions` | Prescriptions are **free text, one medicine per line**, split into one order per line when the encounter is finalized — not a form with dosage, frequency and duration fields. The clinician reads them back per patient on the patient record; the pharmacist works the queue. Adds an `UNAVAILABLE` status the SRS did not anticipate, because a pharmacy that cannot supply a medicine still has to record that. |
+| 5 | Laboratory Management | ✅ Reshaped | `LabController` · `/api/lab/orders` | Same shape as prescriptions: lab requests are free text, one test per line, raised at finalization. Results are free text, but "view results by patient" is built — a clinician reads their patient's results on the patient record rather than through the technician's queue. Adds `CANCELLED` for a test that cannot be run. |
 | 6 | User Management | ✅ Built | `StaffController` · `/api/staff` · Staff page | An administrator adds colleagues, changes a role, and deactivates an account — which blocks the login immediately. **Deactivation rather than deletion**: the SRS allows either, and keeping the row means the work an account already recorded keeps its author. Authentication itself was added beyond the SRS, which assumed login as a precondition without specifying it. |
-| — | Role-permitted access | ✅ Built | `SecurityConfig` · `@PreAuthorize` | The SRS business rule that users access only role-permitted features is enforced on the server: the role travels as a token claim and each endpoint names the roles it accepts. A receptionist calling the pharmacy queue gets `403`, whatever the UI shows. |
+| — | Role-permitted access | ✅ Built | `SecurityConfig` · `@PreAuthorize` | The SRS business rule that users access only role-permitted features is enforced on the server: the role travels as a token claim and each endpoint names the roles it accepts. A receptionist calling the pharmacy queue gets `403`, whatever the UI shows. The one widened read is `/api/staff/clinicians`, because a receptionist cannot book a doctor they cannot name. |
 | — | `LLMService` (VOPC 1) | ❌ Not built | — | The consultation VOPC includes an external service generating a summary from the clinician's notes. No LLM integration exists; the clinician writes the record themselves. |
 
 ### Requirement added during implementation
@@ -111,3 +111,14 @@ answers them explicitly.
 | NFR-7 | **Testability** | Rules tested against in-memory H2, no database needed in CI |
 | NFR-8 | **Maintainability** | Proven twice: pharmacy, then lab, each one line inside `finalizeEncounter` |
 | NFR-9 | **Error clarity** | One `@RestControllerAdvice` maps 400/401/404/409 |
+
+### Where the implementation is stricter than the SRS
+
+Two rules are deliberately tighter than the document, and both are visible in the code:
+
+- **A patient may hold only one open appointment at a time.** The SRS forbids only
+  duplicates with the same doctor at the same time. Keeping the stricter rule is what
+  makes check-in unambiguous — there is never a question of *which* visit the patient
+  arrived for — and cancellation is now the way out of it.
+- **The doctor conflict check keys on the exact instant**, not an overlapping window.
+  Appointments carry no duration, so an overlap has nothing to be computed from.

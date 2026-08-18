@@ -3,6 +3,7 @@ package com.eclinician.services;
 import com.eclinician.domains.dtos.StaffRequest;
 import com.eclinician.domains.dtos.StaffResponse;
 import com.eclinician.domains.entities.AppUser;
+import com.eclinician.domains.enums.UserRole;
 import com.eclinician.repositories.UserRepository;
 import com.eclinician.web.ConflictException;
 import com.eclinician.web.NotFoundException;
@@ -27,6 +28,12 @@ public class StaffService {
     public List<StaffResponse> list(String tenantId) {
         return users.findByTenantIdOrderByNameAsc(tenantId).stream()
                 .map(StaffResponse::from).toList();
+    }
+
+    /** Active clinicians only: a deactivated doctor must not appear in a booking form. */
+    public List<StaffResponse> clinicians(String tenantId) {
+        return users.findByTenantIdAndRoleAndActiveTrueOrderByNameAsc(tenantId, UserRole.CLINICIAN)
+                .stream().map(StaffResponse::from).toList();
     }
 
     @Transactional
