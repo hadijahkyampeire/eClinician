@@ -7,12 +7,12 @@ moment a patient walks in to the moment their medicines are dispensed.
 sign in with the demo dropdown (password `demo1234`). The API sleeps when idle, so the
 **first request takes 1–2 minutes**; open it before you need it.
 
-**Stack:** Java 21 · Spring Boot 4 · PostgreSQL 16 · React 19 · TypeScript · Vite
+**Stack:** Java 21 · Spring Boot 4 · PostgreSQL 16 · Flyway · React 19 · TypeScript · Vite
 
 **Documentation:** [Vision](docs/vision.md) · [SRS & use cases](docs/srs.md) ·
 [Architecture & UML](docs/architecture.md) · [API](docs/api.md) ·
 [Testing](docs/testing.md) · [Deployment](docs/deployment.md) ·
-[Roadmap](docs/roadmap.md)
+[Roadmap](docs/roadmap.md) · [Presentation guide](docs/presentation.md)
 Analysis-phase originals: [SRS PDF](docs/srs/eClinician-SRS.pdf) ·
 [requirements presentation](docs/srs/eClinician-Requirements-Presentation.pptx) ·
 [drawio diagrams](docs/diagrams/)
