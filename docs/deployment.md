@@ -42,15 +42,29 @@ staff accounts are seeded on first start (password `demo1234`, or `DEMO_PASSWORD
 | `DB_HOST` `DB_PORT` `DB_NAME` `DB_USER` `DB_PASSWORD` | backend | `localhost:5433`, `eclinician` |
 | `PORT` | backend | `8080` |
 | `CORS_ALLOWED_ORIGINS` | backend | `http://localhost:5173` |
-| `JWT_SECRET` | backend | a development key — override everywhere else |
+| `JWT_SECRET` | backend | none — a random per-process key is generated if unset |
 | `JWT_TTL_MINUTES` | backend | `480` |
 | `DEMO_PASSWORD` | backend | `demo1234` |
 | `VITE_API_URL` | frontend | `http://localhost:8080` |
 
 - `CORS_ALLOWED_ORIGINS` is comma-separated and accepts bare hostnames (https assumed).
-- `JWT_SECRET` must be at least 32 bytes — HS256 refuses a shorter key — and changing it
-  signs out everyone holding an old token. It is never committed: the default in
-  `application.properties` is a development value, and Render generates a real one.
+- `JWT_SECRET` must be at least 32 bytes — HS256 refuses a shorter key, and the app now
+  refuses to start on a shorter one rather than failing at first login. Changing it signs
+  out everyone holding an old token. **No key is committed:** unset, the app generates a
+  random key for that process and logs a warning, so sign-ins stop working after a
+  restart — the intended reminder. Render generates a real one per deployment.
+
+## Database migrations
+
+Flyway owns the schema (`backend/src/main/resources/db/migration`) and runs on startup,
+before JPA. Hibernate is set to `validate`, so a mapping that has drifted from the
+migrations fails the boot instead of altering a live table.
+
+- **A fresh database** runs `V1` then `V2`.
+- **The already-deployed database** is baselined: `spring.flyway.baseline-on-migrate=true`
+  records `V1` as already present without re-running it, then applies `V2` onwards.
+- **Adding a change** means a new `V3__…sql` — never editing a migration that has run,
+  because Flyway checksums them and will refuse to start if one changed underneath it.
 
 ## Deploying to Render
 

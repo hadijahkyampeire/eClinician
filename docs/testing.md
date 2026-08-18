@@ -72,6 +72,15 @@ rather than from the request body.
 | Error | Checking in a patient who already has an active visit → `409` |
 | Security | No token → `401`; wrong password → `401`; wrong tenant → empty; wrong role → `403` |
 
+## Why the tests do not run the migrations
+
+Production runs Flyway against PostgreSQL; the tests run Hibernate's generated schema
+against in-memory H2, with `spring.flyway.enabled=false`. The migrations are Postgres
+SQL — partial unique indexes and `lower(national_id)` among them — and rewriting them to
+H2's dialect would mean testing against a schema that is not the one deployed. The
+schema the migrations produce is instead verified where it matters: `ddl-auto=validate`
+fails the application's startup if the entities and the migrations have drifted.
+
 ## Frontend checks
 
 ```bash

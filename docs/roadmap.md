@@ -12,7 +12,7 @@ Named honestly, with the reason.
 | **Per-doctor patient lists** | A clinician reads any patient in their own clinic. The SRS phrase "their patients" needs a doctor-patient assignment the system does not model. |
 | **`NO_SHOW`** | The status exists in the enum; no SRS flow sets it, so nothing does. |
 | **Platform admin console** | Tenant onboarding, per-tenant module toggles, billing. The module-toggle plumbing already exists in the frontend; the console to drive it does not. |
-| **Database migrations** | Hibernate generates the schema (`ddl-auto=update`). Flyway before anything resembling production. |
+
 
 ## Closed in the SRS-conformance pass
 
@@ -24,6 +24,14 @@ The four places where the code did not yet match the SRS document are now closed
 | 2 | Booking with a doctor, date and time, with both conflict rules, plus update and cancel |
 | 4.1 | A clinician reads their patient's prescriptions on the patient record |
 | 5.3 | A clinician reads their patient's lab results the same way |
+
+And against the presentation rubric:
+
+| Rubric criterion | What landed |
+|---|---|
+| 7 — entity and database design | Flyway owns the schema; foreign keys, the two SRS uniqueness rules as tenant-scoped unique indexes, and indexes for the queue and conflict queries |
+| 12 — security | No signing key in the source at all; `JWT_SECRET` or a random per-process key |
+| 3 — architecture and UML | Booking sequence and appointment state diagrams; the ERD carries `doctor_id` and the foreign keys |
 
 ## The scope decision behind that list
 
@@ -38,16 +46,11 @@ to accommodate either.
 
 ## What I would do next, in order
 
-1. **Flyway migrations** — the most overdue item, and adding the `active` column proved
-   why: `ddl-auto=update` cannot add a NOT NULL column to a table with rows, so the
-   change silently failed and every existing account was locked out until the column
-   was given an explicit default. A versioned migration would have said so up front.
-   Appointments gaining a nullable `doctor_id` was the lucky case, not the general one.
-2. **Lab tiles off `lab_orders`** — a small commit, the one the pharmacy tiles already had.
-3. **Platform admin console** — turns the multi-tenant design into a product. The
+1. **Lab tiles off `lab_orders`** — a small commit, the one the pharmacy tiles already had.
+2. **Platform admin console** — turns the multi-tenant design into a product. The
    blocker underneath it: a tenant is a string column, not a row, and the branding and
    module toggles the frontend reads still live in `demoUsers.ts`.
-4. **A test catalogue** — the shared answer to both pharmacy stock and structured lab
+3. **A test catalogue** — the shared answer to both pharmacy stock and structured lab
    results.
 
 ## Development history
