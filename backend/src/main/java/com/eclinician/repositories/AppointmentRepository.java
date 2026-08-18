@@ -19,6 +19,11 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
     Optional<Appointment> findFirstByTenantIdAndPatientIdAndStatusInOrderByCreatedAtDesc(
             String tenantId, UUID patientId, Collection<AppointmentStatus> statuses);
 
+    /** One query answers both SRS scheduling rules: the doctor's slot, and who is in it. */
+    List<Appointment> findByTenantIdAndDoctorIdAndScheduledAtAndStatusIn(
+            String tenantId, UUID doctorId, Instant scheduledAt,
+            Collection<AppointmentStatus> statuses);
+
     List<Appointment> findByTenantId(String tenantId, Sort sort);
 
     List<Appointment> findByTenantIdAndPatientId(String tenantId, UUID patientId, Sort sort);

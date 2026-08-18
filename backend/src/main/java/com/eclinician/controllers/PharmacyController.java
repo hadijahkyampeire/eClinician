@@ -29,6 +29,13 @@ public class PharmacyController {
         return pharmacyService.list(tenantId, status);
     }
 
+    @PreAuthorize("hasAnyRole('CLINICIAN', 'PHARMACIST', 'ADMINISTRATOR')")
+    @GetMapping("/patients/{patientId}")
+    public List<PrescriptionResponse> listForPatient(@CurrentTenant String tenantId,
+                                                     @PathVariable UUID patientId) {
+        return pharmacyService.listForPatient(tenantId, patientId);
+    }
+
     @PreAuthorize("hasAnyRole('PHARMACIST', 'ADMINISTRATOR')")
     @PostMapping("/{id}")
     public PrescriptionResponse update(@CurrentTenant String tenantId,
