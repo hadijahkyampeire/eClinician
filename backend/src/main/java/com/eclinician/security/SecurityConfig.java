@@ -2,9 +2,13 @@ package com.eclinician.security;
 
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.util.Base64;
 import java.util.List;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -35,10 +39,32 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableMethodSecurity
 public class SecurityConfig {
 
+    private static final Logger log = LoggerFactory.getLogger(SecurityConfig.class);
+
     private final SecretKey key;
 
-    SecurityConfig(@Value("${app.jwt.secret}") String secret) {
-        this.key = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+    SecurityConfig(@Value("${app.jwt.secret:}") String secret) {
+        this.key = new SecretKeySpec(
+                keyMaterial(secret).getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+    }
+
+    /**
+     * No signing key is committed to the repository. In a deployment {@code JWT_SECRET}
+     * supplies one; with nothing set, a random key is generated for this process alone,
+     * so a developer can run the app without a secret and no default key ever ships in
+     * the source. Tokens then stop working when the app restarts, which is the intended
+     * reminder that the key is missing.
+     */
+    private static String keyMaterial(String secret) {
+        if (secret != null && secret.length() >= 32) return secret;
+        if (secret != null && !secret.isBlank()) {
+            throw new IllegalStateException("JWT_SECRET must be at least 32 characters");
+        }
+        byte[] random = new byte[32];
+        new SecureRandom().nextBytes(random);
+        log.warn("No JWT_SECRET set — generated a random signing key for this process. "
+                + "Sign-ins will not survive a restart.");
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(random);
     }
 
     @Bean

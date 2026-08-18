@@ -75,6 +75,7 @@ rather than one large page.
 erDiagram
     PATIENTS ||--o{ APPOINTMENTS : "has visits"
     PATIENTS ||--o{ ENCOUNTERS : "has records"
+    APP_USERS ||--o{ APPOINTMENTS : "doctor is booked for"
     APPOINTMENTS ||--|| ENCOUNTERS : "one visit, one record"
     ENCOUNTERS ||--o{ PRESCRIPTION_ORDERS : "raises on finalize"
     ENCOUNTERS ||--o{ LAB_ORDERS : "raises on finalize"
@@ -94,7 +95,9 @@ erDiagram
         uuid id PK
         string tenant_id
         uuid patient_id FK
+        uuid doctor_id FK "null for a walk-in"
         enum status "SCHEDULED through COMPLETED, CANCELLED, NO_SHOW"
+        instant scheduled_at "the booked slot; the conflict rules key on it"
         instant checked_in_at
         instant session_started_at
         instant completed_at
@@ -152,8 +155,19 @@ indexed query instead of a scan over appointment history.
 
 Relationships are held as `UUID` columns rather than JPA associations. That is a
 deliberate choice: it keeps every query explicitly tenant-scoped and avoids lazy-loading
-surprises across the HTTP boundary, at the cost of the database not enforcing the
-foreign keys for us.
+surprises across the HTTP boundary. It used to cost the foreign keys — the object model
+knew about the relationships and the database did not. Since the schema moved to Flyway
+(`backend/src/main/resources/db/migration`) the database holds them too:
+
+| Constraint | Rule it enforces |
+|---|---|
+| `fk_appointments_patient`, `fk_encounters_patient` (`RESTRICT`) | A patient with visits or records cannot be deleted — SRS 1.3, now below the service as well as inside it |
+| `fk_appointments_doctor` (`RESTRICT`) | A doctor's account is deactivated, never deleted, so a booked visit keeps its clinician |
+| `fk_prescription_orders_encounter`, `fk_lab_orders_encounter` (`CASCADE`) | Orders belong to the record that raised them |
+| `ux_patients_tenant_phone`, `ux_patients_tenant_national_id` | The two SRS uniqueness rules, per tenant, where two simultaneous registrations cannot race past the service check |
+
+Hibernate no longer generates the schema (`ddl-auto=validate`), so a mapping that drifts
+from the migrations fails at startup rather than silently altering a live table.
 
 ## 4. VOPC — view of participating classes
 
@@ -192,7 +206,82 @@ talks HTTP, a control class holding every rule, entities holding state. The name
 The controller holds no rules and the entities hold no orchestration; everything that
 decides anything is in the control classes. That is why the tests point at services.
 
-## 5. Sequence — UC-5 Finalize encounter
+## 5. Sequence — UC-2 Schedule appointment
+
+The SRS rule the diagram exists to show: a doctor cannot hold two appointments at one
+date and time. One repository call answers it, and answers the patient-duplicate rule at
+the same time, because a clash with the same patient is a row in the same result.
+
+```mermaid
+sequenceDiagram
+    actor Receptionist
+    participant UI as AppointmentFormModal.tsx
+    participant Sec as Security filter chain
+    participant Ctrl as AppointmentController
+    participant Svc as AppointmentService
+    participant DB as PostgreSQL
+
+    Receptionist->>UI: patient, doctor, date and time
+    UI->>Sec: POST /api/appointments with Bearer token
+    Sec->>Sec: verify signature + expiry
+    Sec->>Ctrl: @PreAuthorize RECEPTIONIST or ADMINISTRATOR
+    Ctrl->>Svc: schedule(tenantId, request)
+
+    activate Svc
+    Svc->>DB: load patient (tenant-scoped)
+    Svc->>DB: any active appointment for this patient?
+    Svc->>DB: load doctor, require role CLINICIAN
+    Svc->>DB: appointments for this doctor at this instant, still active
+
+    alt slot already taken
+        Svc-->>Ctrl: ConflictException
+        Ctrl-->>UI: 409 "That doctor already has an appointment at that time"
+    else same patient, same doctor, same instant
+        Svc-->>Ctrl: ConflictException
+        Ctrl-->>UI: 409 "This patient already has an appointment with this doctor"
+    else free
+        Svc->>DB: insert appointment SCHEDULED
+        Svc-->>Ctrl: AppointmentResponse
+        Ctrl-->>UI: 201 with the doctor's name resolved
+    end
+    deactivate Svc
+```
+
+A walk-in never reaches those branches: `checkIn` creates the appointment with no
+doctor, and the check returns early when `doctorId` is null.
+
+## 6. State — the life of one appointment
+
+Two fields track a visit and this diagram is the reason they are different. The states
+below are `AppointmentStatus`, the permanent record; `PatientCareStatus` is only the
+sub-set with a box around it, which is what "who is here right now" reads.
+
+```mermaid
+stateDiagram-v2
+    [*] --> SCHEDULED: book (doctor + time)
+    [*] --> CHECKED_IN: walk in
+    SCHEDULED --> CHECKED_IN: arrives at the desk
+    CHECKED_IN --> WAITING: sent to the waiting room
+    CHECKED_IN --> IN_SESSION: clinician takes the patient
+    WAITING --> IN_SESSION: clinician takes the patient
+    IN_SESSION --> COMPLETED: encounter finalized
+    SCHEDULED --> CANCELLED: cancel
+    CHECKED_IN --> CANCELLED: cancel
+    WAITING --> CANCELLED: cancel
+    COMPLETED --> [*]
+    CANCELLED --> [*]
+
+    note right of IN_SESSION
+        Cancelling is refused from here on:
+        the visit has already taken place
+    end note
+```
+
+`NO_SHOW` is the seventh value in the enum and appears in no transition above: the SRS
+describes no flow that sets it, so nothing does. Leaving it visible and unreachable is
+more honest than deleting it or pretending an endpoint exists.
+
+## 7. Sequence — UC-5 Finalize encounter
 
 ```mermaid
 sequenceDiagram
@@ -234,7 +323,7 @@ If any step throws — a missing diagnosis, an appointment not in session — th
 transaction rolls back and the visit stays exactly as it was. There is no state in which
 the appointment is closed but the pharmacy never heard about the medicines.
 
-## 6. Sequence — UC-0 Log in
+## 8. Sequence — UC-0 Log in
 
 ```mermaid
 sequenceDiagram
@@ -263,7 +352,7 @@ sequenceDiagram
     end
 ```
 
-## 7. Collaboration — UC-6 Dispense prescription
+## 9. Collaboration — UC-6 Dispense prescription
 
 Same interaction, drawn as a communication (collaboration) diagram with numbered
 messages.
@@ -296,7 +385,7 @@ Message 4 is the whole multi-tenancy story in one line: there is no
 `findById(id)` on that repository, so a pharmacist at one clinic cannot reach another
 clinic's order even by guessing its UUID.
 
-## 8. Multi-tenancy, end to end
+## 10. Multi-tenancy, end to end
 
 1. **Login decides the tenant.** It is read from the `app_users` row, never from input.
 2. **The token carries it.** `tenant` is a claim inside an HS256-signed JWT — readable by
@@ -311,7 +400,7 @@ clinic's order even by guessing its UUID.
 `UserRepository` is the single deliberately un-scoped repository: at login there is no
 tenant yet, and the email is what decides which one the caller gets.
 
-## 8b. Authorization — what the role may do
+## 11. Authorization — what the role may do
 
 Tenancy answers *whose data*; the role answers *which actions*.
 
@@ -324,10 +413,14 @@ Tenancy answers *whose data*; the role answers *which actions*.
 4. **Audit fields come from the token, never the body.** `@CurrentUserName` stamps
    `dispensedBy`, `resultedBy` and `clinicianName`, so a caller cannot record work under
    another person's name. The three request DTOs no longer carry a name field at all.
-5. **The frontend mirrors the same table** in `ProtectedRoute` and the navigation, which
+5. **A method-level rule beats the class-level one where it must.** `StaffController` is
+   annotated `hasRole('ADMINISTRATOR')` for the whole class; `GET /api/staff/clinicians`
+   overrides that to also admit a receptionist, because booking a doctor means naming
+   one. It is the only widened read, and it returns names and roles — never a hash.
+6. **The frontend mirrors the same table** in `ProtectedRoute` and the navigation, which
    is convenience only — the API refuses the call independently.
 
-## 9. Why the architecture is the point
+## 12. Why the architecture is the point
 
 The claim "adding a module is additive, not a rewrite" was tested twice.
 
