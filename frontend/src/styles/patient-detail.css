@@ -204,3 +204,35 @@
   .appointment-context { align-items: flex-start; flex-direction: column; }
   .appointment-context-actions { width: 100%; }
 }
+
+/* Booking form — SRS use case 2 */
+.appointment-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.appointment-form {
+  display: grid;
+  gap: 14px;
+  padding: 20px 24px 24px;
+}
+.appointment-form label {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.appointment-form input,
+.appointment-form select {
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font: inherit;
+  color: var(--text);
+  background: #fff;
+}
+.appointment-form select:disabled {
+  color: var(--text-muted);
+  background: var(--surface-muted, #f5f5f5);
+}

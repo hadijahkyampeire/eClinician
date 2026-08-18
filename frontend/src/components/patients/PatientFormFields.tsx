@@ -14,6 +14,8 @@ interface Props {
   errors: Partial<Record<keyof PatientForm, string>>
   touched: Partial<Record<keyof PatientForm, boolean>>
   onBlur: (field: keyof PatientForm) => void
+  /** SRS 1.2: an ID recorded at registration is not editable afterwards. */
+  lockNationalId?: boolean
 }
 
 interface CountryOption {
@@ -34,7 +36,9 @@ const countryOptions: CountryOption[] = getCountries()
   }))
   .sort((a, b) => a.name.localeCompare(b.name))
 
-export default function PatientFormFields({ step, form, setForm, errors, touched, onBlur }: Props) {
+export default function PatientFormFields({
+  step, form, setForm, errors, touched, onBlur, lockNationalId,
+}: Props) {
   const change = (field: keyof PatientForm, value: string) =>
     setForm((current) => ({ ...current, [field]: value }))
   const error = (field: keyof PatientForm) => touched[field] ? errors[field] : undefined
@@ -44,6 +48,7 @@ export default function PatientFormFields({ step, form, setForm, errors, touched
     label: string,
     options: {
       required?: boolean
+      disabled?: boolean
       type?: string
       placeholder?: string
       autoComplete?: string
@@ -56,6 +61,7 @@ export default function PatientFormFields({ step, form, setForm, errors, touched
       size="small"
       fullWidth
       required={options.required}
+      disabled={options.disabled}
       type={options.type}
       label={label}
       value={form[field]}
@@ -148,7 +154,10 @@ export default function PatientFormFields({ step, form, setForm, errors, touched
         type: 'email', autoComplete: 'email', placeholder: 'patient@example.com',
       })}
       {textField('nationalId', 'Government-issued ID', {
-        helperText: 'National ID, passport, alien ID, or other local identifier',
+        disabled: lockNationalId,
+        helperText: lockNationalId
+          ? 'Recorded at registration and cannot be changed'
+          : 'National ID, passport, alien ID, or other local identifier',
       })}
 
       <div className="address-section form-field-wide">

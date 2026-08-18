@@ -1,15 +1,21 @@
+import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useSearchParams } from 'react-router-dom'
 import {
+  cancelAppointment,
   checkInPatient,
   completeAppointment,
   getAppointments,
   markAppointmentWaiting,
+  scheduleAppointment,
   startPatientSession,
+  updateAppointment,
 } from '../api/appointments'
 import { getPatient } from '../api/patients'
 import { useAuth } from '../auth/AuthContext'
-import type { Appointment, AppointmentStatus } from '../types/appointment'
+import AppointmentFormModal from '../components/appointments/AppointmentFormModal'
+import AppointmentTable from '../components/appointments/AppointmentTable'
+import type { Appointment, AppointmentForm, AppointmentStatus } from '../types/appointment'
 
 const activeStatuses: AppointmentStatus[] = ['CHECKED_IN', 'WAITING', 'IN_SESSION']
 
@@ -17,13 +23,16 @@ export default function Appointments() {
   const [params] = useSearchParams()
   const { session } = useAuth()
   const queryClient = useQueryClient()
+  const [booking, setBooking] = useState<Appointment | null | undefined>(undefined)
   const patientId = params.get('patientId')
   const action = params.get('action')
   const tenantId = session?.tenant?.id
+  const role = session?.user.role
+  const canBook = role === 'Receptionist' || role === 'Administrator'
   const allowed =
-    session?.user.role === 'Administrator' ||
-    (action === 'check-in' && session?.user.role === 'Receptionist') ||
-    (action === 'start-session' && session?.user.role === 'Clinician')
+    role === 'Administrator' ||
+    (action === 'check-in' && role === 'Receptionist') ||
+    (action === 'start-session' && role === 'Clinician')
 
   const patientQuery = useQuery({
     queryKey: ['patient', tenantId, patientId],
@@ -56,19 +65,40 @@ export default function Appointments() {
         : completeAppointment(id),
     onSuccess: refresh,
   })
+  const save = useMutation({
+    mutationFn: (form: AppointmentForm) => booking
+      ? updateAppointment(booking.id, form)
+      : scheduleAppointment(form),
+    onSuccess: async () => {
+      setBooking(undefined)
+      await refresh()
+    },
+  })
+  const cancel = useMutation({
+    mutationFn: (appointment: Appointment) => cancelAppointment(appointment.id),
+    onSuccess: refresh,
+  })
 
   const appointments = appointmentsQuery.data ?? []
   const active = appointments.filter((appointment) =>
     activeStatuses.includes(appointment.status))
   const history = appointments.filter((appointment) =>
     !activeStatuses.includes(appointment.status))
-  const error = workflow.error || transition.error || appointmentsQuery.error
+  const error = workflow.error || transition.error || cancel.error || appointmentsQuery.error
+  const tableActions = canBook
+    ? { onEdit: setBooking, onCancel: (a: Appointment) => cancel.mutate(a) }
+    : {}
 
   return (
     <>
-      <div className="page-header">
-        <h2>Appointments</h2>
-        <p>Manage today’s patient flow and appointment history</p>
+      <div className="page-header appointment-page-header">
+        <div>
+          <h2>Appointments</h2>
+          <p>Book visits, and manage today’s patient flow</p>
+        </div>
+        {canBook && (
+          <button className="btn" onClick={() => setBooking(null)}>Book appointment</button>
+        )}
       </div>
 
       {patientId && allowed && (
@@ -109,84 +139,32 @@ export default function Appointments() {
           </div>
           <span>{active.length} active</span>
         </div>
-        <AppointmentTable appointments={active} active role={session?.user.role}
-          busy={transition.isPending}
-          onTransition={(id, next) => transition.mutate({ id, next })} />
+        <AppointmentTable appointments={active} active role={role}
+          busy={transition.isPending || cancel.isPending}
+          onTransition={(id, next) => transition.mutate({ id, next })}
+          {...tableActions} />
       </section>
 
       <section className="card appointment-section">
         <div className="appointment-section-heading">
           <div>
             <h3>Appointment history</h3>
-            <p>Completed and historical appointment states remain available.</p>
+            <p>Booked, completed and cancelled appointments remain available.</p>
           </div>
         </div>
-        <AppointmentTable appointments={history} role={session?.user.role}
-          busy={false} onTransition={() => undefined} />
+        <AppointmentTable appointments={history} role={role} busy={cancel.isPending}
+          onTransition={() => undefined} {...tableActions} />
       </section>
+
+      {booking !== undefined && (
+        <AppointmentFormModal
+          appointment={booking}
+          isSaving={save.isPending}
+          error={save.error?.message}
+          onClose={() => { save.reset(); setBooking(undefined) }}
+          onSave={(form) => save.mutate(form)}
+        />
+      )}
     </>
   )
-}
-
-function AppointmentTable({
-  appointments, active, role, busy, onTransition,
-}: {
-  appointments: Appointment[]
-  active?: boolean
-  role: string | undefined
-  busy: boolean
-  onTransition: (id: string, next: 'waiting' | 'complete') => void
-}) {
-  if (!appointments.length) {
-    return <p className="appointment-empty">
-      {active ? 'No patients are currently checked in.' : 'No appointment history yet.'}
-    </p>
-  }
-  return (
-    <div className="table-wrap">
-      <table className="patient-table appointment-table">
-        <thead><tr>
-          <th>Patient</th><th>Status</th><th>Scheduled</th><th>Checked in</th><th>Actions</th>
-        </tr></thead>
-        <tbody>
-          {appointments.map((appointment) => (
-            <tr key={appointment.id}>
-              <td><Link className="patient-name-link"
-                to={`/patients/${appointment.patientId}`}>{appointment.patientName}</Link></td>
-              <td><AppointmentBadge status={appointment.status} /></td>
-              <td>{formatDateTime(appointment.scheduledAt)}</td>
-              <td>{appointment.checkedInAt ? formatDateTime(appointment.checkedInAt) : '—'}</td>
-              <td className="table-actions">
-                {(role === 'Receptionist' || role === 'Administrator')
-                  && appointment.status === 'CHECKED_IN' && (
-                  <button className="link-button" disabled={busy}
-                    onClick={() => onTransition(appointment.id, 'waiting')}>Mark waiting</button>
-                )}
-                {(role === 'Clinician' || role === 'Administrator')
-                  && appointment.status === 'IN_SESSION' && (
-                  <Link className="link-button"
-                    to={`/records?patientId=${appointment.patientId}`}>
-                    Document visit
-                  </Link>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  )
-}
-
-function AppointmentBadge({ status }: { status: AppointmentStatus }) {
-  return <span className={`appointment-status ${status.toLowerCase()}`}>
-    {status.replaceAll('_', ' ').toLowerCase()}
-  </span>
-}
-
-function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat('en', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(new Date(value))
 }
