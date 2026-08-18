@@ -2,6 +2,12 @@
 -- associations (see docs/architecture.md §3), which kept every query tenant-scoped but
 -- left the database enforcing nothing. These are the constraints that argument owed.
 
+-- An existing database is baselined at V1 rather than running it, so it holds whatever
+-- ddl-auto=update last managed to add. These two columns arrived late enough that a
+-- deployment may not have them yet, and the index and checks below need them present.
+ALTER TABLE appointments ADD COLUMN IF NOT EXISTS doctor_id uuid;
+ALTER TABLE app_users ADD COLUMN IF NOT EXISTS active boolean NOT NULL DEFAULT true;
+
 -- Referential integrity. A patient with visits already cannot be deleted by the service;
 -- RESTRICT means the database says so too, rather than trusting the service to remember.
 ALTER TABLE appointments

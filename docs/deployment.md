@@ -66,6 +66,16 @@ migrations fails the boot instead of altering a live table.
 - **Adding a change** means a new `V3__…sql` — never editing a migration that has run,
   because Flyway checksums them and will refuse to start if one changed underneath it.
 
+The upgrade of the existing deployment was rehearsed before merging: a database rebuilt
+as `ddl-auto=update` had left it — without `doctor_id` or `active`, carrying a patient, a
+visit and a dispensed order — then booted with this code. Flyway baselined it at `V1`,
+applied `V2` alone, added the two missing columns and the foreign keys around the live
+rows, and the application started, which is `validate` agreeing that the mapping matches.
+
+If a migration ever does fail on deploy, the service will not start and the database is
+left at the last good version — Flyway runs each migration in a transaction. Read the
+failure in the Render logs, fix it in a **new** migration, and redeploy.
+
 ## Deploying to Render
 
 [`render.yaml`](../render.yaml) is a blueprint that provisions all three pieces — managed
