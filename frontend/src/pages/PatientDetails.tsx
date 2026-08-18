@@ -4,6 +4,7 @@ import { useAuth } from '../auth/AuthContext'
 import { getPatient } from '../api/patients'
 import { getAppointments } from '../api/appointments'
 import { getEncounters } from '../api/encounters'
+import PatientOrderPanels from '../components/patients/PatientOrderPanels'
 
 export default function PatientDetails() {
   const { patientId = '' } = useParams()
@@ -146,7 +147,8 @@ export default function PatientDetails() {
                 <div key={appointment.id}>
                   <div>
                     <b>{appointment.status.replaceAll('_', ' ').toLowerCase()}</b>
-                    <small>{appointment.reason || 'No reason recorded'}</small>
+                    <small>{[appointment.doctorName, appointment.reason]
+                      .filter(Boolean).join(' · ') || 'No reason recorded'}</small>
                   </div>
                   <time>{formatDateTime(appointment.scheduledAt)}</time>
                 </div>
@@ -171,6 +173,7 @@ export default function PatientDetails() {
                 </Link>)}
               </div> : <div className="history-empty">No clinical encounters recorded.</div>}
             </details>
+            <PatientOrderPanels tenantId={tenantId} patientId={patientId} />
             <details className="history-panel">
               <summary>
                 <span>Doctor notes</span>

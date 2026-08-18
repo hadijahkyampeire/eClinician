@@ -12,6 +12,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -42,6 +43,21 @@ public class AppointmentController {
             @CurrentTenant String tenantId,
             @Valid @RequestBody AppointmentRequest request) {
         return service.schedule(tenantId, request);
+    }
+
+    @PreAuthorize("hasAnyRole('RECEPTIONIST', 'ADMINISTRATOR')")
+    @PutMapping("/{id}")
+    public AppointmentResponse update(
+            @CurrentTenant String tenantId,
+            @PathVariable UUID id,
+            @Valid @RequestBody AppointmentRequest request) {
+        return service.update(tenantId, id, request);
+    }
+
+    @PreAuthorize("hasAnyRole('RECEPTIONIST', 'ADMINISTRATOR')")
+    @PostMapping("/{id}/cancel")
+    public AppointmentResponse cancel(@CurrentTenant String tenantId, @PathVariable UUID id) {
+        return service.cancel(tenantId, id);
     }
 
     @PreAuthorize("hasAnyRole('RECEPTIONIST', 'ADMINISTRATOR')")

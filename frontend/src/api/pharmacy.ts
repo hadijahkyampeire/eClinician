@@ -19,6 +19,10 @@ export function getPrescriptions(status?: PrescriptionStatus) {
   return request<Prescription[]>(`/api/pharmacy/prescriptions${query}`)
 }
 
+export function getPatientPrescriptions(patientId: string) {
+  return request<Prescription[]>(`/api/pharmacy/prescriptions/patients/${patientId}`)
+}
+
 export function updatePrescription(id: string, form: DispenseForm) {
   return request<Prescription>(`/api/pharmacy/prescriptions/${id}`, {
     method: 'POST',

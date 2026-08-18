@@ -29,8 +29,8 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export async function getPatients(
-  search: string,
-  filters: PatientFilters,
+  search = '',
+  filters: Partial<PatientFilters> = {},
 ) {
   const query = new URLSearchParams()
   if (search.trim()) query.set('q', search.trim())

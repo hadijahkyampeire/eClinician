@@ -29,6 +29,13 @@ public class LabController {
         return labService.list(tenantId, status);
     }
 
+    @PreAuthorize("hasAnyRole('CLINICIAN', 'LAB_TECHNICIAN', 'ADMINISTRATOR')")
+    @GetMapping("/patients/{patientId}")
+    public List<LabOrderResponse> listForPatient(@CurrentTenant String tenantId,
+                                                 @PathVariable UUID patientId) {
+        return labService.listForPatient(tenantId, patientId);
+    }
+
     @PreAuthorize("hasAnyRole('LAB_TECHNICIAN', 'ADMINISTRATOR')")
     @PostMapping("/{id}")
     public LabOrderResponse update(@CurrentTenant String tenantId,

@@ -48,6 +48,12 @@ public class PharmacyService {
         return found.stream().map(value -> response(tenantId, value)).toList();
     }
 
+    /** SRS 4.1.1: the doctor reads the prescriptions they issued, with their dispensed status. */
+    public List<PrescriptionResponse> listForPatient(String tenantId, UUID patientId) {
+        return orders.findByTenantIdAndPatientIdOrderByCreatedAtDesc(tenantId, patientId)
+                .stream().map(value -> response(tenantId, value)).toList();
+    }
+
     @Transactional
     public PrescriptionResponse update(String tenantId, String pharmacistName, UUID id,
             DispenseRequest request) {

@@ -13,6 +13,9 @@ ever names one.
 | `GET` | `/api/patients` | Paged list — search, filter, sort |
 | `POST` `PUT` `DELETE` | `/api/patients` `/{id}` | Register, update, remove |
 | `GET` | `/api/appointments` | List, optionally by patient |
+| `POST` | `/api/appointments` | Book a patient with a doctor at a date and time |
+| `PUT` | `/api/appointments/{id}` | Reschedule — the conflict rules are re-checked |
+| `POST` | `/api/appointments/{id}/cancel` | Cancel a visit that has not started |
 | `POST` | `/api/appointments/check-in` | Register arrival → `CHECKED_IN` |
 | `POST` | `/api/appointments/{id}/waiting` | Move to the waiting room |
 | `POST` | `/api/appointments/patients/{id}/start-session` | Clinician takes the patient |
@@ -20,10 +23,13 @@ ever names one.
 | `GET` `POST` `PUT` | `/api/encounters` `/{id}` | Read and document the encounter |
 | `POST` | `/api/encounters/{id}/finalize` | Sign off — completes the visit and raises the prescription and lab orders |
 | `GET` | `/api/pharmacy/prescriptions` | The dispensing queue, filterable by `?status=` |
+| `GET` | `/api/pharmacy/prescriptions/patients/{id}` | One patient's prescriptions, for the clinician who issued them |
 | `POST` | `/api/pharmacy/prescriptions/{id}` | Dispense a medicine, or mark it unavailable with a reason |
 | `GET` | `/api/lab/orders` | The lab queue, filterable by `?status=` |
+| `GET` | `/api/lab/orders/patients/{id}` | One patient's lab results, for their clinician |
 | `POST` | `/api/lab/orders/{id}` | Record a result, or cancel a test with a reason |
 | `GET` | `/api/staff` | Staff accounts for this clinic |
+| `GET` | `/api/staff/clinicians` | Active clinicians, for the booking form |
 | `POST` `PUT` | `/api/staff` `/{id}` | Add a colleague, or change their name, role or password |
 | `POST` | `/api/staff/{id}/active` | Deactivate or restore an account |
 | `GET` | `/api/stats/dashboard` | 13 live counts behind the role dashboards |
@@ -55,6 +61,11 @@ TOKEN=$(curl -s -X POST localhost:8080/api/auth/login \
 # Read patients
 curl -s localhost:8080/api/patients -H "Authorization: Bearer $TOKEN"
 
+# Book an appointment (409 if that doctor's slot is taken)
+curl -s -X POST localhost:8080/api/appointments \
+  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  -d '{"patientId":"<uuid>","doctorId":"<uuid>","scheduledAt":"2026-09-01T09:00:00Z","reason":"Review"}'
+
 # Check a patient in
 curl -s -X POST localhost:8080/api/appointments/check-in \
   -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
@@ -82,12 +93,15 @@ in the UI. Anything not listed is open to any authenticated member of the tenant
 | Endpoint | Allowed roles |
 |---|---|
 | `POST` `PUT` `DELETE /api/patients` | Receptionist · Administrator |
-| `POST /api/appointments`, `/check-in`, `/{id}/waiting` | Receptionist · Administrator |
+| `POST` `PUT /api/appointments`, `/{id}/cancel`, `/check-in`, `/{id}/waiting` | Receptionist · Administrator |
 | `POST /api/appointments/.../start-session`, `/{id}/complete` | Clinician · Administrator |
 | `POST` `PUT /api/encounters`, `/{id}/finalize` | Clinician · Administrator |
 | `GET` `POST /api/pharmacy/prescriptions` | Pharmacist · Administrator |
 | `GET` `POST /api/lab/orders` | Lab Technician · Administrator |
-| Everything under `/api/staff` | Administrator |
+| `GET /api/pharmacy/prescriptions/patients/{id}` | Clinician · Pharmacist · Administrator |
+| `GET /api/lab/orders/patients/{id}` | Clinician · Lab Technician · Administrator |
+| `GET /api/staff/clinicians` | Receptionist · Clinician · Administrator |
+| Everything else under `/api/staff` | Administrator |
 | `GET /api/patients`, `/api/appointments`, `/api/encounters`, `/api/stats/dashboard` | Any signed-in staff member of the tenant |
 
 Audit fields are never accepted from the client: `dispensedBy`, `resultedBy` and

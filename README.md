@@ -54,7 +54,7 @@ three orders, so two can be dispensed and the third flagged out of stock.
 docker compose up -d   # Postgres on port 5433
 make install           # npm install + mvn install
 make run               # backend on :8080, frontend on :5173
-make test              # 9 backend tests
+make test              # 29 backend tests
 ```
 
 Open http://localhost:5173 and pick a role from the demo dropdown — it fills in that
@@ -67,17 +67,20 @@ start. Full setup and cloud deployment: [docs/deployment.md](docs/deployment.md)
 |---|---|---|---|
 | 1 | **Receptionist** | Dashboard | Counts are live, not mocked — they move as we work |
 | 2 | | Patients → **Register patient** | Country-neutral ID field, phone validation, address split into line/city/district/state/country |
-| 3 | | Find the new patient → **Check in** | Patient now shows `CHECKED_IN`; an appointment row was created behind it |
-| 4 | | Back to Dashboard | **Checked In** and **Registered Today** both incremented |
-| 5 | **Clinician** | Dashboard | Same endpoint, different four tiles — role decides the view |
-| 6 | | Appointments → **Start session** | `WAITING → IN_SESSION`; a `DRAFT` encounter is created |
-| 7 | | Records → open the encounter | Fill vitals, symptoms, exam, diagnosis, plan. **Three medicines in Prescriptions and two tests in Lab requests, one per line** |
-| 8 | | **Finalize** | Visit completes, care status clears, patient leaves the waiting list — and three prescription orders plus two lab orders are created |
-| 9 | **Pharmacist** | Dashboard → Pharmacy | The three medicines are separate rows. **Dispense** one; **Unavailable** another, reason "Out of stock" |
-| 10 | | Back to Dashboard | Pending 1 · Dispensed Today 1 · Unavailable 1 — tiles and queue read the same table |
-| 11 | **Lab Technician** | Laboratory | The two tests are waiting. **Record result** on one; **Cancel** the other with "No reagent" |
-| 12 | **Administrator** | Dashboard | Facility-wide roll-up across every role's work |
-| 13 | | Staff → **Add staff member** | A new account signs in immediately; **Deactivate** locks it out just as fast |
+| 3 | | Appointments → **Book appointment** | Pick the patient, a doctor and a time. Book a second patient with the **same doctor at the same time** — the API refuses it. **Cancel** the first and the slot frees up |
+| 4 | | Find the new patient → **Check in** | Patient now shows `CHECKED_IN`; an appointment row was created behind it, with no doctor — a walk-in never clashes |
+| 5 | | Open the patient → **Edit** | The government-issued ID is greyed out: recorded once, at registration |
+| 6 | | Back to Dashboard | **Checked In** and **Registered Today** both incremented |
+| 7 | **Clinician** | Dashboard | Same endpoint, different four tiles — role decides the view |
+| 8 | | Appointments → **Start session** | `WAITING → IN_SESSION`; a `DRAFT` encounter is created |
+| 9 | | Records → open the encounter | Fill vitals, symptoms, exam, diagnosis, plan. **Three medicines in Prescriptions and two tests in Lab requests, one per line** |
+| 10 | | **Finalize** | Visit completes, care status clears, patient leaves the waiting list — and three prescription orders plus two lab orders are created |
+| 11 | **Pharmacist** | Dashboard → Pharmacy | The three medicines are separate rows. **Dispense** one; **Unavailable** another, reason "Out of stock" |
+| 12 | | Back to Dashboard | Pending 1 · Dispensed Today 1 · Unavailable 1 — tiles and queue read the same table |
+| 13 | **Lab Technician** | Laboratory | The two tests are waiting. **Record result** on one; **Cancel** the other with "No reagent" |
+| 14 | **Clinician** | Patients → open that patient | Prescriptions and laboratory results read back on the record — the same rows the pharmacist and technician just worked |
+| 15 | **Administrator** | Dashboard | Facility-wide roll-up across every role's work |
+| 16 | | Staff → **Add staff member** | A new account signs in immediately; **Deactivate** locks it out just as fast |
 
 > **Presenting from the live URL?** The free instance sleeps after 15 minutes idle and a
 > cold start measured **96 seconds**. Open
