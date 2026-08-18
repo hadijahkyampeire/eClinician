@@ -2,10 +2,12 @@ package com.eclinician.services;
 
 import com.eclinician.domains.dtos.DashboardStats;
 import com.eclinician.domains.enums.EncounterStatus;
+import com.eclinician.domains.enums.LabStatus;
 import com.eclinician.domains.enums.PatientCareStatus;
 import com.eclinician.domains.enums.PrescriptionStatus;
 import com.eclinician.repositories.AppointmentRepository;
 import com.eclinician.repositories.EncounterRepository;
+import com.eclinician.repositories.LabOrderRepository;
 import com.eclinician.repositories.PatientRepository;
 import com.eclinician.repositories.PrescriptionOrderRepository;
 import java.time.Instant;
@@ -21,13 +23,16 @@ public class StatsService {
     private final AppointmentRepository appointments;
     private final EncounterRepository encounters;
     private final PrescriptionOrderRepository orders;
+    private final LabOrderRepository labOrders;
 
     public StatsService(PatientRepository patients, AppointmentRepository appointments,
-            EncounterRepository encounters, PrescriptionOrderRepository orders) {
+            EncounterRepository encounters, PrescriptionOrderRepository orders,
+            LabOrderRepository labOrders) {
         this.patients = patients;
         this.appointments = appointments;
         this.encounters = encounters;
         this.orders = orders;
+        this.labOrders = labOrders;
     }
 
     public DashboardStats dashboard(String tenantId) {
@@ -49,6 +54,9 @@ public class StatsService {
                 orders.countByTenantIdAndStatusAndDispensedAtAfter(tenantId,
                         PrescriptionStatus.DISPENSED, dayStart),
                 orders.countByTenantIdAndStatus(tenantId, PrescriptionStatus.UNAVAILABLE),
-                encounters.countWithLabRequests(tenantId));
+                labOrders.countByTenantIdAndStatus(tenantId, LabStatus.PENDING),
+                labOrders.countByTenantIdAndStatusAndResultedAtAfter(tenantId,
+                        LabStatus.COMPLETED, dayStart),
+                labOrders.countByTenantIdAndStatus(tenantId, LabStatus.CANCELLED));
     }
 }
