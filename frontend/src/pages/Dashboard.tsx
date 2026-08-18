@@ -51,7 +51,7 @@ const VIEWS: Record<Role, View> = {
   'Lab Technician': {
     title: 'Laboratory Dashboard',
     blurb: 'Lab requests raised by clinicians',
-    stats: (s) => [['Lab Requests Raised', s.labRequestsRaised], ['Finalized Today', s.finalizedToday], ['In Session', s.inSession], ['Waiting', s.waiting]],
+    stats: (s) => [['Pending Tests', s.labPending], ['Resulted Today', s.labResultedToday], ['Cancelled', s.labCancelled], ['Finalized Today', s.finalizedToday]],
     note: 'Lab requests are currently recorded on the encounter. Result entry is a planned module.',
   },
 }
@@ -97,5 +97,7 @@ const EMPTY: DashboardStats = {
   totalPatients: 0, newPatientsToday: 0, checkedIn: 0, waiting: 0, inSession: 0,
   appointmentsToday: 0, draftEncounters: 0, finalizedToday: 0, clinicians: 0,
   prescriptionsPending: 0, prescriptionsDispensedToday: 0, prescriptionsUnavailable: 0,
-  labRequestsRaised: 0,
+  labPending: 0,
+  labResultedToday: 0,
+  labCancelled: 0,
 }

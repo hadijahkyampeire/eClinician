@@ -23,9 +23,4 @@ public interface EncounterRepository extends JpaRepository<Encounter, UUID> {
     /** Clinicians who have documented at least one encounter — our only staff signal so far. */
     @Query("select count(distinct e.clinicianName) from Encounter e where e.tenantId = ?1")
     long countClinicians(String tenantId);
-
-    /** Lab requests are still encounter text; the pharmacy counts come from its own table. */
-    @Query("select count(e) from Encounter e where e.tenantId = ?1"
-            + " and e.labRequests is not null and length(trim(e.labRequests)) > 0")
-    long countWithLabRequests(String tenantId);
 }

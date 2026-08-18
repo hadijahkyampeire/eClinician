@@ -14,4 +14,6 @@ public record DashboardStats(
         long prescriptionsPending,
         long prescriptionsDispensedToday,
         long prescriptionsUnavailable,
-        long labRequestsRaised) {}
+        long labPending,
+        long labResultedToday,
+        long labCancelled) {}

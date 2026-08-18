@@ -12,5 +12,7 @@ export interface DashboardStats {
   prescriptionsPending: number
   prescriptionsDispensedToday: number
   prescriptionsUnavailable: number
-  labRequestsRaised: number
+  labPending: number
+  labResultedToday: number
+  labCancelled: number
 }
