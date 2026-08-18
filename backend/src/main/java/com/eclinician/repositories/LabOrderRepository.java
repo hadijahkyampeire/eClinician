@@ -15,6 +15,8 @@ public interface LabOrderRepository extends JpaRepository<LabOrder, UUID> {
 
     List<LabOrder> findByTenantIdAndStatusOrderByCreatedAtDesc(String tenantId, LabStatus status);
 
+    List<LabOrder> findByTenantIdAndPatientIdOrderByCreatedAtDesc(String tenantId, UUID patientId);
+
     Optional<LabOrder> findByIdAndTenantId(UUID id, String tenantId);
 
     /** Guards against creating a second set of orders if finalize is retried. */

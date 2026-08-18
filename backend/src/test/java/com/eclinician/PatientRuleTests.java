@@ -74,6 +74,16 @@ class PatientRuleTests {
         patients.delete(TENANT, walkOut.id());
     }
 
+    @Test
+    void aNationalIdCannotBeChangedAfterRegistration() {
+        PatientResponse mary = patients.create(TENANT, request("Mary", "+256700900007", "CF900007"));
+
+        assertThatThrownBy(() -> patients.update(TENANT, mary.id(),
+                request("Mary", "+256700900007", "CF000999")))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("cannot be changed");
+    }
+
     private PatientRequest request(String firstName, String phone, String nationalId) {
         return new PatientRequest(firstName, "Nakimuli", LocalDate.of(1990, 4, 12), "Female",
                 phone, null, nationalId, null, null, null, null, "UG");

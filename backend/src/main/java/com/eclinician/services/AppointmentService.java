@@ -2,12 +2,15 @@ package com.eclinician.services;
 
 import com.eclinician.domains.dtos.AppointmentRequest;
 import com.eclinician.domains.dtos.AppointmentResponse;
+import com.eclinician.domains.entities.AppUser;
 import com.eclinician.domains.entities.Appointment;
 import com.eclinician.domains.entities.Patient;
 import com.eclinician.domains.enums.AppointmentStatus;
 import com.eclinician.domains.enums.PatientCareStatus;
+import com.eclinician.domains.enums.UserRole;
 import com.eclinician.repositories.AppointmentRepository;
 import com.eclinician.repositories.PatientRepository;
+import com.eclinician.repositories.UserRepository;
 import com.eclinician.web.ConflictException;
 import com.eclinician.web.NotFoundException;
 import java.time.Instant;
@@ -27,10 +30,13 @@ public class AppointmentService {
 
     private final AppointmentRepository appointments;
     private final PatientRepository patients;
+    private final UserRepository users;
 
-    public AppointmentService(AppointmentRepository appointments, PatientRepository patients) {
+    public AppointmentService(AppointmentRepository appointments, PatientRepository patients,
+            UserRepository users) {
         this.appointments = appointments;
         this.patients = patients;
+        this.users = users;
     }
 
     public List<AppointmentResponse> list(String tenantId, UUID patientId) {
@@ -45,14 +51,54 @@ public class AppointmentService {
     public AppointmentResponse schedule(String tenantId, AppointmentRequest request) {
         Patient patient = patient(tenantId, request.patientId());
         ensureNoActiveAppointment(tenantId, patient.getId());
+        AppUser doctor = doctor(tenantId, request.doctorId());
+        Instant when = request.scheduledAt() == null ? Instant.now() : request.scheduledAt();
+        ensureSlotIsFree(tenantId, doctor, when, patient.getId(), null);
 
         Appointment appointment = new Appointment();
         appointment.setTenantId(tenantId);
         appointment.setPatientId(patient.getId());
+        appointment.setDoctorId(doctor == null ? null : doctor.getId());
         appointment.setStatus(AppointmentStatus.SCHEDULED);
-        appointment.setScheduledAt(request.scheduledAt() == null
-                ? Instant.now() : request.scheduledAt());
+        appointment.setScheduledAt(when);
         appointment.setReason(request.reason());
+        return response(patient, appointments.save(appointment));
+    }
+
+    /** SRS 2.1.2: the details change and the conflict rules are re-checked. */
+    @Transactional
+    public AppointmentResponse update(String tenantId, UUID id, AppointmentRequest request) {
+        Appointment appointment = appointment(tenantId, id);
+        requireOpen(appointment);
+        Patient patient = patient(tenantId, request.patientId());
+        AppUser doctor = doctor(tenantId, request.doctorId());
+        Instant when = request.scheduledAt() == null
+                ? appointment.getScheduledAt() : request.scheduledAt();
+        ensureSlotIsFree(tenantId, doctor, when, patient.getId(), appointment.getId());
+
+        appointment.setPatientId(patient.getId());
+        appointment.setDoctorId(doctor == null ? null : doctor.getId());
+        appointment.setScheduledAt(when);
+        appointment.setReason(request.reason());
+        return response(patient, appointments.save(appointment));
+    }
+
+    /** SRS 2.1.3: an appointment that has already taken place cannot be cancelled. */
+    @Transactional
+    public AppointmentResponse cancel(String tenantId, UUID id) {
+        Appointment appointment = appointment(tenantId, id);
+        if (appointment.getStatus() == AppointmentStatus.IN_SESSION
+                || appointment.getStatus() == AppointmentStatus.COMPLETED) {
+            throw new ConflictException(
+                    "An appointment that has already taken place cannot be cancelled");
+        }
+        if (appointment.getStatus() == AppointmentStatus.CANCELLED) {
+            throw new ConflictException("This appointment is already cancelled");
+        }
+        Patient patient = patient(tenantId, appointment.getPatientId());
+        appointment.setStatus(AppointmentStatus.CANCELLED);
+        patient.setActiveCareStatus(null);
+        patients.save(patient);
         return response(patient, appointments.save(appointment));
     }
 
@@ -123,6 +169,42 @@ public class AppointmentService {
         }
     }
 
+    /**
+     * SRS: a doctor cannot hold two appointments at one date and time, and a patient
+     * cannot hold two with the same doctor at that time. A walk-in carries no doctor,
+     * so it can never clash.
+     */
+    private void ensureSlotIsFree(String tenantId, AppUser doctor, Instant when,
+            UUID patientId, UUID selfId) {
+        if (doctor == null) return;
+        appointments.findByTenantIdAndDoctorIdAndScheduledAtAndStatusIn(
+                        tenantId, doctor.getId(), when, ACTIVE).stream()
+                .filter(other -> !other.getId().equals(selfId))
+                .findFirst()
+                .ifPresent(other -> {
+                    throw new ConflictException(other.getPatientId().equals(patientId)
+                            ? "This patient already has an appointment with this doctor at that time"
+                            : "That doctor already has an appointment at that time");
+                });
+    }
+
+    private AppUser doctor(String tenantId, UUID doctorId) {
+        if (doctorId == null) return null;
+        AppUser doctor = users.findByIdAndTenantId(doctorId, tenantId)
+                .orElseThrow(() -> new NotFoundException("Doctor not found"));
+        if (doctor.getRole() != UserRole.CLINICIAN) {
+            throw new ConflictException("Appointments can only be booked with a clinician");
+        }
+        return doctor;
+    }
+
+    private void requireOpen(Appointment appointment) {
+        if (appointment.getStatus() == AppointmentStatus.COMPLETED
+                || appointment.getStatus() == AppointmentStatus.CANCELLED) {
+            throw new ConflictException("A closed appointment can no longer be changed");
+        }
+    }
+
     private java.util.Optional<Appointment> active(String tenantId, UUID patientId) {
         return appointments.findFirstByTenantIdAndPatientIdAndStatusInOrderByCreatedAtDesc(
                 tenantId, patientId, ACTIVE);
@@ -149,7 +231,10 @@ public class AppointmentService {
     }
 
     private AppointmentResponse response(Patient patient, Appointment appointment) {
-        return AppointmentResponse.from(
-                appointment, patient.getFirstName() + " " + patient.getLastName());
+        String doctorName = appointment.getDoctorId() == null ? null
+                : users.findByIdAndTenantId(appointment.getDoctorId(), appointment.getTenantId())
+                        .map(AppUser::getName).orElse(null);
+        return AppointmentResponse.from(appointment,
+                patient.getFirstName() + " " + patient.getLastName(), doctorName);
     }
 }

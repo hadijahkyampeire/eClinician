@@ -37,6 +37,13 @@ public class StaffController {
         return staffService.list(tenantId);
     }
 
+    /** Receptionists book appointments, so they may read the clinician list — and only that. */
+    @PreAuthorize("hasAnyRole('RECEPTIONIST', 'CLINICIAN', 'ADMINISTRATOR')")
+    @GetMapping("/clinicians")
+    public List<StaffResponse> clinicians(@CurrentTenant String tenantId) {
+        return staffService.clinicians(tenantId);
+    }
+
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public StaffResponse create(@CurrentTenant String tenantId,

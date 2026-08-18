@@ -105,13 +105,19 @@ public class PatientService {
         p.setTenantId(tenantId);
         requireUnique(tenantId, req, NEW_PATIENT);
         apply(p, req);
+        p.setNationalId(req.nationalId());
         return PatientResponse.from(repo.save(p));
     }
 
     public PatientResponse update(String tenantId, UUID id, PatientRequest req) {
         Patient p = find(tenantId, id);
         requireUnique(tenantId, req, id);
+        requireSameNationalId(p, req);
         apply(p, req);
+        // A patient registered without one may still have it filled in, once.
+        if (p.getNationalId() == null || p.getNationalId().isBlank()) {
+            p.setNationalId(req.nationalId());
+        }
         return PatientResponse.from(repo.save(p));
     }
 
@@ -139,6 +145,16 @@ public class PatientService {
         }
     }
 
+    /** SRS 1.2: the national ID / passport number identifies the patient, so it is unwritable. */
+    private void requireSameNationalId(Patient p, PatientRequest req) {
+        String current = p.getNationalId();
+        if (current == null || current.isBlank()) return;
+        String incoming = req.nationalId() == null ? "" : req.nationalId().trim();
+        if (!current.equalsIgnoreCase(incoming)) {
+            throw new ConflictException("The national ID cannot be changed after registration");
+        }
+    }
+
     private Patient find(String tenantId, UUID id) {
         return repo.findByIdAndTenantId(id, tenantId)
                 .orElseThrow(() -> new NotFoundException("Patient not found"));
@@ -151,7 +167,7 @@ public class PatientService {
         p.setSex(r.sex());
         p.setPhone(r.phone());
         p.setEmail(r.email());
-        p.setNationalId(r.nationalId());
+        // nationalId is deliberately absent: SRS 1.2 makes it unwritable after creation.
         p.setAddressLine(r.addressLine());
         p.setCity(r.city());
         p.setDistrict(r.district());
