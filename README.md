@@ -54,7 +54,7 @@ three orders, so two can be dispensed and the third flagged out of stock.
 docker compose up -d   # Postgres on port 5433
 make install           # npm install + mvn install
 make run               # backend on :8080, frontend on :5173
-make test              # 29 backend tests
+make test              # 37 backend tests
 ```
 
 Open http://localhost:5173 and pick a role from the demo dropdown — it fills in that
@@ -81,6 +81,8 @@ start. Full setup and cloud deployment: [docs/deployment.md](docs/deployment.md)
 | 14 | **Clinician** | Patients → open that patient | Prescriptions and laboratory results read back on the record — the same rows the pharmacist and technician just worked |
 | 15 | **Administrator** | Dashboard | Facility-wide roll-up across every role's work |
 | 16 | | Staff → **Add staff member** | A new account signs in immediately; **Deactivate** locks it out just as fast |
+| 17 | | Sidebar → **Change password** | Self-service, and the current password is required |
+| 18 | **Platform Super Admin** | The console | Onboard a hospital, pick its modules, then **Suspend** one — its staff can no longer sign in, and none of its data is touched. This account holds no tenant, so the API answers it `403` on every clinical endpoint |
 
 > **Presenting from the live URL?** The free instance sleeps after 15 minutes idle and a
 > cold start measured **96 seconds**. Open
