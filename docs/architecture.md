@@ -73,6 +73,8 @@ rather than one large page.
 
 ```mermaid
 erDiagram
+    TENANTS ||--o{ APP_USERS : "employs"
+    TENANTS ||--o{ PATIENTS : "registers"
     PATIENTS ||--o{ APPOINTMENTS : "has visits"
     PATIENTS ||--o{ ENCOUNTERS : "has records"
     APP_USERS ||--o{ APPOINTMENTS : "doctor is booked for"
@@ -139,11 +141,18 @@ erDiagram
     }
     APP_USERS {
         uuid id PK
-        string tenant_id "null for the platform admin"
+        string tenant_id FK "null for the platform admin"
         string email UK
         string password_hash "BCrypt"
         enum role
         boolean platform_admin
+    }
+    TENANTS {
+        string id PK "the slug every other table carries"
+        string name
+        string primary_color "branding the browser applies"
+        string modules "the subscription: which features are switched on"
+        boolean active "suspended hospitals keep their data, nobody signs in"
     }
 ```
 
@@ -397,8 +406,25 @@ clinic's order even by guessing its UUID.
    `countByTenantIdAndStatus`. There is no query in the codebase that can return another
    tenant's row, because none of them can be called without a tenant.
 
-`UserRepository` is the single deliberately un-scoped repository: at login there is no
-tenant yet, and the email is what decides which one the caller gets.
+`UserRepository` and `TenantRepository` are the two deliberately un-scoped repositories,
+for the same reason: at login there is no tenant yet, and the email is what decides which
+one the caller gets. `TenantRepository` is reachable only from the platform console.
+
+**6. The tenant is a row, and it is what the hospital bought.** `tenants` holds the name,
+the brand colour and the module subscription. Login answers with them, the browser paints
+the colour and filters its navigation with them, and the platform administrator changes
+them from the console:
+
+| Column | What it decides |
+|---|---|
+| `name`, `primary_color` | What the hospital's staff see in the sidebar and topbar |
+| `modules` | Which navigation items exist at all — the subscription |
+| `active` | Suspending keeps every row and refuses every sign-in for that hospital |
+
+The platform administrator is the one account with **no tenant**, which is exactly why
+they can run the console and cannot read a patient: `@CurrentTenant` has nothing to give
+a clinical controller, and every one of those endpoints answers `403`. `PlatformConsoleTests`
+asserts both directions.
 
 ## 11. Authorization — what the role may do
 

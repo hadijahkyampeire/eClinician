@@ -34,7 +34,7 @@ around it.
 | 6 | Domain model | The ERD: six tables, and the foreign keys the database now enforces |
 | 7 | The clinical workflow | Check in → waiting → in session → finalize, and what finalize raises |
 | 8 | Design decision: one transaction | Finalization closes the visit and raises pharmacy and lab work, or does none of it |
-| 9 | Design decision: multi-tenancy | The tenant is a token claim, not a header, so it cannot be edited by the caller |
+| 9 | Design decision: multi-tenancy | The tenant is a token claim, not a header, so it cannot be edited by the caller — and a row, so a hospital can be onboarded and sold modules |
 | 10 | Security | BCrypt, JWT, `@PreAuthorize`, no key in the source |
 | 11 | Testing | What the tests prove, not how many there are |
 | 12 | Specification vs implementation | Where the build differs from the SRS, and why — [srs.md §4](srs.md) |
@@ -92,12 +92,22 @@ the way they already write. Splitting on line breaks at finalization gets both. 
 dosage needs a drug catalogue, which is named as not built in [roadmap.md](roadmap.md) —
 the same argument as pharmacy stock.
 
+**"How does one deployment serve many hospitals?"**
+Every row carries a tenant, every finder takes it, and the tenant travels as a signed
+token claim so the caller cannot edit it. The platform console onboards a hospital, sets
+its branding and picks the modules it has bought; login hands those back and the browser
+filters its navigation with them. The administrator who runs the console has no tenant at
+all, which is why the same test file can assert that they reach every console route and
+no patient.
+
 **"What would you do next?"**
-Lab dashboard tiles off `lab_orders`, then a `Tenant` entity so the platform admin console
-has something to onboard into — the branding and module toggles still live in the
-frontend. Both are in the roadmap with the reasons.
+Billing — hospitals are onboarded and subscribed, but nothing is priced or metered — and
+the forgotten-password path, which needs email delivery. Both are in the roadmap with
+the reasons.
 
 **"What is the weakest part?"**
-Password self-service: there is no reset flow, no lockout, no refresh token. An
-administrator can reset a colleague's password, and an expired token means signing in
-again. It is named in the roadmap rather than hidden.
+Account recovery. Staff can change their own password and an administrator can set a
+colleague's, but a forgotten password still needs the administrator, because a reset link
+means email delivery this system does not have. There is also no lockout after repeated
+failures and no refresh token — an expired token means signing in again. All named in the
+roadmap rather than hidden.

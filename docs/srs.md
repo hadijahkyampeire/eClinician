@@ -95,6 +95,11 @@ every row and every query, so one deployment serves many independent clinics —
 commercial argument in [vision.md](vision.md), and the property proven by `AuthTests` in
 [testing.md](testing.md).
 
+**A platform administrator above the six actors.** The SRS's Administrator manages one
+hospital's staff. Selling the system to many hospitals needs somebody who onboards them,
+sets what each one has bought, and can suspend one — without being able to read anyone's
+clinical data. That account holds no tenant, which is what makes the second half true.
+
 ## 5. Non-functional requirements
 
 These were not itemized in the SRS; they are recorded here because the implementation
