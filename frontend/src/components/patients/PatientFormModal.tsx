@@ -118,6 +118,7 @@ export default function PatientFormModal({
             errors={errors}
             touched={touched}
             onBlur={(field) => setTouched((current) => ({ ...current, [field]: true }))}
+            lockNationalId={Boolean(patient?.nationalId)}
           />
 
           <div className="modal-actions">

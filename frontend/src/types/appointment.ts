@@ -11,6 +11,8 @@ export interface Appointment {
   id: string
   patientId: string
   patientName: string
+  doctorId: string | null
+  doctorName: string | null
   status: AppointmentStatus
   scheduledAt: string
   checkedInAt: string | null
@@ -19,4 +21,12 @@ export interface Appointment {
   reason: string | null
   createdAt: string
   updatedAt: string
+}
+
+/** Mirrors AppointmentRequest. A walk-in is booked with no doctor. */
+export interface AppointmentForm {
+  patientId: string
+  doctorId: string
+  scheduledAt: string
+  reason: string
 }
