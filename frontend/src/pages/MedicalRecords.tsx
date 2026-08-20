@@ -1,7 +1,9 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { finalizeEncounter, getEncounter, getEncounters, saveEncounter } from '../api/encounters'
+import {
+  draftEncounterSummary, finalizeEncounter, getEncounter, getEncounters, saveEncounter,
+} from '../api/encounters'
 import { getAppointments } from '../api/appointments'
 import { getPatient } from '../api/patients'
 import { useAuth } from '../auth/AuthContext'
@@ -11,6 +13,7 @@ const emptyForm: EncounterForm = {
   patientId: '', appointmentId: '', chiefComplaint: '',
   bloodPressure: '', temperatureCelsius: '', pulseBpm: '', weightKg: '', symptoms: '',
   examinationNotes: '', diagnosis: '', treatmentPlan: '', prescriptions: '', labRequests: '',
+  visitSummary: '',
 }
 
 export default function MedicalRecords() {
@@ -113,6 +116,25 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
   }
   const submit = (event: FormEvent) => { event.preventDefault(); void persist(false) }
 
+  /**
+   * Saves first so the summarizer reads what is on screen, then drops its draft into the
+   * field. It stays editable: the clinician signs the record, not the model.
+   */
+  async function draftSummary() {
+    if (!tenantId) return
+    setBusy(true); setMessage('')
+    try {
+      const saved = await saveEncounter(form, savedId || undefined)
+      setSavedId(saved.id)
+      const drafted = await draftEncounterSummary(saved.id)
+      setForm(current => ({ ...current, visitSummary: drafted.visitSummary || '' }))
+      setMessage('Summary drafted — read it before you finalize')
+      navigate(`/records?encounterId=${saved.id}`, { replace: true })
+    } catch (caught) {
+      setMessage(caught instanceof Error ? caught.message : 'Unable to draft a summary')
+    } finally { setBusy(false) }
+  }
+
   if (encounterQuery.isLoading || patientQuery.isLoading) return <p>Loading clinical record...</p>
   if (!patientId || (!encounterId && !activeAppointment)) return <div className="card record-empty">
     A patient must have an active clinical session before an encounter can be documented.
@@ -145,7 +167,19 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
         <TextField label="Prescriptions" hint="One medication per line" value={form.prescriptions} onChange={v => set('prescriptions', v)} disabled={locked} />
         <TextField label="Lab requests" hint="One test per line" value={form.labRequests} onChange={v => set('labRequests', v)} disabled={locked} />
       </FormSection>
-      {message && <p className={message === 'Draft saved' ? 'record-success' : 'patient-error'}>{message}</p>}
+      <FormSection title="Visit summary">
+        <div className="summary-heading form-field-wide">
+          <p>Drafted from the notes above by Claude, then edited and signed by you.</p>
+          {!locked && <button type="button" className="btn ghost" disabled={busy}
+            onClick={() => void draftSummary()}>
+            {busy ? 'Working...' : form.visitSummary ? 'Redraft with AI' : 'Draft with AI'}
+          </button>}
+        </div>
+        <TextField label="Summary" hint="Yours to correct — the draft is a starting point"
+          value={form.visitSummary} onChange={v => set('visitSummary', v)} disabled={locked} />
+      </FormSection>
+      {message && <p className={message.startsWith('Draft saved') || message.startsWith('Summary drafted')
+        ? 'record-success' : 'patient-error'}>{message}</p>}
       {!locked && <div className="encounter-actions"><button className="btn ghost" disabled={busy}>Save draft</button>
         <button type="button" className="btn" disabled={busy || !form.diagnosis.trim() || !form.treatmentPlan.trim()}
           onClick={() => void persist(true)}>{busy ? 'Saving...' : 'Finalize encounter'}</button></div>}
@@ -173,7 +207,8 @@ function TextField({ label, value, onChange, required, disabled, hint }: {
 }
 function toForm(value: Encounter): EncounterForm {
   return { ...value, temperatureCelsius: value.temperatureCelsius?.toString() || '',
-    pulseBpm: value.pulseBpm?.toString() || '', weightKg: value.weightKg?.toString() || '' }
+    pulseBpm: value.pulseBpm?.toString() || '', weightKg: value.weightKg?.toString() || '',
+    visitSummary: value.visitSummary || '' }
 }
 function formatDateTime(value: string) {
   return new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))

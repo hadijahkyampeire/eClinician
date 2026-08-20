@@ -20,4 +20,16 @@ public record EncounterRequest(
         String diagnosis,
         String treatmentPlan,
         String prescriptions,
-        String labRequests) {}
+        String labRequests,
+        String visitSummary) {
+
+    /** Existing call sites that predate the drafted summary. */
+    public EncounterRequest(UUID patientId, UUID appointmentId, String chiefComplaint,
+            String bloodPressure, Double temperatureCelsius, Integer pulseBpm, Double weightKg,
+            String symptoms, String examinationNotes, String diagnosis, String treatmentPlan,
+            String prescriptions, String labRequests) {
+        this(patientId, appointmentId, chiefComplaint, bloodPressure, temperatureCelsius,
+                pulseBpm, weightKg, symptoms, examinationNotes, diagnosis, treatmentPlan,
+                prescriptions, labRequests, null);
+    }
+}

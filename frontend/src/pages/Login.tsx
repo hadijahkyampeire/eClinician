@@ -41,8 +41,8 @@ export default function Login() {
     <div className="login-wrap">
       <form className="login-card" onSubmit={handleSubmit}>
         <div className="brand">
-          <div className="logo">e</div>
-          <h1>eClinician</h1>
+          <div className="logo">HK</div>
+          <h1>HK CLINIC</h1>
         </div>
         <p className="subtitle">Sign in to your clinical workspace</p>
 

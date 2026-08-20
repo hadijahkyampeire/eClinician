@@ -2,9 +2,14 @@ package com.eclinician;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.eclinician.domains.dtos.TenantRequest;
+import com.eclinician.domains.enums.ClinicModule;
 import com.eclinician.domains.enums.UserRole;
+import com.eclinician.services.TenantService;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +31,7 @@ class RoleAuthorizationTests {
     private static final String TENANT = "roles-hospital";
 
     @Autowired MockMvc mvc;
+    @Autowired TenantService tenants;
     @Autowired TestAccounts accounts;
 
     @Test
@@ -84,12 +90,63 @@ class RoleAuthorizationTests {
     }
 
     @Test
-    void anAdministratorMayActForEveryDepartment() throws Exception {
+    void anAdministratorMayWatchEveryDepartment() throws Exception {
         String admin = accounts.bearerFor(TENANT, UserRole.ADMINISTRATOR);
 
         mvc.perform(get("/api/pharmacy/prescriptions").header("Authorization", admin))
                 .andExpect(status().isOk());
         mvc.perform(get("/api/lab/orders").header("Authorization", admin))
                 .andExpect(status().isOk());
+        mvc.perform(get("/api/patients").header("Authorization", admin))
+                .andExpect(status().isOk());
+    }
+
+    /** Oversight is not the same as authority: the administrator changes no clinical row. */
+    @Test
+    void anAdministratorMayNotDoTheClinicalWork() throws Exception {
+        String admin = accounts.bearerFor(TENANT, UserRole.ADMINISTRATOR);
+
+        mvc.perform(post("/api/patients").header("Authorization", admin)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"firstName\":\"A\",\"lastName\":\"B\",\"dateOfBirth\":\"1990-01-01\","
+                                + "\"sex\":\"Other\",\"phone\":\"+256700000123\"}"))
+                .andExpect(status().isForbidden());
+
+        mvc.perform(post("/api/pharmacy/prescriptions/{id}", UUID.randomUUID())
+                        .header("Authorization", admin)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"DISPENSED\",\"notes\":\"\"}"))
+                .andExpect(status().isForbidden());
+
+        mvc.perform(post("/api/lab/orders/{id}", UUID.randomUUID())
+                        .header("Authorization", admin)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"COMPLETED\",\"result\":\"Negative\",\"notes\":\"\"}"))
+                .andExpect(status().isForbidden());
+
+        mvc.perform(post("/api/encounters").header("Authorization", admin)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"patientId\":\"" + UUID.randomUUID() + "\",\"appointmentId\":\""
+                                + UUID.randomUUID() + "\"}"))
+                .andExpect(status().isForbidden());
+    }
+
+    /** Their own clinic's branding, on the other hand, is exactly their job. */
+    @Test
+    void anAdministratorOwnsTheirClinicSettings() throws Exception {
+        tenants.create(new TenantRequest(TENANT, "Authorization Hospital", "#0f766e",
+                List.of(ClinicModule.values())));
+
+        mvc.perform(put("/api/clinic")
+                        .header("Authorization", accounts.bearerFor(TENANT, UserRole.ADMINISTRATOR))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Renamed Clinic\",\"primaryColor\":\"#123456\"}"))
+                .andExpect(status().isOk());
+
+        mvc.perform(put("/api/clinic")
+                        .header("Authorization", accounts.bearerFor(TENANT, UserRole.RECEPTIONIST))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Not mine\",\"primaryColor\":\"#123456\"}"))
+                .andExpect(status().isForbidden());
     }
 }

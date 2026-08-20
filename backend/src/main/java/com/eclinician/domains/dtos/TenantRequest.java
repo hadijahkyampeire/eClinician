@@ -1,6 +1,7 @@
 package com.eclinician.domains.dtos;
 
 import com.eclinician.domains.enums.ClinicModule;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -20,4 +21,17 @@ public record TenantRequest(
         @NotBlank @Pattern(regexp = "^#[0-9a-fA-F]{6}$", message = "Use a hex colour like #0f766e")
         String primaryColor,
 
-        @NotNull List<ClinicModule> modules) {}
+        @NotNull List<ClinicModule> modules,
+
+        // Onboarding a hospital that nobody can sign in to is onboarding nothing, so the
+        // console creates its first administrator in the same step. Ignored on update.
+        @Size(max = 150) String adminName,
+        @Email @Size(max = 200) String adminEmail,
+        @Size(min = 8, max = 100) String adminPassword) {
+
+    /** Editing an existing hospital, where the administrator already exists. */
+    public TenantRequest(String id, String name, String primaryColor,
+            List<ClinicModule> modules) {
+        this(id, name, primaryColor, modules, null, null, null);
+    }
+}
