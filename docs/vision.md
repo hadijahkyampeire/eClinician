@@ -3,9 +3,8 @@
 **Project:** eClinician — a multi-tenant outpatient clinic management system
 **Author:** Hadijah Kyampeire · Reg. #618990
 
-Companion to the use-case-based SRS ([srs/eClinician-SRS.pdf](srs/eClinician-SRS.pdf),
-summarized in [srs.md](srs.md)). The SRS says what the system does; this says why it
-exists and for whom.
+Companion to the SRS ([PDF](srs/eClinician-SRS.pdf), summarized in [srs.md](srs.md)). The
+SRS says what the system does; this says why it exists and for whom.
 
 ---
 
@@ -24,8 +23,8 @@ familiar:
   much is going undispensed.
 
 Hospital information systems that solve this exist, but they are priced and scoped for
-large hospitals — one installation, one institution, a licence and a server per site. A
-clinic with fifteen staff cannot justify either the cost or the administration.
+large hospitals: a licence and a server per site. A clinic with fifteen staff cannot
+justify the cost or the administration.
 
 ## 2. Product position
 
@@ -37,8 +36,8 @@ clinic with fifteen staff cannot justify either the cost or the administration.
 > **Unlike** conventional hospital information systems, which are installed per site,
 > **our product** isolates each clinic's data by tenant inside one running instance.
 
-The multi-tenant design is the commercial idea, not a technical flourish: it is what
-makes the price per clinic small enough to be affordable.
+Multi-tenancy is the commercial idea, not a technical flourish — it is what makes the
+price per clinic affordable.
 
 ## 3. Stakeholders and users
 
@@ -72,12 +71,11 @@ makes the price per clinic small enough to be affordable.
 - Structured lab result values with reference ranges
 - A patient-facing portal
 
-**Shaped during implementation.** The SRS specifies appointment *scheduling* — a doctor, a
-date, a time, conflict checks — and that is built. What was added beside it is **arrival**:
-check in → waiting → in session → completed, because for a walk-in outpatient clinic who is
-waiting now matters as much as who is booked for Thursday. A walk-in carries no doctor, so
-it never collides with a booking. The remaining differences from the SRS are listed in
-[srs.md §4](srs.md#4-as-built-specification-against-implementation).
+**Shaped during implementation.** The SRS specifies appointment *scheduling*, and that is
+built. Added beside it is **arrival** — check in → waiting → in session → completed —
+because in a walk-in clinic who is waiting now matters as much as who is booked for
+Thursday. A walk-in carries no doctor, so it never collides with a booking. The remaining
+differences are in [srs.md §4](srs.md#4-as-built-specification-against-implementation).
 
 ## 5. Major features
 
@@ -110,7 +108,7 @@ it never collides with a booking. The remaining differences from the SRS are lis
 | Coursework scope and one developer | Depth over breadth: one workflow built completely rather than five built shallowly |
 | Java 21 / Spring Boot 4 / PostgreSQL / React 19 | Set by the course stack |
 | Free-tier cloud hosting | 512 MB RAM, shared CPU, an instance that sleeps, a database that expires after 30 days |
-| Schema managed by Hibernate `ddl-auto=update` | Acceptable while there is no production data; Flyway is the first item on the roadmap |
+| Schema owned by Flyway, validated by Hibernate | Every change is a new migration; a drifted mapping fails the boot rather than altering a live table |
 | No clinical certification | Not a medical device; it records what staff type, and makes no clinical decisions |
 
 ## 8. Success criteria
