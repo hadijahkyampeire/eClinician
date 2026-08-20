@@ -1,15 +1,11 @@
 package com.eclinician.services;
 
-import com.anthropic.client.AnthropicClient;
-import com.anthropic.client.okhttp.AnthropicOkHttpClient;
-import com.anthropic.errors.AnthropicServiceException;
-import com.anthropic.errors.RateLimitException;
-import com.anthropic.models.messages.Message;
-import com.anthropic.models.messages.MessageCreateParams;
-import com.anthropic.models.messages.OutputConfig;
 import com.eclinician.domains.entities.Encounter;
 import com.eclinician.web.ConflictException;
 import com.eclinician.web.ServiceUnavailableException;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,6 +17,10 @@ import org.springframework.stereotype.Service;
  *
  * <p>The draft is never the record. It comes back into an editable field, the clinician
  * changes what they disagree with, and their name is what the encounter is signed with.
+ *
+ * <p>Which vendor answers is a deployment decision: whichever {@link SummaryDrafter} has
+ * a key wins, and {@code app.ai.provider} names one explicitly. Neither key is committed,
+ * and with no key at all the feature reports itself off rather than breaking a visit.
  */
 @Service
 public class ClinicalSummaryService {
@@ -42,60 +42,52 @@ public class ClinicalSummaryService {
             no offer to help further.
             """;
 
-    private final AnthropicClient client;
-    private final String model;
+    private final SummaryDrafter drafter;
 
-    public ClinicalSummaryService(@Value("${app.ai.api-key:}") String apiKey,
-            @Value("${app.ai.model:claude-opus-5}") String model) {
-        this.model = model;
-        // No key is committed anywhere; without one the feature simply reports itself off.
-        this.client = apiKey == null || apiKey.isBlank() ? null
-                : AnthropicOkHttpClient.builder().apiKey(apiKey).build();
-        if (this.client == null) {
-            log.info("No ANTHROPIC_API_KEY set — visit-summary drafting is unavailable.");
-        }
+    public ClinicalSummaryService(List<SummaryDrafter> drafters,
+            @Value("${app.ai.provider:auto}") String preference) {
+        this.drafter = choose(drafters, preference).orElse(null);
+        log.info(drafter == null
+                ? "No summarizer key configured — visit-summary drafting is unavailable."
+                : "Visit summaries will be drafted by " + drafter.name() + ".");
+    }
+
+    /**
+     * {@code auto} takes whichever drafter is configured, preferring the cheaper one when
+     * both are; naming a provider takes that one and only that one, so a deployment can
+     * insist rather than depend on which key happens to be set.
+     */
+    private static Optional<SummaryDrafter> choose(List<SummaryDrafter> drafters, String preference) {
+        String wanted = preference == null ? "auto" : preference.trim().toLowerCase();
+        return drafters.stream()
+                .filter(SummaryDrafter::isConfigured)
+                .filter(candidate -> wanted.equals("auto")
+                        || candidate.name().toLowerCase().startsWith(wanted))
+                .min(Comparator.comparingInt(candidate ->
+                        candidate instanceof OpenAiSummaryDrafter ? 0 : 1));
     }
 
     public boolean isAvailable() {
-        return client != null;
+        return drafter != null;
+    }
+
+    /** Which service answers, for the settings screen and for the logs. */
+    public String providerName() {
+        return drafter == null ? "none" : drafter.name();
     }
 
     public String draftFor(Encounter encounter) {
         // The caller's own mistake first: an empty encounter is worth saying so about
-        // whether or not the summarizer is configured.
+        // whether or not a summarizer is configured.
         String notes = notesOf(encounter);
         if (notes.isBlank()) {
             throw new ConflictException("Write the visit up before drafting a summary");
         }
-        if (client == null) {
-            throw new ServiceUnavailableException(
-                    "Summary drafting is switched off: no ANTHROPIC_API_KEY is configured");
+        if (drafter == null) {
+            throw new ServiceUnavailableException("Summary drafting is switched off: "
+                    + "set OPENAI_API_KEY or ANTHROPIC_API_KEY to turn it on");
         }
-        try {
-            Message reply = client.messages().create(MessageCreateParams.builder()
-                    .model(model)
-                    .maxTokens(1024L)
-                    .system(SYSTEM)
-                    // Summarizing short notes: low effort keeps the clinician waiting seconds.
-                    .outputConfig(OutputConfig.builder()
-                            .effort(OutputConfig.Effort.LOW)
-                            .build())
-                    .addUserMessage(notes)
-                    .build());
-            return reply.content().stream()
-                    .flatMap(block -> block.text().stream())
-                    .map(text -> text.text())
-                    .reduce((a, b) -> a + "\n" + b)
-                    .orElseThrow(() -> new ServiceUnavailableException(
-                            "The summarizer returned nothing to draft from"))
-                    .trim();
-        } catch (RateLimitException ex) {
-            throw new ServiceUnavailableException(
-                    "The summarizer is rate limited right now — try again in a moment");
-        } catch (AnthropicServiceException ex) {
-            log.warn("Summary drafting failed: {}", ex.getMessage());
-            throw new ServiceUnavailableException("The summarizer could not be reached");
-        }
+        return drafter.draft(SYSTEM, notes);
     }
 
     /** Only what the clinician actually recorded; empty fields are left out entirely. */

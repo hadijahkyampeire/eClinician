@@ -34,7 +34,7 @@ The four places where the code did not yet match the SRS document are now closed
 | The hospital administrator could register patients, dispense, result tests and document encounters | They read every department and change no clinical row; staff accounts and their clinic's branding are theirs |
 | Onboarding created a hospital nobody could sign in to | The console creates the hospital's first administrator in the same transaction, and that person hires the rest |
 | A clinic's name and colour could only be changed by editing the frontend | The administrator changes them from Clinic settings, and the sidebar reads "HK CLINIC · <clinic>" |
-| The VOPC's `LLMService` was documented as never built | Claude drafts the visit summary from the clinician's notes into a field they edit and sign |
+| The VOPC's `LLMService` was documented as never built | Built behind a `SummaryDrafter` interface — OpenAI or Claude, chosen by whichever key the deployment sets — drafting into a field the clinician edits and signs |
 
 ## Closed in the completion pass
 

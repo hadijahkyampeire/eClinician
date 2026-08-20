@@ -22,7 +22,7 @@ ever names one.
 | `POST` | `/api/appointments/patients/{id}/start-session` | Clinician takes the patient |
 | `POST` | `/api/appointments/{id}/complete` | Close the visit |
 | `GET` `POST` `PUT` | `/api/encounters` `/{id}` | Read and document the encounter |
-| `POST` | `/api/encounters/{id}/summary` | Draft this visit's summary from its notes — `503` when no `ANTHROPIC_API_KEY` is set |
+| `POST` | `/api/encounters/{id}/summary` | Draft this visit's summary from its notes — `503` when no summarizer key is configured |
 | `GET` `PUT` | `/api/clinic` | The signed-in user's own clinic; the administrator changes its name and colour |
 | `POST` | `/api/encounters/{id}/finalize` | Sign off — completes the visit and raises the prescription and lab orders |
 | `GET` | `/api/pharmacy/prescriptions` | The dispensing queue, filterable by `?status=` |

@@ -45,8 +45,11 @@ staff accounts are seeded on first start (password `demo1234`, or `DEMO_PASSWORD
 | `JWT_SECRET` | backend | none — a random per-process key is generated if unset |
 | `JWT_TTL_MINUTES` | backend | `480` |
 | `DEMO_PASSWORD` | backend | `demo1234` |
-| `ANTHROPIC_API_KEY` | backend | none — visit-summary drafting reports itself off without it |
+| `OPENAI_API_KEY` | backend | none — set either this or `ANTHROPIC_API_KEY` to switch visit-summary drafting on |
+| `OPENAI_MODEL` | backend | `gpt-4o-mini` |
+| `ANTHROPIC_API_KEY` | backend | none |
 | `ANTHROPIC_MODEL` | backend | `claude-opus-5` |
+| `AI_PROVIDER` | backend | `auto` — or `openai` / `claude` to insist on one |
 | `VITE_API_URL` | frontend | `http://localhost:8080` |
 
 - `CORS_ALLOWED_ORIGINS` is comma-separated and accepts bare hostnames (https assumed).
@@ -55,6 +58,10 @@ staff accounts are seeded on first start (password `demo1234`, or `DEMO_PASSWORD
   out everyone holding an old token. **No key is committed:** unset, the app generates a
   random key for that process and logs a warning, so sign-ins stop working after a
   restart — the intended reminder. Render generates a real one per deployment.
+
+- The summarizer takes whichever key is present; with both, `auto` prefers OpenAI. Neither
+  key is committed, and with neither the drafting endpoint answers `503` while everything
+  else runs normally — so a deployment without a key is degraded, never broken.
 
 ## Database migrations
 

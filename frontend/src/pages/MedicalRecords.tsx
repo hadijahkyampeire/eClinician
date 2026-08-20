@@ -169,7 +169,7 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
       </FormSection>
       <FormSection title="Visit summary">
         <div className="summary-heading form-field-wide">
-          <p>Drafted from the notes above by Claude, then edited and signed by you.</p>
+          <p>Drafted from the notes above, then edited and signed by you.</p>
           {!locked && <button type="button" className="btn ghost" disabled={busy}
             onClick={() => void draftSummary()}>
             {busy ? 'Working...' : form.visitSummary ? 'Redraft with AI' : 'Draft with AI'}

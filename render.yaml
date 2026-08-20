@@ -40,9 +40,11 @@ services:
       # leaving it unset falls back to the development default.
       - key: DEMO_PASSWORD
         sync: false
-      # Claude API key for drafting visit summaries. Paste it in the dashboard — it is
-      # never committed. Without it the feature reports itself off and nothing else
-      # changes, so the app still runs.
+      # The visit-summary drafter takes whichever of these is set — paste one in the
+      # dashboard; neither is ever committed. With neither, the feature reports itself
+      # off and nothing else changes, so the app still runs.
+      - key: OPENAI_API_KEY
+        sync: false
       - key: ANTHROPIC_API_KEY
         sync: false
       # Drives what "today" means on the dashboards.

@@ -5,8 +5,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.eclinician.domains.entities.Encounter;
 import com.eclinician.services.ClinicalSummaryService;
+import com.eclinician.services.SummaryDrafter;
 import com.eclinician.web.ConflictException;
 import com.eclinician.web.ServiceUnavailableException;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -20,14 +22,25 @@ import org.springframework.boot.test.context.SpringBootTest;
 class SummaryDraftingTests {
 
     @Autowired ClinicalSummaryService summaries;
+    @Autowired List<SummaryDrafter> drafters;
 
     @Test
     void withoutAnApiKeyTheFeatureReportsItselfOffRatherThanFailing() {
         assertThat(summaries.isAvailable()).isFalse();
+        assertThat(summaries.providerName()).isEqualTo("none");
 
         assertThatThrownBy(() -> summaries.draftFor(documented()))
                 .isInstanceOf(ServiceUnavailableException.class)
-                .hasMessageContaining("ANTHROPIC_API_KEY");
+                .hasMessageContaining("OPENAI_API_KEY");
+    }
+
+    /** Either vendor can answer; a key is the only thing that decides which. */
+    @Test
+    void aDrafterIsChosenByWhicheverKeyIsConfigured() {
+        assertThat(drafters).extracting(SummaryDrafter::name)
+                .anySatisfy(name -> assertThat(name).startsWith("OpenAI"))
+                .anySatisfy(name -> assertThat(name).startsWith("Claude"));
+        assertThat(drafters).noneMatch(SummaryDrafter::isConfigured);
     }
 
     @Test
