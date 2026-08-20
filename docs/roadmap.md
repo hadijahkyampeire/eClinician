@@ -11,7 +11,9 @@ Named honestly, with the reason.
 | **Structured lab results** | A technician records a result, but as free text. Values, units and reference ranges need a test catalogue — the same argument as pharmacy stock. |
 | **Per-doctor patient lists** | A clinician reads any patient in their own clinic. The SRS phrase "their patients" needs a doctor-patient assignment the system does not model. |
 | **`NO_SHOW`** | The status exists in the enum; no SRS flow sets it, so nothing does. |
-| **Billing** | Hospitals are onboarded and subscribed to modules, but nothing is priced, metered or invoiced. |
+| **Billing** | Out of scope from the start ([vision.md §4](vision.md)): consultation fees, insurance claims and the hospital subscriptions themselves are their own product. The console already records which modules a hospital bought, which is where pricing would attach. |
+| **Metering the drafted summaries** | Summaries are drafted on demand with no per-clinic quota or usage record. Billing would need both, and the console is where they would attach. |
+| **Sequencing pharmacy behind the laboratory** | Finalizing raises the pharmacy and laboratory work in the same transaction, so nothing stops a medicine being dispensed before its tests come back. Clinically the pharmacy is the last stop; enforcing that means a prescription that waits on the orders raised beside it. |
 
 
 ## Closed in the SRS-conformance pass
@@ -24,6 +26,15 @@ The four places where the code did not yet match the SRS document are now closed
 | 2 | Booking with a doctor, date and time, with both conflict rules, plus update and cancel |
 | 4.1 | A clinician reads their patient's prescriptions on the patient record |
 | 5.3 | A clinician reads their patient's lab results the same way |
+
+## Closed in the demo pass
+
+| Was | Now |
+|---|---|
+| The hospital administrator could register patients, dispense, result tests and document encounters | They read every department and change no clinical row; staff accounts and their clinic's branding are theirs |
+| Onboarding created a hospital nobody could sign in to | The console creates the hospital's first administrator in the same transaction, and that person hires the rest |
+| A clinic's name and colour could only be changed by editing the frontend | The administrator changes them from Clinic settings, and the sidebar reads "HK CLINIC · <clinic>" |
+| The VOPC's `LLMService` was documented as never built | Built behind a `SummaryDrafter` interface — OpenAI or Claude, chosen by whichever key the deployment sets — drafting into a field the clinician edits and signs |
 
 ## Closed in the completion pass
 

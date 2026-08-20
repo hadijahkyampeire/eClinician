@@ -61,7 +61,7 @@ public class PatientController {
         return service.get(tenantId, id);
     }
 
-    @PreAuthorize("hasAnyRole('RECEPTIONIST', 'ADMINISTRATOR')")
+    @PreAuthorize("hasRole('RECEPTIONIST')")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public PatientResponse create(@CurrentTenant String tenantId,
@@ -69,14 +69,14 @@ public class PatientController {
         return service.create(tenantId, req);
     }
 
-    @PreAuthorize("hasAnyRole('RECEPTIONIST', 'ADMINISTRATOR')")
+    @PreAuthorize("hasRole('RECEPTIONIST')")
     @PutMapping("/{id}")
     public PatientResponse update(@CurrentTenant String tenantId,
             @PathVariable UUID id, @Valid @RequestBody PatientRequest req) {
         return service.update(tenantId, id, req);
     }
 
-    @PreAuthorize("hasAnyRole('RECEPTIONIST', 'ADMINISTRATOR')")
+    @PreAuthorize("hasRole('RECEPTIONIST')")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@CurrentTenant String tenantId, @PathVariable UUID id) {

@@ -16,6 +16,16 @@ export interface HospitalForm {
   name: string
   primaryColor: string
   modules: ModuleKey[]
+  /** Only sent when onboarding: the hospital's first administrator. */
+  adminName?: string
+  adminEmail?: string
+  adminPassword?: string
+}
+
+/** Mirrors ClinicSettingsRequest: what a hospital's own administrator may change. */
+export interface ClinicSettings {
+  name: string
+  primaryColor: string
 }
 
 /** Mirrors PlatformStats. */

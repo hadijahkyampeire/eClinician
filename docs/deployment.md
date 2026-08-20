@@ -13,7 +13,7 @@ Verified against the live instance:
 
 ```
 GET  /api/health                        → 200 {"status":"UP"}
-POST /api/auth/login  (demo clinician)  → 200 + JWT carrying tenant "sample-hospital"
+POST /api/auth/login  (demo clinician)  → 200 + JWT carrying tenant "hk-clinics"
 GET  /api/patients    with the token    → 200
 GET  /api/patients    without a token   → 401
 OPTIONS preflight from the web origin   → 200, allow-origin: https://eclinician-web.onrender.com,
@@ -45,6 +45,11 @@ staff accounts are seeded on first start (password `demo1234`, or `DEMO_PASSWORD
 | `JWT_SECRET` | backend | none — a random per-process key is generated if unset |
 | `JWT_TTL_MINUTES` | backend | `480` |
 | `DEMO_PASSWORD` | backend | `demo1234` |
+| `OPENAI_API_KEY` | backend | none — set either this or `ANTHROPIC_API_KEY` to switch visit-summary drafting on |
+| `OPENAI_MODEL` | backend | `gpt-4o-mini` |
+| `ANTHROPIC_API_KEY` | backend | none |
+| `ANTHROPIC_MODEL` | backend | `claude-opus-5` |
+| `AI_PROVIDER` | backend | `auto` — or `openai` / `claude` to insist on one |
 | `VITE_API_URL` | frontend | `http://localhost:8080` |
 
 - `CORS_ALLOWED_ORIGINS` is comma-separated and accepts bare hostnames (https assumed).
@@ -53,6 +58,10 @@ staff accounts are seeded on first start (password `demo1234`, or `DEMO_PASSWORD
   out everyone holding an old token. **No key is committed:** unset, the app generates a
   random key for that process and logs a warning, so sign-ins stop working after a
   restart — the intended reminder. Render generates a real one per deployment.
+
+- The summarizer takes whichever key is present; with both, `auto` prefers OpenAI. Neither
+  key is committed, and with neither the drafting endpoint answers `503` while everything
+  else runs normally — so a deployment without a key is degraded, never broken.
 
 ## Database migrations
 
@@ -104,6 +113,17 @@ Changing it requires a frontend rebuild, not a restart.
 | `JWT_SECRET` | `generateValue: true` — Render creates it and keeps it; never in the repo |
 | `DEMO_PASSWORD` | `sync: false` — set by hand in the dashboard |
 | Staff passwords | Stored only as BCrypt hashes |
+
+## Keeping the free instance awake
+
+The free API sleeps after 15 minutes idle and takes 1–2 minutes to answer the first
+request after that. `.github/workflows/keep-warm.yml` pings `/api/health` every ten
+minutes, which keeps it awake most of the time — GitHub's scheduled runners fire late
+often enough that it is a reduction in cold starts rather than a guarantee.
+
+Before anything that matters, open the app yourself ten minutes early and leave the tab
+open. The only real fix is a paid instance; the only real fallback is running it locally,
+which needs nothing but Docker.
 
 ## Free-tier limits worth knowing
 

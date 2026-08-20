@@ -1,5 +1,11 @@
 # API Reference
 
+**Browsable, generated from the controllers:**
+[eclinician-api.onrender.com/swagger-ui.html](https://eclinician-api.onrender.com/swagger-ui.html)
+— sign in through `POST /api/auth/login`, press Authorize, paste the token, and call any
+endpoint from the browser. The page below is the same surface written out, with the
+reasoning that a generated page cannot carry.
+
 Every endpoint except `/api/health` and `/api/auth/login` requires an
 `Authorization: Bearer <jwt>` header. The tenant is read from the token, so no request
 ever names one.
@@ -22,6 +28,8 @@ ever names one.
 | `POST` | `/api/appointments/patients/{id}/start-session` | Clinician takes the patient |
 | `POST` | `/api/appointments/{id}/complete` | Close the visit |
 | `GET` `POST` `PUT` | `/api/encounters` `/{id}` | Read and document the encounter |
+| `POST` | `/api/encounters/{id}/summary` | Draft this visit's summary from its notes — `503` when no summarizer key is configured |
+| `GET` `PUT` | `/api/clinic` | The signed-in user's own clinic; the administrator changes its name and colour |
 | `POST` | `/api/encounters/{id}/finalize` | Sign off — completes the visit and raises the prescription and lab orders |
 | `GET` | `/api/pharmacy/prescriptions` | The dispensing queue, filterable by `?status=` |
 | `GET` | `/api/pharmacy/prescriptions/patients/{id}` | One patient's prescriptions, for the clinician who issued them |
@@ -59,7 +67,7 @@ the wrong clinic, the record does not exist.
 # Log in
 TOKEN=$(curl -s -X POST localhost:8080/api/auth/login \
   -H 'Content-Type: application/json' \
-  -d '{"email":"sjenkins@stmarys.eclinician.com","password":"demo1234"}' \
+  -d '{"email":"hkdoctor@hkclinics.com","password":"demo1234"}' \
   | python3 -c 'import sys,json; print(json.load(sys.stdin)["token"])')
 
 # Read patients
@@ -96,12 +104,15 @@ in the UI. Anything not listed is open to any authenticated member of the tenant
 
 | Endpoint | Allowed roles |
 |---|---|
-| `POST` `PUT` `DELETE /api/patients` | Receptionist · Administrator |
-| `POST` `PUT /api/appointments`, `/{id}/cancel`, `/check-in`, `/{id}/waiting` | Receptionist · Administrator |
-| `POST /api/appointments/.../start-session`, `/{id}/complete` | Clinician · Administrator |
-| `POST` `PUT /api/encounters`, `/{id}/finalize` | Clinician · Administrator |
-| `GET` `POST /api/pharmacy/prescriptions` | Pharmacist · Administrator |
-| `GET` `POST /api/lab/orders` | Lab Technician · Administrator |
+| `POST` `PUT` `DELETE /api/patients` | Receptionist |
+| `POST` `PUT /api/appointments`, `/{id}/cancel`, `/check-in`, `/{id}/waiting` | Receptionist |
+| `POST /api/appointments/.../start-session`, `/{id}/complete` | Clinician |
+| `POST` `PUT /api/encounters`, `/{id}/finalize`, `/{id}/summary` | Clinician |
+| `GET /api/pharmacy/prescriptions` | Pharmacist · Administrator (oversight: reads the queue, cannot dispense) |
+| `POST /api/pharmacy/prescriptions/{id}` | Pharmacist |
+| `GET /api/lab/orders` | Lab Technician · Administrator |
+| `POST /api/lab/orders/{id}` | Lab Technician |
+| `PUT /api/clinic` | Administrator, for their own clinic only |
 | `GET /api/pharmacy/prescriptions/patients/{id}` | Clinician · Pharmacist · Administrator |
 | `GET /api/lab/orders/patients/{id}` | Clinician · Lab Technician · Administrator |
 | `GET /api/staff/clinicians` | Receptionist · Clinician · Administrator |

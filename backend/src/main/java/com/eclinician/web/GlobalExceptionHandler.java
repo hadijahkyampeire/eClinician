@@ -37,6 +37,13 @@ public class GlobalExceptionHandler {
                 .body(Map.of("message", "That record conflicts with one already saved"));
     }
 
+    /** A feature that is configured off or unreachable — the caller can try again later. */
+    @ExceptionHandler(ServiceUnavailableException.class)
+    ResponseEntity<Map<String, String>> unavailable(ServiceUnavailableException ex) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(Map.of("message", ex.getMessage()));
+    }
+
     // A wrong email or password -> 401 with one deliberately vague message.
     @ExceptionHandler(BadCredentialsException.class)
     ResponseEntity<Map<String, String>> badCredentials(BadCredentialsException ex) {

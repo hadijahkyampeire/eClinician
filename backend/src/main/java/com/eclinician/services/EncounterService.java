@@ -25,15 +25,17 @@ public class EncounterService {
     private final AppointmentRepository appointments;
     private final PharmacyService pharmacyService;
     private final LabService labService;
+    private final ClinicalSummaryService summaries;
 
     public EncounterService(EncounterRepository encounters, PatientRepository patients,
             AppointmentRepository appointments, PharmacyService pharmacyService,
-            LabService labService) {
+            LabService labService, ClinicalSummaryService summaries) {
         this.encounters = encounters;
         this.patients = patients;
         this.appointments = appointments;
         this.pharmacyService = pharmacyService;
         this.labService = labService;
+        this.summaries = summaries;
     }
 
     public List<EncounterResponse> list(String tenantId, UUID patientId) {
@@ -109,6 +111,19 @@ public class EncounterService {
         return response(patient, encounters.save(value));
     }
 
+    /**
+     * Drafts the visit summary from the notes and saves it on the encounter. The clinician
+     * edits it afterwards like any other field — the draft is a starting point, not the
+     * record, which is why a finalized encounter refuses one.
+     */
+    @Transactional
+    public EncounterResponse draftSummary(String tenantId, UUID id) {
+        Encounter value = encounter(tenantId, id);
+        requireDraft(value);
+        value.setVisitSummary(summaries.draftFor(value));
+        return response(tenantId, encounters.save(value));
+    }
+
     private void copy(EncounterRequest source, Encounter target) {
         target.setChiefComplaint(source.chiefComplaint());
         target.setBloodPressure(source.bloodPressure());
@@ -121,6 +136,9 @@ public class EncounterService {
         target.setTreatmentPlan(source.treatmentPlan());
         target.setPrescriptions(source.prescriptions());
         target.setLabRequests(source.labRequests());
+        // Only overwritten when the clinician sends one, so drafting then saving other
+        // fields never wipes the summary they kept.
+        if (source.visitSummary() != null) target.setVisitSummary(source.visitSummary());
     }
 
     private void requireDraft(Encounter value) {
@@ -155,7 +173,8 @@ public class EncounterService {
                 value.getBloodPressure(), value.getTemperatureCelsius(), value.getPulseBpm(),
                 value.getWeightKg(), value.getSymptoms(), value.getExaminationNotes(),
                 value.getDiagnosis(), value.getTreatmentPlan(), value.getPrescriptions(),
-                value.getLabRequests(), value.getFinalizedAt(), value.getCreatedAt(),
+                value.getLabRequests(), value.getVisitSummary(), value.getFinalizedAt(),
+                value.getCreatedAt(),
                 value.getUpdatedAt());
     }
 

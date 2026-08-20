@@ -10,6 +10,7 @@ import MedicalRecords from './pages/MedicalRecords'
 import Pharmacy from './pages/Pharmacy'
 import Laboratory from './pages/Laboratory'
 import Staff from './pages/Staff'
+import ClinicSettings from './pages/ClinicSettings'
 import PlatformAdmin from './pages/PlatformAdmin'
 import type { Role } from './auth/AuthContext'
 
@@ -54,6 +55,8 @@ export default function App() {
           <ProtectedRoute roles={LABORATORY}><Laboratory /></ProtectedRoute>} />
         <Route path="/staff" element={
           <ProtectedRoute roles={ADMIN}><Staff /></ProtectedRoute>} />
+        <Route path="/clinic" element={
+          <ProtectedRoute roles={ADMIN}><ClinicSettings /></ProtectedRoute>} />
       </Route>
 
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
