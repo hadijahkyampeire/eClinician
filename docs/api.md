@@ -59,7 +59,7 @@ the wrong clinic, the record does not exist.
 # Log in
 TOKEN=$(curl -s -X POST localhost:8080/api/auth/login \
   -H 'Content-Type: application/json' \
-  -d '{"email":"sjenkins@stmarys.eclinician.com","password":"demo1234"}' \
+  -d '{"email":"hkdoctor@hkclinics.com","password":"demo1234"}' \
   | python3 -c 'import sys,json; print(json.load(sys.stdin)["token"])')
 
 # Read patients

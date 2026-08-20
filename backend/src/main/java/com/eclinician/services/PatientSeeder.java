@@ -10,8 +10,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class PatientSeeder implements CommandLineRunner {
 
-    // Matches the frontend's sample tenant (see demoUsers.ts).
-    private static final String TENANT = "sample-hospital";
+    // The demo clinic, seeded by TenantSeeder before this runs.
+    private static final String TENANT = "hk-clinics";
 
     private final PatientRepository repo;
 

@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component;
 @Order(1)
 public class TenantSeeder implements CommandLineRunner {
 
-    static final String TENANT = "sample-hospital";
+    static final String TENANT = "hk-clinics";
 
     private final TenantRepository tenants;
 
@@ -29,7 +29,7 @@ public class TenantSeeder implements CommandLineRunner {
         if (tenants.existsById(TENANT)) return;
         Tenant tenant = new Tenant();
         tenant.setId(TENANT);
-        tenant.setName("St Mary's Hospital");
+        tenant.setName("HK Clinics");
         tenant.setPrimaryColor("#0f766e");
         tenant.setModuleList(List.of(ClinicModule.values()));
         tenants.save(tenant);

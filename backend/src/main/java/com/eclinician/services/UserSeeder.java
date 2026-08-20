@@ -16,8 +16,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class UserSeeder implements CommandLineRunner {
 
-    // Matches the tenant PatientSeeder uses.
-    private static final String TENANT = "sample-hospital";
+    // The demo clinic, seeded by TenantSeeder before this runs.
+    private static final String TENANT = "hk-clinics";
 
     private final UserRepository users;
     private final PasswordEncoder passwords;
@@ -32,11 +32,11 @@ public class UserSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        add("Amina Okello", "admin@stmarys.eclinician.com", UserRole.ADMINISTRATOR, TENANT, false);
-        add("Dr. Sarah Jenkins", "sjenkins@stmarys.eclinician.com", UserRole.CLINICIAN, TENANT, false);
-        add("Grace Nakato", "reception@stmarys.eclinician.com", UserRole.RECEPTIONIST, TENANT, false);
-        add("John Etyang", "pharmacy@stmarys.eclinician.com", UserRole.PHARMACIST, TENANT, false);
-        add("Peter Ssali", "lab@stmarys.eclinician.com", UserRole.LAB_TECHNICIAN, TENANT, false);
+        add("Amina Okello", "hkaccounts@hkclinics.com", UserRole.ADMINISTRATOR, TENANT, false);
+        add("Dr. Sarah Jenkins", "hkdoctor@hkclinics.com", UserRole.CLINICIAN, TENANT, false);
+        add("Grace Nakato", "hkreceptionist@hkclinics.com", UserRole.RECEPTIONIST, TENANT, false);
+        add("John Etyang", "hkpharmacy@hkclinics.com", UserRole.PHARMACIST, TENANT, false);
+        add("Peter Ssali", "hklabtech@hkclinics.com", UserRole.LAB_TECHNICIAN, TENANT, false);
         // No tenant: the platform admin onboards hospitals, and reads no clinical data.
         add("Hadijah K.", "root@eclinician.com", UserRole.ADMINISTRATOR, null, true);
     }

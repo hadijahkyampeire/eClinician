@@ -102,9 +102,9 @@ Run against a real Postgres, not H2:
 ```bash
 curl -s -o /dev/null -w '%{http_code}\n' localhost:8080/api/patients        # 401
 curl -s -X POST localhost:8080/api/auth/login -H 'Content-Type: application/json' \
-  -d '{"email":"sjenkins@stmarys.eclinician.com","password":"wrong"}'       # 401
+  -d '{"email":"hkdoctor@hkclinics.com","password":"wrong"}'       # 401
 curl -s -o /dev/null -w '%{http_code}\n' localhost:8080/api/patients \
-  -H 'X-Tenant-Id: sample-hospital'                                          # 401
+  -H 'X-Tenant-Id: hk-clinics'                                          # 401
 ```
 
 The last one is the old attack: naming a tenant in a header now gets you nothing.
