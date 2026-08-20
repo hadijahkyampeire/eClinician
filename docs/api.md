@@ -1,5 +1,11 @@
 # API Reference
 
+**Browsable, generated from the controllers:**
+[eclinician-api.onrender.com/swagger-ui.html](https://eclinician-api.onrender.com/swagger-ui.html)
+— sign in through `POST /api/auth/login`, press Authorize, paste the token, and call any
+endpoint from the browser. The page below is the same surface written out, with the
+reasoning that a generated page cannot carry.
+
 Every endpoint except `/api/health` and `/api/auth/login` requires an
 `Authorization: Bearer <jwt>` header. The tenant is read from the token, so no request
 ever names one.

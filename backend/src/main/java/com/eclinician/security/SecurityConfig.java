@@ -78,6 +78,10 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(requests -> requests
                         .requestMatchers("/api/health", "/api/auth/login").permitAll()
+                        // The API's own documentation is public; every endpoint it
+                        // describes still refuses a caller without a token.
+                        .requestMatchers("/swagger-ui.html", "/swagger-ui/**",
+                                "/v3/api-docs", "/v3/api-docs/**").permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(server -> server.jwt(jwt -> jwt
                         .jwtAuthenticationConverter(roleConverter())))
