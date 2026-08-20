@@ -91,6 +91,8 @@ it never collides with a booking. The remaining differences from the SRS are lis
 | F6 | Laboratory queue with result entry | Same handoff for requested tests |
 | F7 | Role-based dashboards | Every role opens the same route and sees its own four numbers |
 | F8 | Authenticated staff accounts | The tenant is decided at login and signed into a token |
+| F9 | Hospital onboarding and per-clinic subscriptions | What makes one deployment a product rather than an installation |
+| F10 | AI-drafted visit summaries | The clinician writes the notes once; the summary is drafted from them and edited, not typed twice |
 
 ## 6. Assumptions
 

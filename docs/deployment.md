@@ -45,6 +45,8 @@ staff accounts are seeded on first start (password `demo1234`, or `DEMO_PASSWORD
 | `JWT_SECRET` | backend | none — a random per-process key is generated if unset |
 | `JWT_TTL_MINUTES` | backend | `480` |
 | `DEMO_PASSWORD` | backend | `demo1234` |
+| `ANTHROPIC_API_KEY` | backend | none — visit-summary drafting reports itself off without it |
+| `ANTHROPIC_MODEL` | backend | `claude-opus-5` |
 | `VITE_API_URL` | frontend | `http://localhost:8080` |
 
 - `CORS_ALLOWED_ORIGINS` is comma-separated and accepts bare hostnames (https assumed).

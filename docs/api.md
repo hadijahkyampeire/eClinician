@@ -22,6 +22,8 @@ ever names one.
 | `POST` | `/api/appointments/patients/{id}/start-session` | Clinician takes the patient |
 | `POST` | `/api/appointments/{id}/complete` | Close the visit |
 | `GET` `POST` `PUT` | `/api/encounters` `/{id}` | Read and document the encounter |
+| `POST` | `/api/encounters/{id}/summary` | Draft this visit's summary from its notes — `503` when no `ANTHROPIC_API_KEY` is set |
+| `GET` `PUT` | `/api/clinic` | The signed-in user's own clinic; the administrator changes its name and colour |
 | `POST` | `/api/encounters/{id}/finalize` | Sign off — completes the visit and raises the prescription and lab orders |
 | `GET` | `/api/pharmacy/prescriptions` | The dispensing queue, filterable by `?status=` |
 | `GET` | `/api/pharmacy/prescriptions/patients/{id}` | One patient's prescriptions, for the clinician who issued them |
@@ -96,12 +98,15 @@ in the UI. Anything not listed is open to any authenticated member of the tenant
 
 | Endpoint | Allowed roles |
 |---|---|
-| `POST` `PUT` `DELETE /api/patients` | Receptionist · Administrator |
-| `POST` `PUT /api/appointments`, `/{id}/cancel`, `/check-in`, `/{id}/waiting` | Receptionist · Administrator |
-| `POST /api/appointments/.../start-session`, `/{id}/complete` | Clinician · Administrator |
-| `POST` `PUT /api/encounters`, `/{id}/finalize` | Clinician · Administrator |
-| `GET` `POST /api/pharmacy/prescriptions` | Pharmacist · Administrator |
-| `GET` `POST /api/lab/orders` | Lab Technician · Administrator |
+| `POST` `PUT` `DELETE /api/patients` | Receptionist |
+| `POST` `PUT /api/appointments`, `/{id}/cancel`, `/check-in`, `/{id}/waiting` | Receptionist |
+| `POST /api/appointments/.../start-session`, `/{id}/complete` | Clinician |
+| `POST` `PUT /api/encounters`, `/{id}/finalize`, `/{id}/summary` | Clinician |
+| `GET /api/pharmacy/prescriptions` | Pharmacist · Administrator (oversight: reads the queue, cannot dispense) |
+| `POST /api/pharmacy/prescriptions/{id}` | Pharmacist |
+| `GET /api/lab/orders` | Lab Technician · Administrator |
+| `POST /api/lab/orders/{id}` | Lab Technician |
+| `PUT /api/clinic` | Administrator, for their own clinic only |
 | `GET /api/pharmacy/prescriptions/patients/{id}` | Clinician · Pharmacist · Administrator |
 | `GET /api/lab/orders/patients/{id}` | Clinician · Lab Technician · Administrator |
 | `GET /api/staff/clinicians` | Receptionist · Clinician · Administrator |

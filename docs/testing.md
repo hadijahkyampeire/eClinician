@@ -22,7 +22,8 @@ BUILD SUCCESS
 | `AuthTests` | 4 | Login, credential rejection, a closed API, and tenant isolation |
 | `StaffManagementTests` | 4 | An administrator adds an account that can then sign in, deactivating it stops the login, an email is unique, and an administrator cannot deactivate themselves |
 | `PatientRuleTests` | 6 | The SRS rules: no shared phone or national ID inside one clinic, the same number is fine in another clinic, updating a patient does not collide with itself, a patient with visits cannot be deleted, and the national ID cannot be changed after registration |
-| `PlatformConsoleTests` | 5 | The console is closed to a hospital administrator, the platform administrator cannot read a patient, onboarding decides what a hospital's staff see, an identifier cannot be reused, and suspending a hospital stops its staff signing in |
+| `SummaryDraftingTests` | 2 | Without a key the summarizer reports itself off rather than failing, and an empty encounter is refused before anything would be sent — no test calls the Claude API |
+| `PlatformConsoleTests` | 6 | The console is closed to a hospital administrator, the platform administrator cannot read a patient, onboarding decides what a hospital's staff see, an identifier cannot be reused, and suspending a hospital stops its staff signing in |
 | `PasswordChangeTests` | 3 | The owner changes their own password and signs in with it, the current password is required, and the new one must differ |
 | `AppointmentSchedulingTests` | 3 | The SRS scheduling rules: one doctor cannot hold two appointments at a time, cancelling frees the slot, and a visit that has already taken place cannot be cancelled |
 | `RoleAuthorizationTests` | 7 | A role may do only its own work — a receptionist cannot dispense, a pharmacist cannot take a patient into session or register one, pharmacy and lab cannot read each other's queues, an administrator may act for every department |
