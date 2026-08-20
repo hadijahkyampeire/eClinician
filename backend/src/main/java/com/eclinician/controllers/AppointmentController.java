@@ -36,7 +36,7 @@ public class AppointmentController {
         return service.list(tenantId, patientId);
     }
 
-    @PreAuthorize("hasAnyRole('RECEPTIONIST', 'ADMINISTRATOR')")
+    @PreAuthorize("hasRole('RECEPTIONIST')")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public AppointmentResponse schedule(
@@ -45,7 +45,7 @@ public class AppointmentController {
         return service.schedule(tenantId, request);
     }
 
-    @PreAuthorize("hasAnyRole('RECEPTIONIST', 'ADMINISTRATOR')")
+    @PreAuthorize("hasRole('RECEPTIONIST')")
     @PutMapping("/{id}")
     public AppointmentResponse update(
             @CurrentTenant String tenantId,
@@ -54,13 +54,13 @@ public class AppointmentController {
         return service.update(tenantId, id, request);
     }
 
-    @PreAuthorize("hasAnyRole('RECEPTIONIST', 'ADMINISTRATOR')")
+    @PreAuthorize("hasRole('RECEPTIONIST')")
     @PostMapping("/{id}/cancel")
     public AppointmentResponse cancel(@CurrentTenant String tenantId, @PathVariable UUID id) {
         return service.cancel(tenantId, id);
     }
 
-    @PreAuthorize("hasAnyRole('RECEPTIONIST', 'ADMINISTRATOR')")
+    @PreAuthorize("hasRole('RECEPTIONIST')")
     @PostMapping("/check-in")
     public AppointmentResponse checkIn(
             @CurrentTenant String tenantId,
@@ -68,7 +68,7 @@ public class AppointmentController {
         return service.checkIn(tenantId, request);
     }
 
-    @PreAuthorize("hasAnyRole('RECEPTIONIST', 'ADMINISTRATOR')")
+    @PreAuthorize("hasRole('RECEPTIONIST')")
     @PostMapping("/{id}/waiting")
     public AppointmentResponse markWaiting(
             @CurrentTenant String tenantId,
@@ -76,7 +76,7 @@ public class AppointmentController {
         return service.markWaiting(tenantId, id);
     }
 
-    @PreAuthorize("hasAnyRole('CLINICIAN', 'ADMINISTRATOR')")
+    @PreAuthorize("hasRole('CLINICIAN')")
     @PostMapping("/patients/{patientId}/start-session")
     public AppointmentResponse startSession(
             @CurrentTenant String tenantId,
@@ -84,7 +84,7 @@ public class AppointmentController {
         return service.startSession(tenantId, patientId);
     }
 
-    @PreAuthorize("hasAnyRole('CLINICIAN', 'ADMINISTRATOR')")
+    @PreAuthorize("hasRole('CLINICIAN')")
     @PostMapping("/{id}/complete")
     public AppointmentResponse complete(
             @CurrentTenant String tenantId,

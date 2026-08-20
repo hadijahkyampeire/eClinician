@@ -446,7 +446,32 @@ Tenancy answers *whose data*; the role answers *which actions*.
 6. **The frontend mirrors the same table** in `ProtectedRoute` and the navigation, which
    is convenience only — the API refuses the call independently.
 
-## 12. Why the architecture is the point
+## 12. The summarizer, and why it is an interface
+
+The consultation VOPC drew an external `LLMService`. It is built, and it is the one place
+the system talks to something it does not control — so it is the one place worth a seam:
+
+```mermaid
+graph LR
+    ENC["EncounterService"] --> CSS["ClinicalSummaryService<br/>builds the notes, owns the prompt"]
+    CSS --> SD{{"SummaryDrafter<br/>interface"}}
+    SD --> OA["OpenAiSummaryDrafter<br/>gpt-4o-mini, HTTP"]
+    SD --> CL["ClaudeSummaryDrafter<br/>claude-opus-5, SDK"]
+```
+
+- **`ClinicalSummaryService` owns everything clinical**: which fields become notes, the
+  prompt that forbids inventing a diagnosis or a dose, and the refusal to draft from an
+  empty encounter. That logic is written once and cannot drift between vendors.
+- **A `SummaryDrafter` owns one vendor's wire format** and nothing else. It never sees an
+  `Encounter`, a tenant or the database — only text in, text out.
+- **Which one runs is a deployment decision.** Whichever key is configured wins;
+  `AI_PROVIDER` names one explicitly. Swapping vendors is an environment variable, and
+  adding a third is one class.
+- **Absent is a valid state.** With no key the endpoint answers `503` and every other part
+  of the visit works exactly as before, which is what keeps an external dependency from
+  becoming a single point of failure in a clinic.
+
+## 13. Why the architecture is the point
 
 The claim "adding a module is additive, not a rewrite" was tested twice.
 

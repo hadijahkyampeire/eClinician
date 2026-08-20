@@ -36,7 +36,7 @@ public class PharmacyController {
         return pharmacyService.listForPatient(tenantId, patientId);
     }
 
-    @PreAuthorize("hasAnyRole('PHARMACIST', 'ADMINISTRATOR')")
+    @PreAuthorize("hasRole('PHARMACIST')")
     @PostMapping("/{id}")
     public PrescriptionResponse update(@CurrentTenant String tenantId,
                                        @CurrentUserName String pharmacistName,

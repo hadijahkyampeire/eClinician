@@ -9,5 +9,5 @@ public record EncounterResponse(
         EncounterStatus status, String clinicianName, String chiefComplaint,
         String bloodPressure, Double temperatureCelsius, Integer pulseBpm, Double weightKg,
         String symptoms, String examinationNotes, String diagnosis, String treatmentPlan,
-        String prescriptions, String labRequests, Instant finalizedAt,
+        String prescriptions, String labRequests, String visitSummary, Instant finalizedAt,
         Instant createdAt, Instant updatedAt) {}

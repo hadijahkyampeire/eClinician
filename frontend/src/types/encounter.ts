@@ -14,6 +14,7 @@ export interface EncounterForm {
   treatmentPlan: string
   prescriptions: string
   labRequests: string
+  visitSummary: string
 }
 
 export interface Encounter extends Omit<EncounterForm,

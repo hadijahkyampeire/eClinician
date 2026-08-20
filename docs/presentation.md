@@ -37,7 +37,7 @@ around it.
 | 9 | Design decision: multi-tenancy | The tenant is a token claim, not a header, so it cannot be edited by the caller — and a row, so a hospital can be onboarded and sold modules |
 | 10 | Security | BCrypt, JWT, `@PreAuthorize`, no key in the source |
 | 11 | Testing | What the tests prove, not how many there are |
-| 12 | Specification vs implementation | Where the build differs from the SRS, and why — [srs.md §4](srs.md) |
+| 12 | Specification vs implementation | Where the build differs from the SRS, and why — [srs.md §4](srs.md). The VOPC's `LLMService` is now built, so the table has one fewer ❌ |
 
 Then the demo. Leave the last slide on screen while demoing, so the examiner has the
 "what differs and why" table in front of them during questions.
@@ -111,3 +111,29 @@ colleague's, but a forgotten password still needs the administrator, because a r
 means email delivery this system does not have. There is also no lockout after repeated
 failures and no refresh token — an expired token means signing in again. All named in the
 roadmap rather than hidden.
+
+**"Why is the summarizer an interface rather than just an API call?"**
+Because the vendor is the volatile part and the clinical rules are not. `SummaryDrafter`
+has one method; `ClinicalSummaryService` keeps the notes, the prompt and the safety rules
+above it, and the two implementations — OpenAI and Claude — hold nothing but one wire
+format each. Switching is an environment variable, adding a third is one class, and with
+no key at all the feature reports itself off rather than taking a visit down with it.
+
+**"Isn't the AI writing the medical record?"**
+No. It reads only what the clinician already typed on that encounter and drafts a summary
+into an editable field; the clinician corrects it and their name is what the record is
+signed with. The system prompt forbids adding a diagnosis, medicine, dose or finding the
+notes do not contain, and tells it to say less where the notes are thin. If the key is
+missing the endpoint answers `503` and the visit is documented exactly as before — the
+feature is additive, not load-bearing.
+
+**"Why can the administrator see the pharmacy queue but not dispense from it?"**
+Because managing a clinic and practising in it are different jobs. Oversight needs
+reading; dispensing is a pharmacist's professional act, and the audit trail says who did
+it. `RoleAuthorizationTests` asserts both halves — the administrator reads every
+department and is refused on every clinical write.
+
+**"What stops a new clinic seeing the demo clinic's patients?"**
+Nothing about the UI — the API. Onboard one live and sign in as its administrator: the
+patient list is empty, because every finder takes the tenant from their signed token and
+there is no query in the codebase that can be called without one.

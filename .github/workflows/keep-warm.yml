@@ -1,0 +1,27 @@
+# The free Render instance sleeps after 15 minutes idle and takes 1-2 minutes to wake.
+# This pings it so a visitor — a professor opening the link, say — usually finds it awake.
+#
+# GitHub's scheduled runners are best-effort and often fire late, so treat this as a
+# reduction in cold starts, not a guarantee: before a demo, still open the app yourself
+# ten minutes early.
+name: Keep the demo awake
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wake the API
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 180 \
+            https://eclinician-api.onrender.com/api/health)
+          echo "API answered $code"
+          [ "$code" = "200" ]
+      - name: Wake the web app
+        run: |
+          curl -s -o /dev/null -w 'web answered %{http_code}\n' --max-time 60 \
+            https://eclinician-web.onrender.com/login

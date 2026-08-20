@@ -7,6 +7,7 @@ import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined'
 import MedicationOutlinedIcon from '@mui/icons-material/MedicationOutlined'
 import ScienceOutlinedIcon from '@mui/icons-material/ScienceOutlined'
 import BadgeOutlinedIcon from '@mui/icons-material/BadgeOutlined'
+import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined'
 
 export interface NavItem {
   to: string
@@ -26,4 +27,5 @@ export const navItems: NavItem[] = [
   { to: '/pharmacy',     label: 'Pharmacy',     roles: ['Administrator', 'Pharmacist'],               moduleKey: 'pharmacy',     icon: <MedicationOutlinedIcon fontSize="small" /> },
   { to: '/laboratory',   label: 'Lab Results',  roles: ['Administrator', 'Lab Technician'],           moduleKey: 'laboratory', icon: <ScienceOutlinedIcon fontSize="small" /> },
   { to: '/staff',        label: 'Staff',        roles: ['Administrator'],                               icon: <BadgeOutlinedIcon fontSize="small" /> },
+  { to: '/clinic',       label: 'Clinic',       roles: ['Administrator'],                               icon: <SettingsOutlinedIcon fontSize="small" /> },
 ]

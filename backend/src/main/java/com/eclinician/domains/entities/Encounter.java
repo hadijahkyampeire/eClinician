@@ -54,6 +54,9 @@ public class Encounter {
     private String prescriptions;
     @Column(columnDefinition = "TEXT")
     private String labRequests;
+    /** Drafted from the notes above, then edited and owned by the clinician. */
+    @Column(columnDefinition = "TEXT")
+    private String visitSummary;
     private Instant finalizedAt;
     private Instant createdAt;
     private Instant updatedAt;

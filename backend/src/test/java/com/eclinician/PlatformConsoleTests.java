@@ -73,6 +73,21 @@ class PlatformConsoleTests {
                 });
     }
 
+    /** A hospital nobody can sign in to is not onboarded, so the console creates its first
+     *  administrator in the same step. */
+    @Test
+    void onboardingCreatesTheHospitalsFirstAdministrator() {
+        tenants.create(new TenantRequest("clinic-five", "Clinic Five", "#123456",
+                List.of(ClinicModule.PATIENTS), "Ada Nakato", "ada@clinicfive.test", "a-long-password"));
+
+        assertThat(auth.login(new LoginRequest("ada@clinicfive.test", "a-long-password")))
+                .satisfies(session -> {
+                    assertThat(session.role()).isEqualTo("Administrator");
+                    assertThat(session.tenantId()).isEqualTo("clinic-five");
+                    assertThat(session.platformAdmin()).isFalse();
+                });
+    }
+
     @Test
     void anIdentifierCannotBeUsedTwice() {
         tenants.create(new TenantRequest("clinic-three", "Clinic Three", "#123456",
