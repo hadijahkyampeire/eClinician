@@ -269,7 +269,7 @@ Named here rather than hidden, and argued in [docs/roadmap.md](docs/roadmap.md).
 
 | | Why it is not built |
 |---|---|
-| **Billing, invoicing and payments** | Out of scope from the start ([vision.md §4](docs/vision.md)) — consultation fees, insurance claims and hospital subscriptions are their own product. The console already records which modules each clinic bought and when it was onboarded, which is exactly where pricing would attach, and the accounts role that would run it (`hkaccounts@`) is deliberately unused for now |
+| **Billing, invoicing and payments** | Out of scope from the start ([vision.md §4](docs/vision.md)) — consultation fees, insurance claims and hospital subscriptions are their own product. The console already records which modules each clinic bought and when it was onboarded, which is where pricing would attach. When it is built it needs an accounts role of its own, separate from the administrator: `hkaccounts@hkclinics.com` is the address kept for it, and no such account exists yet |
 | **Sequencing pharmacy behind the laboratory** | Finalizing raises both queues at once; holding a prescription until its tests are resulted is a rule the system does not yet enforce |
 | **Pharmacy stock** | Dispensing works; inventory does not. "Unavailable" is a pharmacist's judgement, not a stock level |
 | **Structured lab results** | Results are free text. Values, units and reference ranges need a test catalogue |
