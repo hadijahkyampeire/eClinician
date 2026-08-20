@@ -2,11 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { login as requestLogin } from '../api/auth'
 import { useAuth } from '../auth/AuthContext'
-import { demoUsers } from '../auth/demoUsers'
 import type { Role } from '../auth/AuthContext'
-
-// The seeded demo accounts all share this password (see UserSeeder on the API).
-const DEMO_PASSWORD = 'demo1234'
 
 export default function Login() {
   const { login } = useAuth()
@@ -18,19 +14,6 @@ export default function Login() {
   const [busy, setBusy] = useState(false)
 
   const canSubmit = email.trim() !== '' && password.trim() !== '' && !busy
-
-  // Picking a demo role prepopulates the fields (which enables the button).
-  function handleDemoSelect(e: React.ChangeEvent<HTMLSelectElement>) {
-    const demo = demoUsers.find((u) => u.id === e.target.value)
-    if (!demo) {
-      setEmail('')
-      setPassword('')
-      return
-    }
-    setEmail(demo.session.user.email)
-    setPassword(DEMO_PASSWORD)
-    setError('')
-  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -76,7 +59,9 @@ export default function Login() {
         <div className="field">
           <div className="field-row">
             <label>Password</label>
-            <a className="forgot" href="#">Forgot password?</a>
+            <span className="forgot" title="No self-service reset yet — see the roadmap">
+              Forgotten? Ask your administrator
+            </span>
           </div>
           <input
             type="password"
@@ -93,19 +78,9 @@ export default function Login() {
           Sign in →
         </button>
 
-        <div className="divider"><span>Demo access</span></div>
-
-        <div className="field">
-          <label>Sign in as (demo)</label>
-          <select defaultValue="" onChange={handleDemoSelect}>
-            <option value="" disabled>Choose a role…</option>
-            {demoUsers.map((u) => (
-              <option key={u.id} value={u.id}>{u.label}</option>
-            ))}
-          </select>
-        </div>
         <p className="demo-hint">
-          Selecting a role fills in its credentials — then press <strong>Sign in</strong>.
+          Your account decides what you can open — the server reads the role and answers
+          with it. There is nothing to choose here.
         </p>
       </form>
     </div>

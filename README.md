@@ -1,99 +1,160 @@
 # eClinician
 
-A multi-tenant hospital management system that digitizes the outpatient visit — from the
+A multi-tenant clinical management system that digitizes the outpatient visit — from the
 moment a patient walks in to the moment their medicines are dispensed.
 
-**▶ Live: [eclinician-web.onrender.com](https://eclinician-web.onrender.com/login)** —
-sign in with the demo dropdown (password `demo1234`). The API sleeps when idle, so the
-**first request takes 1–2 minutes**; open it before you need it.
+**▶ Live: [eclinician-web.onrender.com](https://eclinician-web.onrender.com/login)**
+· API: [eclinician-api.onrender.com/api/health](https://eclinician-api.onrender.com/api/health)
+
+> **Presenting?** The free instance sleeps after 15 minutes idle and the cold start takes
+> **1–2 minutes**. Open the app ten minutes early and leave the tab open.
+>
+> **Keeping this page open:** GitHub strips `target="_blank"` from READMEs, so no link
+> here can open a new tab on its own. **Cmd-click** (macOS) or **Ctrl-click** / middle-click
+> any link below and this page stays where it is.
 
 **Stack:** Java 21 · Spring Boot 4 · PostgreSQL 16 · Flyway · React 19 · TypeScript · Vite
 
-**Documentation:** [Vision](docs/vision.md) · [SRS & use cases](docs/srs.md) ·
-[Architecture & UML](docs/architecture.md) · [API](docs/api.md) ·
-[Testing](docs/testing.md) · [Deployment](docs/deployment.md) ·
-[Roadmap](docs/roadmap.md) · [Presentation guide](docs/presentation.md)
-Analysis-phase originals: [SRS PDF](docs/srs/eClinician-SRS.pdf) ·
-[requirements presentation](docs/srs/eClinician-Requirements-Presentation.pptx) ·
-[drawio diagrams](docs/diagrams/)
-
 ---
 
-## The idea in three sentences
+## Accounts to test with
 
-Small clinics still run outpatient care on paper: charts get lost, nobody knows who is
-waiting, and a prescription only reaches the pharmacy if the patient carries the slip
-there. Hospital systems that fix this are priced for large hospitals — one installation,
-one institution. **eClinician serves many clinics from one deployment**, each seeing only
-its own data, which turns an installation into a subscription a fifteen-person clinic can
-afford.
+These accounts exist in the deployed database. Sign in at
+[eclinician-web.onrender.com](https://eclinician-web.onrender.com/login) with any of them
+— every one uses the password **`demo1234`**.
+
+| Role | Email | Password | What they open |
+|---|---|---|---|
+| Receptionist | `hkreceptionist@hkclinics.com` | `demo1234` | Patients · Appointments |
+| Clinician (doctor) | `hkdoctor@hkclinics.com` | `demo1234` | Patients · Appointments · Records |
+| Lab Technician | `hklabtech@hkclinics.com` | `demo1234` | Lab Results |
+| Pharmacist | `hkpharmacy@hkclinics.com` | `demo1234` | Pharmacy |
+| Hospital Administrator | `hkaccounts@hkclinics.com` | `demo1234` | Everything in this hospital, plus Staff |
+| Platform Super Admin | `root@eclinician.com` | `demo1234` | The hospital console — and no patient data at all |
+
+**Nobody chooses a role at sign-in.** The login screen asks for an email and a password
+and nothing else. The account's role lives on its `app_users` row; the API reads it, signs
+it into the token, and returns it, and the browser renders whatever that answer allows —
+while the API enforces it independently. Letting a person pick their own role at the door
+would be no security at all, which is why there is no role selector.
 
 ## The clinical loop
 
-```
-  Receptionist            Clinician                        Pharmacist · Lab Tech
-       │                      │                                       │
-   Register ──► Check in ──► Start ──► Document ──► Finalize ──► Dispense each medicine
-   patient      (WAITING)    session   (vitals, dx,     │         Result each test
-       │            │           │      plan, meds,      │                │
-       ▼            ▼           ▼      tests)           ▼                ▼
-   patients   appointments  appointment  encounter  appointment   prescription_orders
-    table     + CHECKED_IN  → IN_SESSION  (DRAFT)   → COMPLETED    lab_orders
-                                                   care cleared   one row per line
-```
-
-**Finalizing is the hinge.** In one transaction it stamps the encounter finalized,
-completes the appointment, clears the patient's care status, and splits the prescription
-and lab-request text into one order per line. That last part is what makes the pharmacy
-and the lab real handoffs rather than screens: three medicines on three lines become
-three orders, so two can be dispensed and the third flagged out of stock.
-
-## Run it
-
-```bash
-docker compose up -d   # Postgres on port 5433
-make install           # npm install + mvn install
-make run               # backend on :8080, frontend on :5173
-make test              # 37 backend tests
+```mermaid
+flowchart LR
+    REG["Receptionist<br/>registers the patient"] --> CI["Checks them in<br/>→ waiting room"]
+    CI --> DOC["Clinician<br/>consults and documents"]
+    DOC --> Q{"Tests<br/>needed?"}
+    Q -- "yes" --> LAB["Lab Technician<br/>runs and records results"]
+    LAB --> REV["Clinician<br/>reviews the results"]
+    REV --> PH["Pharmacist<br/>dispenses the medicines"]
+    Q -- "no" --> PH
+    PH --> OUT(["Patient leaves"])
 ```
 
-Open http://localhost:5173 and pick a role from the demo dropdown — it fills in that
-account's real credentials (password `demo1234`). Six staff accounts are seeded on first
-start. Full setup and cloud deployment: [docs/deployment.md](docs/deployment.md).
+The pharmacy is the **last** stop: a patient collects medicine once the clinician has
+seen whatever the laboratory found. Where no test is needed, the consultation goes
+straight to the pharmacy.
 
-## Demo script
+**What each arrow writes:**
 
-| # | Log in as | Do this | Point out |
+| Step | The system does this |
+|---|---|
+| Register | A row in `patients` |
+| Check in | An `appointment` — `CHECKED_IN`, then `WAITING`; the patient's care status is what the waiting-room count reads |
+| Consult | An `encounter` in `DRAFT`: vitals, symptoms, examination, diagnosis, plan, plus prescriptions and lab requests as free text, one per line |
+| **Finalize** | One transaction: the encounter is signed off, the appointment completes, the care status clears, and each line of text becomes a row in `lab_orders` and `prescription_orders` |
+| Result a test | The technician records the result against that lab order |
+| Review | The clinician reads their patient's results on the patient record — no queue, no paper |
+| Dispense | The pharmacist marks each medicine dispensed, or unavailable with a reason |
+
+**Where the build is looser than the diagram, said plainly.** Finalizing raises the
+pharmacy and laboratory work at the same moment, so nothing stops a pharmacist dispensing
+before results come back. Sequencing the two — holding a prescription until its tests are
+resulted — is listed under [future work](#future-work). The review step is a second
+encounter for the same patient, which the system already supports.
+
+## Who does what, and where each role stops
+
+The interesting half of a role is what it **cannot** do. Every refusal below comes from
+the server (`@PreAuthorize` on the endpoint), not from a hidden button — typing the URL
+directly gets the same `403`.
+
+### Receptionist — `hkreceptionist@hkclinics.com`
+
+Registers patients, books appointments, checks people in, moves them to the waiting room.
+
+**Stops at the consulting-room door.** No Records, no Pharmacy, no Lab, no Staff. They may
+read the clinician list — you cannot book a doctor you cannot name — but nothing else of
+the staff module. Opening a patient shows the profile and visit history; the clinical
+history and doctor's notes are replaced with *"restricted for your role"*.
+
+### Clinician — `hkdoctor@hkclinics.com`
+
+Starts the session, documents the encounter, prescribes, requests tests, finalizes, and
+reads that patient's lab results and prescriptions on their record.
+
+**Stops at the queues and the staff list.** They cannot dispense a medicine or record a
+lab result — issuing and fulfilling are different jobs, and the system keeps them apart.
+They cannot add or deactivate an account.
+
+### Lab Technician — `hklabtech@hkclinics.com`
+
+Sees the laboratory queue, records a result, or cancels a test with a reason.
+
+**Stops at everything else.** No patients list, no records, no pharmacy. The result they
+record is stamped with their name from the token — a request cannot claim to be someone
+else's work.
+
+### Pharmacist — `hkpharmacy@hkclinics.com`
+
+Works the dispensing queue: one row per medicine, dispensed or marked unavailable.
+
+**Stops at the same fence.** No clinical records, no lab queue. `dispensedBy` comes from
+the token, never the request body.
+
+### Hospital Administrator — `hkaccounts@hkclinics.com`
+
+Everything above for this hospital, plus Staff: add a colleague, change a role, deactivate
+an account (which blocks that sign-in immediately).
+
+**Stops at the hospital boundary.** Another hospital's records answer `404` — not `403`,
+because to a caller from the wrong clinic the record does not exist. The platform console
+answers `403`.
+
+### Platform Super Admin — `root@eclinician.com`
+
+Onboards hospitals, sets each one's branding and module subscription, suspends or restores
+one.
+
+**Holds no tenant, and that is the point.** Every clinical endpoint answers this account
+`403`: the person who sells the system cannot read a patient in it.
+
+## Demo script — 15 minutes
+
+| # | Signed in as | Do this | Say this |
 |---|---|---|---|
-| 1 | **Receptionist** | Dashboard | Counts are live, not mocked — they move as we work |
-| 2 | | Patients → **Register patient** | Country-neutral ID field, phone validation, address split into line/city/district/state/country |
-| 3 | | Appointments → **Book appointment** | Pick the patient, a doctor and a time. Book a second patient with the **same doctor at the same time** — the API refuses it. **Cancel** the first and the slot frees up |
-| 4 | | Find the new patient → **Check in** | Patient now shows `CHECKED_IN`; an appointment row was created behind it, with no doctor — a walk-in never clashes |
-| 5 | | Open the patient → **Edit** | The government-issued ID is greyed out: recorded once, at registration |
-| 6 | | Back to Dashboard | **Checked In** and **Registered Today** both incremented |
-| 7 | **Clinician** | Dashboard | Same endpoint, different four tiles — role decides the view |
-| 8 | | Appointments → **Start session** | `WAITING → IN_SESSION`; a `DRAFT` encounter is created |
-| 9 | | Records → open the encounter | Fill vitals, symptoms, exam, diagnosis, plan. **Three medicines in Prescriptions and two tests in Lab requests, one per line** |
-| 10 | | **Finalize** | Visit completes, care status clears, patient leaves the waiting list — and three prescription orders plus two lab orders are created |
-| 11 | **Pharmacist** | Dashboard → Pharmacy | The three medicines are separate rows. **Dispense** one; **Unavailable** another, reason "Out of stock" |
-| 12 | | Back to Dashboard | Pending 1 · Dispensed Today 1 · Unavailable 1 — tiles and queue read the same table |
-| 13 | **Lab Technician** | Laboratory | The two tests are waiting. **Record result** on one; **Cancel** the other with "No reagent" |
-| 14 | **Clinician** | Patients → open that patient | Prescriptions and laboratory results read back on the record — the same rows the pharmacist and technician just worked |
-| 15 | **Administrator** | Dashboard | Facility-wide roll-up across every role's work |
-| 16 | | Staff → **Add staff member** | A new account signs in immediately; **Deactivate** locks it out just as fast |
-| 17 | | Sidebar → **Change password** | Self-service, and the current password is required |
-| 18 | **Platform Super Admin** | The console | Onboard a hospital, pick its modules, then **Suspend** one — its staff can no longer sign in, and none of its data is touched. This account holds no tenant, so the API answers it `403` on every clinical endpoint |
+| 1 | **Receptionist** | Dashboard | The counts are live, not mocked — they move as we work |
+| 2 | | Patients → **Register patient** | Country-neutral ID, phone validation, address split into line/city/district/state/country |
+| 3 | | Appointments → **Book appointment** | Book a second patient with the *same doctor at the same time* — the API refuses it. Cancel the first and the slot frees up |
+| 4 | | Find the patient → **Check in** | An appointment row appears behind it, with no doctor: a walk-in never clashes |
+| 5 | | Open the patient → **Edit** | The government ID is greyed out — recorded once, at registration |
+| 6 | | Try the URL `/pharmacy` | Bounced. And the API refuses it independently — this is not a hidden button |
+| 7 | **Clinician** | Dashboard | Same endpoint, different four tiles: the role decides the view |
+| 8 | | Appointments → **Start session** | `WAITING → IN_SESSION`, and a `DRAFT` encounter is created |
+| 9 | | Records → document the visit | Vitals, symptoms, examination, diagnosis, plan. **Two medicines and two tests, one per line** |
+| 10 | | **Finalize** | One transaction: visit completes, care status clears, and four order rows are raised |
+| 11 | **Lab Technician** | Laboratory | The two tests are waiting. **Record result** on one, **Cancel** the other with "no reagent" |
+| 12 | | Dashboard | Pending and Resulted Today moved — the tiles read the same table as the queue |
+| 13 | **Clinician** | The patient's record | The results are on the record: this is the review step before the patient collects anything |
+| 14 | **Pharmacist** | Pharmacy | The medicines are separate rows. **Dispense** one, mark the other **Unavailable** — "out of stock" |
+| 15 | **Administrator** | Staff → **Add staff member** | Signs in immediately; **Deactivate** locks it out just as fast |
+| 16 | **Platform Super Admin** | The console | Onboard a hospital, pick its modules, **Suspend** one. Then note: this account gets `403` from every clinical endpoint |
 
-> **Presenting from the live URL?** The free instance sleeps after 15 minutes idle and a
-> cold start measured **96 seconds**. Open
-> [the app](https://eclinician-web.onrender.com/login) ten minutes early and leave the
-> tab open.
-
-### Prove the isolation in ten seconds
+## Prove the isolation in ten seconds
 
 The tenant lives inside a signed token, so there is nothing left for a caller to edit.
-Swap `localhost:8080` for `https://eclinician-api.onrender.com` to run this against the
-live deployment:
+Swap `localhost:8080` for `https://eclinician-api.onrender.com` to run this live:
 
 ```bash
 # No token at all
@@ -102,17 +163,21 @@ curl -s -o /dev/null -w '%{http_code}\n' localhost:8080/api/patients          # 
 # Log in, then read with the token you were given
 TOKEN=$(curl -s -X POST localhost:8080/api/auth/login \
   -H 'Content-Type: application/json' \
-  -d '{"email":"sjenkins@stmarys.eclinician.com","password":"demo1234"}' \
+  -d '{"email":"hkdoctor@hkclinics.com","password":"demo1234"}' \
   | python3 -c 'import sys,json; print(json.load(sys.stdin)["token"])')
 curl -s localhost:8080/api/patients -H "Authorization: Bearer $TOKEN" | head -c 300
 
 # The old trick — claiming a tenant in a header
 curl -s -o /dev/null -w '%{http_code}\n' localhost:8080/api/patients \
-  -H 'X-Tenant-Id: sample-hospital'                                            # → 401
+  -H 'X-Tenant-Id: hk-clinics'                                            # → 401
+
+# A receptionist reaching for the pharmacy queue
+curl -s -o /dev/null -w '%{http_code}\n' localhost:8080/api/pharmacy/prescriptions \
+  -H "Authorization: Bearer $RECEPTION_TOKEN"                                  # → 403
 ```
 
-Paste the token into [jwt.io](https://jwt.io) to show the `tenant` claim: readable by
-anyone, changeable by nobody without the signing key.
+Paste the token into [jwt.io](https://jwt.io) to show the `tenant` and `role` claims:
+readable by anyone, changeable by nobody without the signing key.
 
 ## How it is built
 
@@ -125,41 +190,50 @@ anyone, changeable by nobody without the signing key.
 Controllers hold no rules, services hold all of them, and every repository finder takes a
 `tenantId` — so no query in the codebase *can* return another clinic's row. The tenant
 comes from the token via `@CurrentTenant`, never from client input, and the role in that
-same token decides which endpoints the caller may reach: a receptionist asking for the
-pharmacy queue gets a `403` from the server, not a hidden button.
+same token decides which endpoints the caller may reach. Flyway owns the schema; the
+database enforces the foreign keys and both patient-uniqueness rules itself.
 
-Diagrams (architecture, VOPC, sequence, collaboration, ERD) and the design trade-offs are
-in [docs/architecture.md](docs/architecture.md).
+**Tested:** 37 JUnit tests over the business rules — tenant isolation, the scheduling
+conflict rules, the patient rules, role authorization, the platform console, and the
+whole clinical flow over real HTTP. See [docs/testing.md](docs/testing.md).
 
-## Where things live
+## Run it
 
-| | |
+```bash
+docker compose up -d   # Postgres on port 5433
+make install           # npm install + mvn install
+make run               # backend on :8080, frontend on :5173
+make test              # 37 backend tests
+```
+
+Open http://localhost:5173 and pick a demo account. Full setup and cloud deployment:
+[docs/deployment.md](docs/deployment.md).
+
+## Future work
+
+Named here rather than hidden, and argued in [docs/roadmap.md](docs/roadmap.md).
+
+| | Why it is not built |
 |---|---|
-| `backend/` | Spring Boot API — `controllers/ services/ repositories/ security/ domains/ web/` |
-| `frontend/` | React SPA — `pages/ components/ api/ auth/ hooks/ types/` |
-| `docs/` | Vision, SRS, architecture, API, testing, deployment, roadmap |
-| `render.yaml` | Cloud blueprint: Postgres + API + static site |
+| **Billing, invoicing and payments** | Out of scope from the start ([vision.md §4](docs/vision.md)) — consultation fees, insurance claims and hospital subscriptions are their own product. The platform console already knows which modules each hospital bought, which is where pricing would attach |
+| **Sequencing pharmacy behind the laboratory** | Finalizing raises both queues at once; holding a prescription until its tests are resulted is a rule the system does not yet enforce |
+| **Pharmacy stock** | Dispensing works; inventory does not. "Unavailable" is a pharmacist's judgement, not a stock level |
+| **Structured lab results** | Results are free text. Values, units and reference ranges need a test catalogue |
+| **Account recovery** | Staff change their own password and an administrator can set a colleague's; a forgotten-password link needs email delivery |
 
-## Rubric map
+## Documentation
 
-| Rubric item | Where |
+| Document | What is in it |
 |---|---|
-| 1. Vision document | [docs/vision.md](docs/vision.md) |
-| 2. SRS and use-case model | [docs/srs/eClinician-SRS.pdf](docs/srs/eClinician-SRS.pdf) — the analysis-phase document: 6 use cases, actors, step-by-step flows, business rules. Summary plus **as-built deviations** in [docs/srs.md](docs/srs.md) |
-| 3. Architecture and UML | [docs/architecture.md](docs/architecture.md) — system architecture, ERD, the three VOPC diagrams, two sequence diagrams, a collaboration diagram |
-| 4. Controller layer | `backend/.../controllers/` — HTTP only, delegate, return DTOs |
-| 5. Service layer | `backend/.../services/` — every rule, including the transactional finalize |
-| 6. Repository layer | `backend/.../repositories/` — Spring Data JPA, tenant-scoped finders |
-| 7. Entity and database design | `backend/.../domains/entities/` + the ERD in the architecture doc |
-| 8. Functional demonstration | The demo script above |
-| 9. Testing | [docs/testing.md](docs/testing.md) — 25 JUnit tests, normal / boundary / error / security |
-| 10. GitHub and code quality | This repo — ten reviewed PRs, one per phase ([history](docs/roadmap.md#development-history)) |
-| 11. Presentation | The demo script, then the architecture doc for questions |
-| 12. Security *(extra credit)* | Spring Security + BCrypt + HS256 JWT, signature and expiry verified server-side, secret from the environment; **plus per-role `@PreAuthorize` on the API**, guarded routes, validated input — [architecture §8](docs/architecture.md#8-multi-tenancy-end-to-end) and §8b |
-| 13. Cloud deployment *(extra credit)* | Live at [eclinician-web.onrender.com](https://eclinician-web.onrender.com/login), API at [/api/health](https://eclinician-api.onrender.com/api/health) — Render blueprint, managed Postgres, all credentials from environment variables ([docs/deployment.md](docs/deployment.md)) |
+| [Vision](docs/vision.md) | Problem, stakeholders, scope, features, constraints |
+| [SRS & use cases](docs/srs.md) | The use-case model, and specification against implementation |
+| [Architecture & UML](docs/architecture.md) | Architecture, ERD, VOPC, sequence, state and collaboration diagrams |
+| [API](docs/api.md) | Every endpoint, the error contract, and who may call what |
+| [Testing](docs/testing.md) | What each test proves |
+| [Deployment](docs/deployment.md) | Local, Docker, Render, migrations |
+| [Roadmap](docs/roadmap.md) | What is not built, and why |
+| [Presentation guide](docs/presentation.md) | Slide plan and the examiner questions with answers |
 
-## What is not built
-
-Password self-service, per-role authorization (`@PreAuthorize`), pharmacy stock,
-structured lab values, staff management, and Flyway migrations — each with its reason and
-its place in the queue, in [docs/roadmap.md](docs/roadmap.md).
+Analysis-phase originals: [SRS PDF](docs/srs/eClinician-SRS.pdf) ·
+[requirements presentation](docs/srs/eClinician-Requirements-Presentation.pptx) ·
+[drawio diagrams](docs/diagrams/)
