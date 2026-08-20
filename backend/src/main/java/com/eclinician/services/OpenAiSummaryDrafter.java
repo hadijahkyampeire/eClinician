@@ -58,10 +58,8 @@ public class OpenAiSummaryDrafter implements SummaryDrafter {
                     .body(body)
                     .retrieve()
                     .onStatus(HttpStatusCode::isError, (request, response) -> {
-                        throw new ServiceUnavailableException(response.getStatusCode().value() == 429
-                                ? "The summarizer is rate limited right now — try again in a moment"
-                                : "The summarizer refused the request (HTTP "
-                                        + response.getStatusCode().value() + ")");
+                        throw new ServiceUnavailableException(explain(
+                                response.getStatusCode().value()));
                     })
                     .body(OpenAiReply.class);
 
@@ -74,6 +72,21 @@ public class OpenAiSummaryDrafter implements SummaryDrafter {
         } catch (ResourceAccessException ex) {
             throw new ServiceUnavailableException("The summarizer could not be reached");
         }
+    }
+
+    /**
+     * What actually went wrong, in words worth reading mid-consultation. 429 covers both
+     * "too fast" and "no credit left", which are different problems for whoever set the
+     * key up, so the message names both rather than guessing.
+     */
+    private static String explain(int status) {
+        return switch (status) {
+            case 401, 403 -> "The summarizer rejected the API key — check OPENAI_API_KEY";
+            case 404 -> "The summarizer does not recognise that model — check OPENAI_MODEL";
+            case 429 -> "The summarizer is out of credit or rate limited — check the "
+                    + "account's billing, then try again";
+            default -> "The summarizer could not be reached (HTTP " + status + ")";
+        };
     }
 
     /** Only the part of the response this needs; the rest is ignored on purpose. */
