@@ -1,9 +1,13 @@
 package com.eclinician.services;
 
 import com.eclinician.domains.dtos.LoginRequest;
+import com.eclinician.domains.dtos.PasswordChangeRequest;
 import com.eclinician.domains.dtos.LoginResponse;
+import com.eclinician.domains.dtos.TenantResponse;
 import com.eclinician.domains.entities.AppUser;
+import com.eclinician.domains.entities.Tenant;
 import com.eclinician.repositories.UserRepository;
+import com.eclinician.web.ConflictException;
 import java.time.Duration;
 import java.time.Instant;
 import org.springframework.beans.factory.annotation.Value;
@@ -15,6 +19,7 @@ import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AuthService {
@@ -22,13 +27,16 @@ public class AuthService {
     private final UserRepository users;
     private final PasswordEncoder passwords;
     private final JwtEncoder tokens;
+    private final TenantService tenantService;
     private final Duration ttl;
 
     public AuthService(UserRepository users, PasswordEncoder passwords, JwtEncoder tokens,
+            TenantService tenantService,
             @Value("${app.jwt.ttl-minutes:480}") long ttlMinutes) {
         this.users = users;
         this.passwords = passwords;
         this.tokens = tokens;
+        this.tenantService = tenantService;
         this.ttl = Duration.ofMinutes(ttlMinutes);
     }
 
@@ -40,8 +48,34 @@ public class AuthService {
                 // cannot be used to discover which accounts exist.
                 .orElseThrow(() -> new BadCredentialsException("Invalid email or password"));
 
+        Tenant tenant = tenantService.configFor(user.getTenantId()).orElse(null);
+        // A suspended hospital keeps its data and its accounts; nobody there signs in.
+        if (tenant != null && !tenant.isActive()) {
+            throw new BadCredentialsException("This hospital's account is suspended");
+        }
+
         return new LoginResponse(token(user), ttl.toSeconds(), user.getName(), user.getEmail(),
-                user.getRole().label(), user.getTenantId(), user.isPlatformAdmin());
+                user.getRole().label(), user.getTenantId(), user.isPlatformAdmin(),
+                tenant == null ? null : TenantResponse.from(tenant));
+    }
+
+    /**
+     * Self-service, so it takes the current password rather than trusting the session:
+     * a token left open on a shared desk should not be enough to lock the owner out.
+     */
+    @Transactional
+    public void changePassword(String email, PasswordChangeRequest request) {
+        AppUser user = users.findByEmailIgnoreCase(email)
+                .filter(AppUser::isActive)
+                .orElseThrow(() -> new BadCredentialsException("Invalid email or password"));
+        if (!passwords.matches(request.currentPassword(), user.getPasswordHash())) {
+            throw new BadCredentialsException("Your current password is not correct");
+        }
+        if (passwords.matches(request.newPassword(), user.getPasswordHash())) {
+            throw new ConflictException("The new password must be different");
+        }
+        user.setPasswordHash(passwords.encode(request.newPassword()));
+        users.save(user);
     }
 
     private String token(AppUser user) {
@@ -55,6 +89,11 @@ public class AuthService {
                 .claim("role", user.getRole().name());
         if (user.getTenantId() != null) {
             claims.claim("tenant", user.getTenantId());
+        }
+        // The console's own authority. It travels in the token for the same reason the
+        // tenant does: the browser must not be able to award it to itself.
+        if (user.isPlatformAdmin()) {
+            claims.claim("platform", true);
         }
         // The header has to name HS256 explicitly; the encoder defaults to RS256 and
         // would then find no matching key.

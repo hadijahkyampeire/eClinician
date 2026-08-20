@@ -9,7 +9,8 @@ ever names one.
 | Method | Path | Purpose |
 |---|---|---|
 | `GET` | `/api/health` | Liveness probe (used by Render) — open |
-| `POST` | `/api/auth/login` | Email + password → a signed token carrying the tenant — open |
+| `POST` | `/api/auth/login` | Email + password → a signed token carrying the tenant, plus that hospital's branding and modules — open |
+| `POST` | `/api/auth/password` | Change your own password; the current one is required |
 | `GET` | `/api/patients` | Paged list — search, filter, sort |
 | `POST` `PUT` `DELETE` | `/api/patients` `/{id}` | Register, update, remove |
 | `GET` | `/api/appointments` | List, optionally by patient |
@@ -32,7 +33,10 @@ ever names one.
 | `GET` | `/api/staff/clinicians` | Active clinicians, for the booking form |
 | `POST` `PUT` | `/api/staff` `/{id}` | Add a colleague, or change their name, role or password |
 | `POST` | `/api/staff/{id}/active` | Deactivate or restore an account |
-| `GET` | `/api/stats/dashboard` | 13 live counts behind the role dashboards |
+| `GET` | `/api/stats/dashboard` | 15 live counts behind the role dashboards |
+| `GET` | `/api/platform/stats` | Hospitals, active hospitals, platform users |
+| `GET` `POST` `PUT` | `/api/platform/hospitals` `/{id}` | Onboard a hospital, rename it, change its subscription |
+| `POST` | `/api/platform/hospitals/{id}/active` | Suspend or restore a hospital |
 
 ## Errors
 
@@ -102,6 +106,8 @@ in the UI. Anything not listed is open to any authenticated member of the tenant
 | `GET /api/lab/orders/patients/{id}` | Clinician · Lab Technician · Administrator |
 | `GET /api/staff/clinicians` | Receptionist · Clinician · Administrator |
 | Everything else under `/api/staff` | Administrator |
+| Everything under `/api/platform` | Platform administrator only — and they hold no tenant, so every clinical endpoint answers them `403` |
+| `POST /api/auth/password` | Any signed-in staff member, for their own account only |
 | `GET /api/patients`, `/api/appointments`, `/api/encounters`, `/api/stats/dashboard` | Any signed-in staff member of the tenant |
 
 Audit fields are never accepted from the client: `dispensedBy`, `resultedBy` and
@@ -120,7 +126,8 @@ subscribes to.
 | Clinician | Patients, appointments, records | Waiting now · In session · Open encounters · Finalized today |
 | Receptionist | Patients, appointments | Checked in · Waiting · Appointments today · Registered today |
 | Pharmacist | Pharmacy | Pending · Dispensed today · Unavailable · Finalized today |
-| Lab Technician | Laboratory | Lab requests raised · Finalized today · In session · Waiting |
+| Lab Technician | Laboratory | Pending tests · Resulted today · Cancelled · Finalized today |
 
-The lab tiles still count encounters carrying lab request text rather than the
-`lab_orders` rows behind the queue — the same follow-up the pharmacy tiles already had.
+Every tile now counts the same table its screen reads: the pharmacy tiles from
+`prescription_orders`, the laboratory tiles from `lab_orders`. A tile and the queue below
+it can no longer disagree.

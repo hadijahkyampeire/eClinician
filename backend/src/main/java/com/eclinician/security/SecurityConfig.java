@@ -3,6 +3,7 @@ package com.eclinician.security;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import javax.crypto.SecretKey;
@@ -16,6 +17,7 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -89,9 +91,13 @@ public class SecurityConfig {
     private JwtAuthenticationConverter roleConverter() {
         JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
         converter.setJwtGrantedAuthoritiesConverter(jwt -> {
+            List<GrantedAuthority> authorities = new ArrayList<>();
             String role = jwt.getClaimAsString("role");
-            return role == null ? List.of()
-                    : List.of(new SimpleGrantedAuthority("ROLE_" + role));
+            if (role != null) authorities.add(new SimpleGrantedAuthority("ROLE_" + role));
+            if (Boolean.TRUE.equals(jwt.getClaim("platform"))) {
+                authorities.add(new SimpleGrantedAuthority("ROLE_PLATFORM_ADMIN"));
+            }
+            return authorities;
         });
         return converter;
     }

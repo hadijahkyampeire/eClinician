@@ -27,6 +27,7 @@ export interface Tenant {
   primaryColor: string;
   secondaryLogoUrl?: string;
   enabledModules: ModuleKey[];
+  active?: boolean;
 }
 
 export interface Session {

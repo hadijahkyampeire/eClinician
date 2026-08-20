@@ -1,18 +1,10 @@
-import type { Session, Tenant } from './AuthContext'
+import type { Session } from './AuthContext'
 
-// Your seeded sample hospital — all clinical demo users belong to it.
-const SAMPLE_HOSPITAL: Tenant = {
-  id: 'sample-hospital',
-  name: 'HKCare',
-  primaryColor: '#0f766e',
-  enabledModules: ['patients', 'appointments', 'records', 'pharmacy', 'laboratory'],
-}
-
-/** Login returns a tenant id; the branding that goes with it still lives here. */
-export function tenantById(id: string | null): Tenant | null {
-  return id === SAMPLE_HOSPITAL.id ? SAMPLE_HOSPITAL : null
-}
-
+/**
+ * The demo dropdown on the login screen: it fills in an email, nothing more. The
+ * hospital's name, colour and modules used to be hardcoded here — they now come back
+ * from the API, which reads them from the tenants table.
+ */
 export interface DemoUser {
   id: string
   label: string
@@ -28,7 +20,7 @@ export const demoUsers: DemoUser[] = [
     session: {
       user: { name: 'Amina Okello', email: 'admin@stmarys.eclinician.com', role: 'Administrator' },
       isPlatformAdmin: false,
-      tenant: SAMPLE_HOSPITAL,
+      tenant: null,
     },
   },
   {
@@ -38,7 +30,7 @@ export const demoUsers: DemoUser[] = [
     session: {
       user: { name: 'Dr. Sarah Jenkins', email: 'sjenkins@stmarys.eclinician.com', role: 'Clinician' },
       isPlatformAdmin: false,
-      tenant: SAMPLE_HOSPITAL,
+      tenant: null,
     },
   },
   {
@@ -48,7 +40,7 @@ export const demoUsers: DemoUser[] = [
     session: {
       user: { name: 'Grace Nakato', email: 'reception@stmarys.eclinician.com', role: 'Receptionist' },
       isPlatformAdmin: false,
-      tenant: SAMPLE_HOSPITAL,
+      tenant: null,
     },
   },
   {
@@ -58,7 +50,7 @@ export const demoUsers: DemoUser[] = [
     session: {
       user: { name: 'John Etyang', email: 'pharmacy@stmarys.eclinician.com', role: 'Pharmacist' },
       isPlatformAdmin: false,
-      tenant: SAMPLE_HOSPITAL,
+      tenant: null,
     },
   },
   {
@@ -68,7 +60,7 @@ export const demoUsers: DemoUser[] = [
     session: {
       user: { name: 'Peter Ssali', email: 'lab@stmarys.eclinician.com', role: 'Lab Technician' },
       isPlatformAdmin: false,
-      tenant: SAMPLE_HOSPITAL,
+      tenant: null,
     },
   },
   {
