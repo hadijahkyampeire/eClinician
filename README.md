@@ -65,6 +65,7 @@ straight to the pharmacy.
 | Consult | An `encounter` in `DRAFT`: vitals, symptoms, examination, diagnosis, plan, plus prescriptions and lab requests as free text, one per line |
 | **Finalize** | One transaction: the encounter is signed off, the appointment completes, the care status clears, and each line of text becomes a row in `lab_orders` and `prescription_orders` |
 | Result a test | The technician records the result against that lab order |
+| Draft the summary | Claude reads the notes already written and drafts the visit summary into an editable field. The clinician corrects it; their name is what the record is signed with |
 | Review | The clinician reads their patient's results on the patient record — no queue, no paper |
 | Dispense | The pharmacist marks each medicine dispensed, or unavailable with a reason |
 
@@ -115,22 +116,28 @@ the token, never the request body.
 
 ### Hospital Administrator — `hkaccounts@hkclinics.com`
 
-Everything above for this hospital, plus Staff: add a colleague, change a role, deactivate
-an account (which blocks that sign-in immediately).
+Runs the clinic rather than working in it. Reads every department for oversight, manages
+staff accounts — add a colleague, change a role, deactivate an account, which blocks that
+sign-in immediately — and owns Clinic settings: the name and colour their staff see.
 
-**Stops at the hospital boundary.** Another hospital's records answer `404` — not `403`,
-because to a caller from the wrong clinic the record does not exist. The platform console
-answers `403`.
+**Stops at the clinical record itself.** Oversight is not authority: registering a patient,
+documenting an encounter, dispensing a medicine and recording a lab result all answer
+`403`. They can watch the pharmacy queue; they cannot dispense from it. Another hospital's
+records answer `404`, and the platform console `403`.
 
 ### Platform Super Admin — `root@eclinician.com`
 
-Onboards hospitals, sets each one's branding and module subscription, suspends or restores
-one.
+Onboards a clinic **and its first administrator** in one step — a clinic nobody can sign in
+to is not onboarded — sets its branding and the modules it has bought, and suspends or
+restores it. That administrator then hires their own staff and rebrands their own clinic
+without the platform touching anything again.
 
 **Holds no tenant, and that is the point.** Every clinical endpoint answers this account
 `403`: the person who sells the system cannot read a patient in it.
 
 ## Demo script — 15 minutes
+
+**Act one — a visit, end to end.**
 
 | # | Signed in as | Do this | Say this |
 |---|---|---|---|
@@ -140,16 +147,25 @@ one.
 | 4 | | Find the patient → **Check in** | An appointment row appears behind it, with no doctor: a walk-in never clashes |
 | 5 | | Open the patient → **Edit** | The government ID is greyed out — recorded once, at registration |
 | 6 | | Try the URL `/pharmacy` | Bounced. And the API refuses it independently — this is not a hidden button |
-| 7 | **Clinician** | Dashboard | Same endpoint, different four tiles: the role decides the view |
-| 8 | | Appointments → **Start session** | `WAITING → IN_SESSION`, and a `DRAFT` encounter is created |
-| 9 | | Records → document the visit | Vitals, symptoms, examination, diagnosis, plan. **Two medicines and two tests, one per line** |
+| 7 | **Clinician** | Appointments → **Start session** | `WAITING → IN_SESSION`, and a `DRAFT` encounter is created |
+| 8 | | Records → document the visit | Vitals, symptoms, examination, diagnosis, plan. **Two medicines and two tests, one per line** |
+| 9 | | **Draft with AI** | Claude reads the notes and writes the visit summary. It lands in a field I can edit — the draft is a starting point, the clinician signs the record |
 | 10 | | **Finalize** | One transaction: visit completes, care status clears, and four order rows are raised |
 | 11 | **Lab Technician** | Laboratory | The two tests are waiting. **Record result** on one, **Cancel** the other with "no reagent" |
-| 12 | | Dashboard | Pending and Resulted Today moved — the tiles read the same table as the queue |
-| 13 | **Clinician** | The patient's record | The results are on the record: this is the review step before the patient collects anything |
-| 14 | **Pharmacist** | Pharmacy | The medicines are separate rows. **Dispense** one, mark the other **Unavailable** — "out of stock" |
-| 15 | **Administrator** | Staff → **Add staff member** | Signs in immediately; **Deactivate** locks it out just as fast |
-| 16 | **Platform Super Admin** | The console | Onboard a hospital, pick its modules, **Suspend** one. Then note: this account gets `403` from every clinical endpoint |
+| 12 | **Clinician** | The patient's record | The results are on the record: the review step before the patient collects anything |
+| 13 | **Pharmacist** | Pharmacy | The medicines are separate rows. **Dispense** one, mark the other **Unavailable** — "out of stock" |
+
+**Act two — one deployment, many clinics.** This is the part that makes it a product.
+
+| # | Signed in as | Do this | Say this |
+|---|---|---|---|
+| 14 | **Hospital Administrator** | Staff → **Add staff member** | Signs in immediately; **Deactivate** locks them out just as fast |
+| 15 | | Try to register a patient or dispense | `403`. An administrator runs the clinic; they do not do the clinical work, and the server is what says so |
+| 16 | | Clinic → change the name and colour | Their own clinic's branding, theirs to set |
+| 17 | **Platform Super Admin** | The console | Onboard **SWE Clinic** with a first administrator, and pick the modules they have bought |
+| 18 | | Sign in as that new administrator | An empty clinic, their own name in the sidebar beside HK CLINIC, and only the modules they paid for in the navigation. They hire their own staff from here |
+| 19 | **Platform Super Admin** | **Suspend** that clinic | Its staff can no longer sign in, and not one row of its data was touched |
+| 20 | | Point at what this account cannot do | It holds no tenant: every clinical endpoint answers it `403`. The person who sells the system cannot read a patient in it |
 
 ## Prove the isolation in ten seconds
 
@@ -193,7 +209,12 @@ comes from the token via `@CurrentTenant`, never from client input, and the role
 same token decides which endpoints the caller may reach. Flyway owns the schema; the
 database enforces the foreign keys and both patient-uniqueness rules itself.
 
-**Tested:** 37 JUnit tests over the business rules — tenant isolation, the scheduling
+**The visit summary is drafted by Claude** (`claude-opus-5`, via the official Java SDK)
+from the notes the clinician already wrote, into a field they edit and sign. The key comes
+from `ANTHROPIC_API_KEY` in the environment and is committed nowhere; without it the
+endpoint answers `503` saying the feature is off, and the rest of the system is unaffected.
+
+**Tested:** 42 JUnit tests over the business rules — tenant isolation, the scheduling
 conflict rules, the patient rules, role authorization, the platform console, and the
 whole clinical flow over real HTTP. See [docs/testing.md](docs/testing.md).
 
@@ -203,7 +224,7 @@ whole clinical flow over real HTTP. See [docs/testing.md](docs/testing.md).
 docker compose up -d   # Postgres on port 5433
 make install           # npm install + mvn install
 make run               # backend on :8080, frontend on :5173
-make test              # 37 backend tests
+make test              # 42 backend tests
 ```
 
 Open http://localhost:5173 and pick a demo account. Full setup and cloud deployment:
@@ -215,11 +236,12 @@ Named here rather than hidden, and argued in [docs/roadmap.md](docs/roadmap.md).
 
 | | Why it is not built |
 |---|---|
-| **Billing, invoicing and payments** | Out of scope from the start ([vision.md §4](docs/vision.md)) — consultation fees, insurance claims and hospital subscriptions are their own product. The platform console already knows which modules each hospital bought, which is where pricing would attach |
+| **Billing, invoicing and payments** | Out of scope from the start ([vision.md §4](docs/vision.md)) — consultation fees, insurance claims and hospital subscriptions are their own product. The console already records which modules each clinic bought and when it was onboarded, which is exactly where pricing would attach |
 | **Sequencing pharmacy behind the laboratory** | Finalizing raises both queues at once; holding a prescription until its tests are resulted is a rule the system does not yet enforce |
 | **Pharmacy stock** | Dispensing works; inventory does not. "Unavailable" is a pharmacist's judgement, not a stock level |
 | **Structured lab results** | Results are free text. Values, units and reference ranges need a test catalogue |
 | **Account recovery** | Staff change their own password and an administrator can set a colleague's; a forgotten-password link needs email delivery |
+| **Metering the AI** | Summaries are drafted on demand with no per-clinic quota or usage record — which is what billing would need to price them |
 
 ## Documentation
 
