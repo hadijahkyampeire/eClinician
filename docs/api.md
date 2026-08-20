@@ -1,14 +1,12 @@
 # API Reference
 
-**Browsable, generated from the controllers:**
-[eclinician-api.onrender.com/swagger-ui.html](https://eclinician-api.onrender.com/swagger-ui.html)
-— sign in through `POST /api/auth/login`, press Authorize, paste the token, and call any
-endpoint from the browser. The page below is the same surface written out, with the
-reasoning that a generated page cannot carry.
+**Browsable and generated from the controllers:**
+[swagger-ui.html](https://eclinician-api.onrender.com/swagger-ui.html) — log in through
+`POST /api/auth/login`, press Authorize, paste the token, call anything.
 
-Every endpoint except `/api/health` and `/api/auth/login` requires an
-`Authorization: Bearer <jwt>` header. The tenant is read from the token, so no request
-ever names one.
+Every endpoint except `/api/health` and `/api/auth/login` needs an
+`Authorization: Bearer <jwt>` header. The tenant is read from the token, so no request ever
+names one.
 
 ## Endpoints
 
@@ -48,7 +46,7 @@ ever names one.
 
 ## Errors
 
-One `@RestControllerAdvice` normalizes every failure:
+One `@RestControllerAdvice` normalizes every failure.
 
 | Status | When | Body |
 |---|---|---|
@@ -70,7 +68,6 @@ TOKEN=$(curl -s -X POST localhost:8080/api/auth/login \
   -d '{"email":"hkdoctor@hkclinics.com","password":"demo1234"}' \
   | python3 -c 'import sys,json; print(json.load(sys.stdin)["token"])')
 
-# Read patients
 curl -s localhost:8080/api/patients -H "Authorization: Bearer $TOKEN"
 
 # Book an appointment (409 if that doctor's slot is taken)
@@ -78,29 +75,16 @@ curl -s -X POST localhost:8080/api/appointments \
   -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
   -d '{"patientId":"<uuid>","doctorId":"<uuid>","scheduledAt":"2026-09-01T09:00:00Z","reason":"Review"}'
 
-# Check a patient in
-curl -s -X POST localhost:8080/api/appointments/check-in \
-  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
-  -d '{"patientId":"<uuid>","reason":"Fever"}'
-
-# Work the pharmacy queue
-curl -s "localhost:8080/api/pharmacy/prescriptions?status=PENDING" \
-  -H "Authorization: Bearer $TOKEN"
-
+# Dispense a medicine
 curl -s -X POST localhost:8080/api/pharmacy/prescriptions/<uuid> \
   -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
-  -d '{"status":"DISPENSED","pharmacistName":"John Etyang","notes":""}'
-
-# Record a lab result
-curl -s -X POST localhost:8080/api/lab/orders/<uuid> \
-  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
-  -d '{"status":"COMPLETED","technicianName":"Peter Ssali","result":"Positive"}'
+  -d '{"status":"DISPENSED","notes":""}'
 ```
 
 ## Who may call what
 
-Enforced on the server with `@PreAuthorize` against the `role` claim — not merely hidden
-in the UI. Anything not listed is open to any authenticated member of the tenant.
+Enforced with `@PreAuthorize` against the `role` claim, not hidden in the UI. Anything not
+listed is open to any authenticated member of the tenant.
 
 | Endpoint | Allowed roles |
 |---|---|
@@ -127,9 +111,8 @@ someone else's name.
 
 ## Roles and dashboards
 
-One dashboard route renders a different view per role, driven by a lookup table rather
-than branching. Navigation is filtered twice — by role, and by the modules the tenant
-subscribes to.
+One dashboard route renders a different view per role from a lookup table. Navigation is
+filtered twice: by role, and by the modules the tenant subscribes to.
 
 | Role | Sees | Dashboard tiles |
 |---|---|---|
@@ -139,6 +122,6 @@ subscribes to.
 | Pharmacist | Pharmacy | Pending · Dispensed today · Unavailable · Finalized today |
 | Lab Technician | Laboratory | Pending tests · Resulted today · Cancelled · Finalized today |
 
-Every tile now counts the same table its screen reads: the pharmacy tiles from
-`prescription_orders`, the laboratory tiles from `lab_orders`. A tile and the queue below
-it can no longer disagree.
+Every tile counts the same table its screen reads — pharmacy tiles from
+`prescription_orders`, laboratory tiles from `lab_orders` — so a tile and the queue below it
+cannot disagree.
