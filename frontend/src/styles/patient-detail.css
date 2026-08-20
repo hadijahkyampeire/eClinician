@@ -277,3 +277,37 @@
   border-radius: 50%;
   vertical-align: middle;
 }
+
+/* Product mark plus the clinic's own name */
+.brand-names {
+  display: grid;
+  line-height: 1.15;
+}
+.brand-product {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.brand-tenant {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.summary-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.summary-heading p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.module-toggles input[type='text'],
+.module-toggles input[type='email'],
+.module-toggles input[type='password'] {
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font: inherit;
+}

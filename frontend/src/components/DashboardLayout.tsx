@@ -38,12 +38,13 @@ export default function DashboardLayout() {
   return (
     <div className="layout">
       <aside className="sidebar">
+        {/* The product's own mark always shows; the clinic's name rides beside it. */}
         <div className="brand">
-          <div className="logo">e</div>
-          <span>eClinician</span>
-          {tenant?.secondaryLogoUrl && (
-            <img className="tenant-logo" src={tenant.secondaryLogoUrl} alt={tenant.name} />
-          )}
+          <div className="logo">HK</div>
+          <div className="brand-names">
+            <span className="brand-product">HK CLINIC</span>
+            {tenant?.name && <span className="brand-tenant">{tenant.name}</span>}
+          </div>
         </div>
 
         <nav className="nav">
@@ -64,7 +65,9 @@ export default function DashboardLayout() {
 
       <div className="main">
         <header className="topbar">
-          <div className="page-title">{tenant?.name ?? 'Clinical Management System'}</div>
+          <div className="page-title">
+            HK CLINIC{tenant?.name ? ` · ${tenant.name}` : ''}
+          </div>
           <div className="user">
             <div className="user-meta">
               <div className="name">{session?.user.name}</div>

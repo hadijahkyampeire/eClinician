@@ -41,7 +41,7 @@ public class EncounterController {
         return service.get(tenantId, id);
     }
 
-    @PreAuthorize("hasAnyRole('CLINICIAN', 'ADMINISTRATOR')")
+    @PreAuthorize("hasRole('CLINICIAN')")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public EncounterResponse create(@CurrentTenant String tenantId,
@@ -50,7 +50,7 @@ public class EncounterController {
         return service.save(tenantId, clinicianName, null, request);
     }
 
-    @PreAuthorize("hasAnyRole('CLINICIAN', 'ADMINISTRATOR')")
+    @PreAuthorize("hasRole('CLINICIAN')")
     @PutMapping("/{id}")
     public EncounterResponse update(@CurrentTenant String tenantId,
             @CurrentUserName String clinicianName,
@@ -58,7 +58,16 @@ public class EncounterController {
         return service.save(tenantId, clinicianName, id, request);
     }
 
-    @PreAuthorize("hasAnyRole('CLINICIAN', 'ADMINISTRATOR')")
+    /** Drafts the visit summary from the notes already written on this encounter. */
+    @PreAuthorize("hasRole('CLINICIAN')")
+    @PostMapping("/{id}/summary")
+    public EncounterResponse draftSummary(
+            @CurrentTenant String tenantId,
+            @PathVariable UUID id) {
+        return service.draftSummary(tenantId, id);
+    }
+
+    @PreAuthorize("hasRole('CLINICIAN')")
     @PostMapping("/{id}/finalize")
     public EncounterResponse finalizeEncounter(@CurrentTenant String tenantId,
             @PathVariable UUID id) {

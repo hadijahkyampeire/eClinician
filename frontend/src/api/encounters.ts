@@ -37,6 +37,11 @@ export function saveEncounter(form: EncounterForm, id?: string) {
   })
 }
 
+/** Asks the API to draft this visit's summary from the notes already saved on it. */
+export function draftEncounterSummary(id: string) {
+  return request<Encounter>(`/api/encounters/${id}/summary`, { method: 'POST' })
+}
+
 export function finalizeEncounter(id: string) {
   return request<Encounter>(`/api/encounters/${id}/finalize`, { method: 'POST' })
 }

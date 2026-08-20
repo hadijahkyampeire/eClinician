@@ -36,7 +36,7 @@ public class LabController {
         return labService.listForPatient(tenantId, patientId);
     }
 
-    @PreAuthorize("hasAnyRole('LAB_TECHNICIAN', 'ADMINISTRATOR')")
+    @PreAuthorize("hasRole('LAB_TECHNICIAN')")
     @PostMapping("/{id}")
     public LabOrderResponse update(@CurrentTenant String tenantId,
                                    @CurrentUserName String technicianName,

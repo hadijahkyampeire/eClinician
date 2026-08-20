@@ -17,7 +17,11 @@ export default function HospitalForm({ hospital, isSaving, error, onClose, onSav
     name: hospital?.name || '',
     primaryColor: hospital?.primaryColor || '#0f766e',
     modules: hospital?.enabledModules || ['patients', 'appointments', 'records'],
+    adminName: '',
+    adminEmail: '',
+    adminPassword: '',
   })
+  const onboarding = !hospital
   const set = <K extends keyof Form>(field: K, value: Form[K]) =>
     setForm((current) => ({ ...current, [field]: value }))
 
@@ -71,11 +75,29 @@ export default function HospitalForm({ hospital, isSaving, error, onClose, onSav
             ))}
           </fieldset>
 
+          {onboarding && (
+            <fieldset className="module-toggles">
+              <legend>First administrator</legend>
+              <small>
+                They sign in immediately and add the rest of the clinic's staff themselves.
+              </small>
+              <input required maxLength={150} placeholder="Full name" value={form.adminName}
+                onChange={(event) => set('adminName', event.target.value)} />
+              <input required type="email" maxLength={200} placeholder="Email"
+                value={form.adminEmail}
+                onChange={(event) => set('adminEmail', event.target.value)} />
+              <input required type="password" minLength={8} placeholder="Password (8+ characters)"
+                value={form.adminPassword}
+                onChange={(event) => set('adminPassword', event.target.value)} />
+            </fieldset>
+          )}
+
           {error && <p className="patient-error">{error}</p>}
           <div className="modal-actions">
             <button type="button" className="btn ghost" onClick={onClose}>Cancel</button>
             <button type="submit" className="btn"
-              disabled={isSaving || !form.name.trim() || !form.id.trim()}>
+              disabled={isSaving || !form.name.trim() || !form.id.trim()
+                || (onboarding && !form.adminEmail?.trim())}>
               {isSaving ? 'Saving...' : hospital ? 'Save changes' : 'Onboard hospital'}
             </button>
           </div>
