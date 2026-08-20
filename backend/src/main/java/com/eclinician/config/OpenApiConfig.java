@@ -5,8 +5,12 @@ import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.springdoc.core.customizers.OperationCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 /**
  * The API's own documentation, generated from the controllers rather than written beside
@@ -41,5 +45,38 @@ public class OpenApiConfig {
                                 .scheme("bearer")
                                 .bearerFormat("JWT")
                                 .description("The token from POST /api/auth/login")));
+    }
+
+    /**
+     * Copies each endpoint's {@code @PreAuthorize} rule into its documentation, so the
+     * page says who may call what and cannot disagree with the annotation that enforces
+     * it. A method's own rule wins over its controller's, exactly as Spring resolves them.
+     */
+    @Bean
+    OperationCustomizer documentRequiredRoles() {
+        Pattern roles = Pattern.compile("'([A-Z_]+)'");
+        return (operation, method) -> {
+            PreAuthorize rule = method.getMethodAnnotation(PreAuthorize.class);
+            if (rule == null) {
+                rule = method.getBeanType().getAnnotation(PreAuthorize.class);
+            }
+            if (rule == null) {
+                operation.setDescription(append(operation.getDescription(),
+                        "Any signed-in member of staff, within their own clinic."));
+                return operation;
+            }
+            StringBuilder named = new StringBuilder();
+            Matcher found = roles.matcher(rule.value());
+            while (found.find()) {
+                named.append(named.isEmpty() ? "" : ", ").append(found.group(1));
+            }
+            operation.setDescription(append(operation.getDescription(),
+                    "Roles allowed: " + named + ". Any other role is refused 403 by the API."));
+            return operation;
+        };
+    }
+
+    private static String append(String description, String line) {
+        return description == null || description.isBlank() ? line : description + "\n\n" + line;
     }
 }
