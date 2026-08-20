@@ -72,11 +72,12 @@ makes the price per clinic small enough to be affordable.
 - Structured lab result values with reference ranges
 - A patient-facing portal
 
-**Reshaped during implementation.** The SRS specifies appointment *scheduling* — a
-doctor, a date, a time, conflict checks. The system instead records **arrival**: check
-in → waiting → in session → completed. For a walk-in outpatient clinic, who is waiting
-now proved more valuable than who is booked for Thursday. That deviation and the others
-are listed in [srs.md §4](srs.md#4-as-built-specification-against-implementation).
+**Shaped during implementation.** The SRS specifies appointment *scheduling* — a doctor, a
+date, a time, conflict checks — and that is built. What was added beside it is **arrival**:
+check in → waiting → in session → completed, because for a walk-in outpatient clinic who is
+waiting now matters as much as who is booked for Thursday. A walk-in carries no doctor, so
+it never collides with a booking. The remaining differences from the SRS are listed in
+[srs.md §4](srs.md#4-as-built-specification-against-implementation).
 
 ## 5. Major features
 

@@ -11,7 +11,8 @@ Named honestly, with the reason.
 | **Structured lab results** | A technician records a result, but as free text. Values, units and reference ranges need a test catalogue — the same argument as pharmacy stock. |
 | **Per-doctor patient lists** | A clinician reads any patient in their own clinic. The SRS phrase "their patients" needs a doctor-patient assignment the system does not model. |
 | **`NO_SHOW`** | The status exists in the enum; no SRS flow sets it, so nothing does. |
-| **Billing** | Hospitals are onboarded and subscribed to modules, but nothing is priced, metered or invoiced. |
+| **Billing** | Out of scope from the start ([vision.md §4](vision.md)): consultation fees, insurance claims and the hospital subscriptions themselves are their own product. The console already records which modules a hospital bought, which is where pricing would attach. |
+| **Sequencing pharmacy behind the laboratory** | Finalizing raises the pharmacy and laboratory work in the same transaction, so nothing stops a medicine being dispensed before its tests come back. Clinically the pharmacy is the last stop; enforcing that means a prescription that waits on the orders raised beside it. |
 
 
 ## Closed in the SRS-conformance pass

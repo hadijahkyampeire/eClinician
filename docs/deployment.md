@@ -13,7 +13,7 @@ Verified against the live instance:
 
 ```
 GET  /api/health                        → 200 {"status":"UP"}
-POST /api/auth/login  (demo clinician)  → 200 + JWT carrying tenant "sample-hospital"
+POST /api/auth/login  (demo clinician)  → 200 + JWT carrying tenant "hk-clinics"
 GET  /api/patients    with the token    → 200
 GET  /api/patients    without a token   → 401
 OPTIONS preflight from the web origin   → 200, allow-origin: https://eclinician-web.onrender.com,
