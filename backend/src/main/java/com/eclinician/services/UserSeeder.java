@@ -32,7 +32,7 @@ public class UserSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        add("Amina Okello", "hkaccounts@hkclinics.com", UserRole.ADMINISTRATOR, TENANT, false);
+        add("Amina Okello", "hkadmin@hkclinics.com", UserRole.ADMINISTRATOR, TENANT, false);
         add("Dr. Sarah Jenkins", "hkdoctor@hkclinics.com", UserRole.CLINICIAN, TENANT, false);
         add("Grace Nakato", "hkreceptionist@hkclinics.com", UserRole.RECEPTIONIST, TENANT, false);
         add("John Etyang", "hkpharmacy@hkclinics.com", UserRole.PHARMACIST, TENANT, false);

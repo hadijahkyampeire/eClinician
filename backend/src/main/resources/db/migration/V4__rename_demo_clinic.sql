@@ -29,7 +29,7 @@ FROM (VALUES
     ('sjenkins@stmarys.eclinician.com',  'hkdoctor@hkclinics.com'),
     ('lab@stmarys.eclinician.com',       'hklabtech@hkclinics.com'),
     ('pharmacy@stmarys.eclinician.com',  'hkpharmacy@hkclinics.com'),
-    ('admin@stmarys.eclinician.com',     'hkaccounts@hkclinics.com')
+    ('admin@stmarys.eclinician.com',     'hkadmin@hkclinics.com')
 ) AS renamed(old_email, new_email)
 WHERE lower(u.email) = renamed.old_email
   AND NOT EXISTS (

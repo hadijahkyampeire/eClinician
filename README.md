@@ -29,7 +29,7 @@ These accounts exist in the deployed database. Sign in at
 | Clinician (doctor) | `hkdoctor@hkclinics.com` | `demo1234` | Patients · Appointments · Records |
 | Lab Technician | `hklabtech@hkclinics.com` | `demo1234` | Lab Results |
 | Pharmacist | `hkpharmacy@hkclinics.com` | `demo1234` | Pharmacy |
-| Hospital Administrator | `hkaccounts@hkclinics.com` | `demo1234` | Everything in this hospital, plus Staff |
+| Hospital Administrator | `hkadmin@hkclinics.com` | `demo1234` | Staff · Clinic settings, and read-only oversight of every department |
 | Platform Super Admin | `root@eclinician.com` | `demo1234` | The hospital console — and no patient data at all |
 
 **Nobody chooses a role at sign-in.** The login screen asks for an email and a password
@@ -65,7 +65,7 @@ straight to the pharmacy.
 | Consult | An `encounter` in `DRAFT`: vitals, symptoms, examination, diagnosis, plan, plus prescriptions and lab requests as free text, one per line |
 | **Finalize** | One transaction: the encounter is signed off, the appointment completes, the care status clears, and each line of text becomes a row in `lab_orders` and `prescription_orders` |
 | Result a test | The technician records the result against that lab order |
-| Draft the summary | Claude reads the notes already written and drafts the visit summary into an editable field. The clinician corrects it; their name is what the record is signed with |
+| Draft the summary | The summarizer reads the notes already written and drafts the visit summary into an editable field. The clinician corrects it; their name is what the record is signed with |
 | Review | The clinician reads their patient's results on the patient record — no queue, no paper |
 | Dispense | The pharmacist marks each medicine dispensed, or unavailable with a reason |
 
@@ -114,7 +114,7 @@ Works the dispensing queue: one row per medicine, dispensed or marked unavailabl
 **Stops at the same fence.** No clinical records, no lab queue. `dispensedBy` comes from
 the token, never the request body.
 
-### Hospital Administrator — `hkaccounts@hkclinics.com`
+### Hospital Administrator — `hkadmin@hkclinics.com`
 
 Runs the clinic rather than working in it. Reads every department for oversight, manages
 staff accounts — add a colleague, change a role, deactivate an account, which blocks that
@@ -149,7 +149,7 @@ without the platform touching anything again.
 | 6 | | Try the URL `/pharmacy` | Bounced. And the API refuses it independently — this is not a hidden button |
 | 7 | **Clinician** | Appointments → **Start session** | `WAITING → IN_SESSION`, and a `DRAFT` encounter is created |
 | 8 | | Records → document the visit | Vitals, symptoms, examination, diagnosis, plan. **Two medicines and two tests, one per line** |
-| 9 | | **Draft with AI** | Claude reads the notes and writes the visit summary. It lands in a field I can edit — the draft is a starting point, the clinician signs the record |
+| 9 | | **Draft with AI** | The model reads the notes and writes the visit summary. It lands in a field I can edit — the draft is a starting point, the clinician signs the record |
 | 10 | | **Finalize** | One transaction: visit completes, care status clears, and four order rows are raised |
 | 11 | **Lab Technician** | Laboratory | The two tests are waiting. **Record result** on one, **Cancel** the other with "no reagent" |
 | 12 | **Clinician** | The patient's record | The results are on the record: the review step before the patient collects anything |
@@ -209,10 +209,12 @@ comes from the token via `@CurrentTenant`, never from client input, and the role
 same token decides which endpoints the caller may reach. Flyway owns the schema; the
 database enforces the foreign keys and both patient-uniqueness rules itself.
 
-**The visit summary is drafted by Claude** (`claude-opus-5`, via the official Java SDK)
-from the notes the clinician already wrote, into a field they edit and sign. The key comes
-from `ANTHROPIC_API_KEY` in the environment and is committed nowhere; without it the
-endpoint answers `503` saying the feature is off, and the rest of the system is unaffected.
+**The visit summary is drafted by an external model** from the notes the clinician already
+wrote, into a field they edit and sign. Which model is a deployment decision, not a
+clinical one, so `SummaryDrafter` is an interface with two implementations — OpenAI
+(`gpt-4o-mini` by default) and Claude — and the one with a key configured is the one that
+runs. Neither key is committed; with neither, the endpoint answers `503` saying the
+feature is off and the rest of the system is unaffected.
 
 **Tested:** 42 JUnit tests over the business rules — tenant isolation, the scheduling
 conflict rules, the patient rules, role authorization, the platform console, and the
@@ -236,7 +238,7 @@ Named here rather than hidden, and argued in [docs/roadmap.md](docs/roadmap.md).
 
 | | Why it is not built |
 |---|---|
-| **Billing, invoicing and payments** | Out of scope from the start ([vision.md §4](docs/vision.md)) — consultation fees, insurance claims and hospital subscriptions are their own product. The console already records which modules each clinic bought and when it was onboarded, which is exactly where pricing would attach |
+| **Billing, invoicing and payments** | Out of scope from the start ([vision.md §4](docs/vision.md)) — consultation fees, insurance claims and hospital subscriptions are their own product. The console already records which modules each clinic bought and when it was onboarded, which is exactly where pricing would attach, and the accounts role that would run it (`hkaccounts@`) is deliberately unused for now |
 | **Sequencing pharmacy behind the laboratory** | Finalizing raises both queues at once; holding a prescription until its tests are resulted is a rule the system does not yet enforce |
 | **Pharmacy stock** | Dispensing works; inventory does not. "Unavailable" is a pharmacist's judgement, not a stock level |
 | **Structured lab results** | Results are free text. Values, units and reference ranges need a test catalogue |

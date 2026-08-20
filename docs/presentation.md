@@ -112,6 +112,13 @@ means email delivery this system does not have. There is also no lockout after r
 failures and no refresh token — an expired token means signing in again. All named in the
 roadmap rather than hidden.
 
+**"Why is the summarizer an interface rather than just an API call?"**
+Because the vendor is the volatile part and the clinical rules are not. `SummaryDrafter`
+has one method; `ClinicalSummaryService` keeps the notes, the prompt and the safety rules
+above it, and the two implementations — OpenAI and Claude — hold nothing but one wire
+format each. Switching is an environment variable, adding a third is one class, and with
+no key at all the feature reports itself off rather than taking a visit down with it.
+
 **"Isn't the AI writing the medical record?"**
 No. It reads only what the clinician already typed on that encounter and drafts a summary
 into an editable field; the clinician corrects it and their name is what the record is
