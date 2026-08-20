@@ -9,8 +9,8 @@ analysis phase:
 | Requirements presentation | [srs/eClinician-Requirements-Presentation.pptx](srs/eClinician-Requirements-Presentation.pptx) |
 | Use-case diagram (source) | [diagrams/eclinician-use-case.drawio](diagrams/eclinician-use-case.drawio) |
 
-This page summarizes that model and — the part worth reading before the demo — records
-**where the built system differs from what was specified**, and why.
+This page summarizes that model and records **where the built system differs from what was
+specified**, and why.
 
 ---
 
@@ -74,36 +74,33 @@ Full step-by-step flows, preconditions and postconditions for every basic flow a
 
 ## 4. As-built: specification against implementation
 
-Analysis was done before a line of code; the implementation then made its own decisions.
-Both are shown here rather than quietly reconciled.
+Analysis came before any code; the implementation then made its own decisions. Both are
+shown here rather than quietly reconciled.
 
 | # | Use case | Built? | Where | Deviation from the SRS |
 |---|---|---|---|---|
-| 1 | Patient Management | ✅ Full CRUD | `PatientController` · `/api/patients` | Matches the specification, including all three business rules: no two patients in one clinic may share a phone or national ID, a profile with visits or records cannot be deleted, and the national ID is written once at registration. A patient registered without one may still have it filled in later — the field is unwritable, not permanently empty. |
-| 2 | Appointment Management | ✅ Both models | `AppointmentController` · `/api/appointments` | Scheduling is built as the SRS specifies — a patient, a doctor, a date and time, and both conflict rules — alongside the **arrival** model the clinic actually runs on: check in → waiting → in session → completed. Booking is additive: a walk-in carries no doctor, so it can never clash. Update and cancel are built, with "an appointment that has already taken place cannot be cancelled" read as *has started or finished*. `NO_SHOW` remains in the enum unused — the SRS describes no flow that sets it. |
-| 3 | Medical Record Management | ✅ Plus more | `EncounterController` · `/api/encounters` | Called an **encounter** rather than a consultation record, and carries more than the SRS listed: vitals, chief complaint, examination notes, treatment plan. Adds **finalization**, which the SRS does not describe — the act that closes the visit and raises pharmacy and lab work. |
-| 4 | Prescription Management | ✅ Reshaped | `PharmacyController` · `/api/pharmacy/prescriptions` | Prescriptions are **free text, one medicine per line**, split into one order per line when the encounter is finalized — not a form with dosage, frequency and duration fields. The clinician reads them back per patient on the patient record; the pharmacist works the queue. Adds an `UNAVAILABLE` status the SRS did not anticipate, because a pharmacy that cannot supply a medicine still has to record that. |
-| 5 | Laboratory Management | ✅ Reshaped | `LabController` · `/api/lab/orders` | Same shape as prescriptions: lab requests are free text, one test per line, raised at finalization. Results are free text, but "view results by patient" is built — a clinician reads their patient's results on the patient record rather than through the technician's queue. Adds `CANCELLED` for a test that cannot be run. |
-| 6 | User Management | ✅ Built, and narrowed | `StaffController` · `/api/staff` · Staff page | An administrator adds colleagues, changes a role, and deactivates an account — which blocks the login immediately. **Deactivation rather than deletion**: the SRS allows either, and keeping the row means the work an account already recorded keeps its author. The administrator is also *narrower* than the SRS implies: they read every department but change no clinical row, because managing a clinic and practising in it are different jobs. Authentication itself was added beyond the SRS, which assumed login as a precondition without specifying it. |
-| — | Role-permitted access | ✅ Built | `SecurityConfig` · `@PreAuthorize` | The SRS business rule that users access only role-permitted features is enforced on the server: the role travels as a token claim and each endpoint names the roles it accepts. A receptionist calling the pharmacy queue gets `403`, whatever the UI shows. The one widened read is `/api/staff/clinicians`, because a receptionist cannot book a doctor they cannot name. |
-| — | `LLMService` (VOPC 1) | ✅ Built | `ClinicalSummaryService` · `POST /api/encounters/{id}/summary` | The external summarizer the consultation VOPC drew: Claude reads the notes the clinician wrote and drafts the visit summary. It lands in an editable field, so the record is still the clinician's — and the system prompt forbids inventing a diagnosis, medicine or dose the notes do not contain. No key is committed; without one the endpoint answers `503` and nothing else changes. |
+| 1 | Patient Management | ✅ Full CRUD | `PatientController` | Matches the specification, all three business rules included. A patient registered without a national ID may still have it filled in later — the field is unwritable, not permanently empty. |
+| 2 | Appointment Management | ✅ Both models | `AppointmentController` | Scheduling as specified, plus the **arrival** model the clinic runs on: check in → waiting → in session → completed. "Cannot cancel an appointment that has taken place" is read as *has started or finished*. `NO_SHOW` stays unused — no SRS flow sets it. |
+| 3 | Medical Record Management | ✅ Plus more | `EncounterController` | Called an **encounter**, and carries more than the SRS listed: vitals, chief complaint, examination notes, treatment plan. Adds **finalization** — the act that closes the visit and raises pharmacy and lab work. |
+| 4 | Prescription Management | ✅ Reshaped | `PharmacyController` | Free text, one medicine per line, split into one order per line at finalization — not a form with dosage fields. Adds `UNAVAILABLE`, because a pharmacy that cannot supply a medicine still has to record that. |
+| 5 | Laboratory Management | ✅ Reshaped | `LabController` | Same shape as prescriptions. "View results by patient" is built — the clinician reads them on the patient record, not through the technician's queue. Adds `CANCELLED` for a test that cannot be run. |
+| 6 | User Management | ✅ Built, and narrowed | `StaffController` | **Deactivation rather than deletion**, so work an account recorded keeps its author. The administrator is narrower than the SRS implies: they read every department but change no clinical row. Authentication itself was added — the SRS assumed login without specifying it. |
+| — | Role-permitted access | ✅ Built | `SecurityConfig` · `@PreAuthorize` | Enforced on the server: the role is a token claim and each endpoint names the roles it accepts. The one widened read is `/api/staff/clinicians` — a receptionist cannot book a doctor they cannot name. |
+| — | `LLMService` (VOPC 1) | ✅ Built | `ClinicalSummaryService` | The external summarizer the consultation VOPC drew. It drafts into an editable field, so the record stays the clinician's, and the prompt forbids inventing a diagnosis, medicine or dose. No key committed; without one the endpoint answers `503`. |
 
 ### Requirement added during implementation
 
-**Multi-tenancy.** The SRS describes one clinic. The implementation carries a tenant on
-every row and every query, so one deployment serves many independent clinics — the
-commercial argument in [vision.md](vision.md), and the property proven by `AuthTests` in
-[testing.md](testing.md).
+**Multi-tenancy.** The SRS describes one clinic. Every row and every query carries a
+tenant, so one deployment serves many — the argument in [vision.md](vision.md), proven by
+`AuthTests`.
 
-**A platform administrator above the six actors.** The SRS's Administrator manages one
-hospital's staff. Selling the system to many hospitals needs somebody who onboards them,
-sets what each one has bought, and can suspend one — without being able to read anyone's
+**A platform administrator above the six actors.** Selling to many hospitals needs somebody
+who onboards them, sets what each bought, and can suspend one — without reading anyone's
 clinical data. That account holds no tenant, which is what makes the second half true.
 
 ## 5. Non-functional requirements
 
-These were not itemized in the SRS; they are recorded here because the implementation
-answers them explicitly.
+Not itemized in the SRS, but the implementation answers them explicitly.
 
 | ID | Requirement | How it is met |
 |---|---|---|
@@ -119,11 +116,8 @@ answers them explicitly.
 
 ### Where the implementation is stricter than the SRS
 
-Two rules are deliberately tighter than the document, and both are visible in the code:
-
 - **A patient may hold only one open appointment at a time.** The SRS forbids only
-  duplicates with the same doctor at the same time. Keeping the stricter rule is what
-  makes check-in unambiguous — there is never a question of *which* visit the patient
-  arrived for — and cancellation is now the way out of it.
-- **The doctor conflict check keys on the exact instant**, not an overlapping window.
-  Appointments carry no duration, so an overlap has nothing to be computed from.
+  duplicates with the same doctor at the same time; the stricter rule is what makes
+  check-in unambiguous, and cancellation is the way out of it.
+- **The doctor conflict check keys on the exact instant**, not an overlapping window —
+  appointments carry no duration, so an overlap has nothing to compute from.

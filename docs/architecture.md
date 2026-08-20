@@ -1,7 +1,7 @@
 # Architecture and Design
 
-Diagrams are Mermaid, so they render on GitHub. Every one of them describes code that
-exists — file names in the diagrams are real classes.
+Diagrams are Mermaid, so they render on GitHub, and every one describes code that exists —
+the names in them are real classes.
 
 ---
 
@@ -57,17 +57,14 @@ database schema and the API contract can move independently. `PrescriptionRespon
 carries a `patientName` that exists in no table; `DispenseRequest` accepts only the
 three fields a pharmacist may set, so no caller can post its own `tenantId`.
 
-**The layering trade-off, stated honestly.** Package-by-feature would let a service stay
-package-private, unreachable outside its own feature. Splitting by layer means a
-controller and its service sit in different packages, so **41 declarations had to become
-`public`**. Navigability was worth more here than compiler-enforced module boundaries.
+**The layering trade-off.** Package-by-feature would keep a service package-private;
+splitting by layer put controllers and services in different packages, so 41 declarations
+had to become `public`. Navigability was worth more than compiler-enforced boundaries.
 
-**Frontend — server state and UI state are kept apart.** React Query owns everything
-that came from the API (caching, refetching, loading and error states); Zustand owns
-purely local UI state such as filters and modal visibility. Conflating the two is the
-usual source of stale-data bugs, so the split is deliberate. Files stay small and
-single-purpose — the patient feature is four components (table, controls, modal, fields)
-rather than one large page.
+**Frontend.** React Query owns server state (caching, refetching, loading and error);
+Zustand owns local UI state such as filters and modal visibility. Conflating the two is the
+usual source of stale-data bugs. Files stay small — the patient feature is four components,
+not one large page.
 
 ## 3. Domain model
 
