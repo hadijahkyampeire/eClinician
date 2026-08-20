@@ -114,6 +114,17 @@ Changing it requires a frontend rebuild, not a restart.
 | `DEMO_PASSWORD` | `sync: false` — set by hand in the dashboard |
 | Staff passwords | Stored only as BCrypt hashes |
 
+## Keeping the free instance awake
+
+The free API sleeps after 15 minutes idle and takes 1–2 minutes to answer the first
+request after that. `.github/workflows/keep-warm.yml` pings `/api/health` every ten
+minutes, which keeps it awake most of the time — GitHub's scheduled runners fire late
+often enough that it is a reduction in cold starts rather than a guarantee.
+
+Before anything that matters, open the app yourself ten minutes early and leave the tab
+open. The only real fix is a paid instance; the only real fallback is running it locally,
+which needs nothing but Docker.
+
 ## Free-tier limits worth knowing
 
 | | Allowance | Catch |

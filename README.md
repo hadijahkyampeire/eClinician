@@ -3,15 +3,38 @@
 A multi-tenant clinical management system that digitizes the outpatient visit — from the
 moment a patient walks in to the moment their medicines are dispensed.
 
-**▶ Live: [eclinician-web.onrender.com](https://eclinician-web.onrender.com/login)**
-· API: [eclinician-api.onrender.com/api/health](https://eclinician-api.onrender.com/api/health)
+**▶ Live app: [eclinician-web.onrender.com](https://eclinician-web.onrender.com/login)**
+· **API docs: [eclinician-api.onrender.com/swagger-ui.html](https://eclinician-api.onrender.com/swagger-ui.html)**
+· [health](https://eclinician-api.onrender.com/api/health)
 
-> **Presenting?** The free instance sleeps after 15 minutes idle and the cold start takes
-> **1–2 minutes**. Open the app ten minutes early and leave the tab open.
+> **Presenting from the live URL?** The free instance sleeps after 15 minutes idle and the
+> cold start takes **1–2 minutes**. A [scheduled workflow](.github/workflows/keep-warm.yml)
+> pings it every 10 minutes, but GitHub's timers run late, so **open the app ten minutes
+> early and leave the tab open** — that is what actually guarantees it. If the network
+> fails you entirely, `docker compose up -d && make run` gives the same demo locally.
 >
-> **Keeping this page open:** GitHub strips `target="_blank"` from READMEs, so no link
-> here can open a new tab on its own. **Cmd-click** (macOS) or **Ctrl-click** / middle-click
-> any link below and this page stays where it is.
+> **Keeping this page open:** GitHub strips `target="_blank"` from READMEs, so no link here
+> can open a new tab on its own. **Cmd-click** (macOS) or **Ctrl-click** / middle-click any
+> link and this page stays where it is.
+
+## What the presentation has to cover, and where each part is
+
+| What is asked for | Where it lives | Time |
+|---|---|---|
+| **A 15-minute presentation** | The slide plan in [docs/presentation.md](docs/presentation.md) — 12 slides, with the one sentence that matters on each | 12 min |
+| **A working demonstration** | The [demo script](#demo-script--15-minutes) below: act one is a visit end to end, act two is one deployment serving many clinics | 10–12 min |
+| **System design** | [docs/architecture.md](docs/architecture.md) — architecture, ERD, VOPC, sequence, state and collaboration diagrams. Slides 5, 6, 8, 9 | 3 min |
+| **Implementation** | Controller → service → repository, and the [API docs](https://eclinician-api.onrender.com/swagger-ui.html) generated from the controllers themselves | 2 min |
+| **Testing** | [docs/testing.md](docs/testing.md) — 43 JUnit tests, and what each one proves rather than how many there are | 1 min |
+| **5–10 minutes of questions** | The defence sheet at the end of [docs/presentation.md](docs/presentation.md) — the questions an examiner asks, with the answers written out | — |
+
+**The three things worth making sure they see**, because they are what the grading weighs
+most and what is hardest to claim without showing:
+
+1. **The visit working end to end** — check-in through to dispensing, with the counts moving.
+2. **A refusal coming from the server** — sign in as a receptionist, type `/pharmacy`, and
+   show it is the API saying no, not a hidden button.
+3. **A second clinic onboarded live** — the moment this stops being one hospital's app.
 
 **Stack:** Java 21 · Spring Boot 4 · PostgreSQL 16 · Flyway · React 19 · TypeScript · Vite
 
@@ -166,6 +189,14 @@ without the platform touching anything again.
 | 18 | | Sign in as that new administrator | An empty clinic, their own name in the sidebar beside HK CLINIC, and only the modules they paid for in the navigation. They hire their own staff from here |
 | 19 | **Platform Super Admin** | **Suspend** that clinic | Its staff can no longer sign in, and not one row of its data was touched |
 | 20 | | Point at what this account cannot do | It holds no tenant: every clinical endpoint answers it `403`. The person who sells the system cannot read a patient in it |
+
+**If they ask to see the API itself**, open
+[swagger-ui.html](https://eclinician-api.onrender.com/swagger-ui.html) — 32 endpoints,
+generated from the controllers rather than written beside them, so it cannot drift from
+what the code serves. `POST /api/auth/login` with a demo account, copy the token, press
+**Authorize**, and call anything from the browser. Calling one the role may not reach
+answers `403` in front of them, which is the same point as step 6 made from the other
+side. No Postman needed.
 
 ## Prove the isolation in ten seconds
 
