@@ -6,12 +6,12 @@ Named honestly, with the reason.
 
 | Not built | Why / what it needs |
 |---|---|
-| **Password self-service** | Accounts are real and signed in with, but there is no reset flow, no password change, no lockout after repeated failures, and no refresh token — when the 8-hour token expires you sign in again. |
+| **Password reset** | Staff can change their own password, and an administrator can set a colleague's. What is missing is the forgotten-password path — it needs email delivery — plus lockout after repeated failures and a refresh token. |
 | **Pharmacy stock** | Dispensing works; inventory does not. "Unavailable" is a pharmacist's judgement, not a stock level. Needs a drug catalogue and quantity tracking. |
 | **Structured lab results** | A technician records a result, but as free text. Values, units and reference ranges need a test catalogue — the same argument as pharmacy stock. |
 | **Per-doctor patient lists** | A clinician reads any patient in their own clinic. The SRS phrase "their patients" needs a doctor-patient assignment the system does not model. |
 | **`NO_SHOW`** | The status exists in the enum; no SRS flow sets it, so nothing does. |
-| **Platform admin console** | Tenant onboarding, per-tenant module toggles, billing. The module-toggle plumbing already exists in the frontend; the console to drive it does not. |
+| **Billing** | Hospitals are onboarded and subscribed to modules, but nothing is priced, metered or invoiced. |
 
 
 ## Closed in the SRS-conformance pass
@@ -24,6 +24,15 @@ The four places where the code did not yet match the SRS document are now closed
 | 2 | Booking with a doctor, date and time, with both conflict rules, plus update and cancel |
 | 4.1 | A clinician reads their patient's prescriptions on the patient record |
 | 5.3 | A clinician reads their patient's lab results the same way |
+
+## Closed in the completion pass
+
+| Was | Now |
+|---|---|
+| The platform admin landed on a placeholder with three zeros and a TODO | A console: live counts, hospital onboarding, per-hospital module subscriptions, suspend and restore |
+| A tenant was a string on every row; branding and modules were hardcoded in `demoUsers.ts` | `Tenant` is an entity; login answers with the hospital's own name, colour and modules |
+| The Lab Technician's tile counted encounter text while the queue beside it read `lab_orders` | Both read `lab_orders` |
+| No password change | Staff change their own, current password required |
 
 And against the presentation rubric:
 

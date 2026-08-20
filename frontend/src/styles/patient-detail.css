@@ -236,3 +236,44 @@
   color: var(--text-muted);
   background: var(--surface-muted, #f5f5f5);
 }
+
+/* Platform console */
+.appointment-form fieldset.module-toggles {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.appointment-form fieldset.module-toggles legend {
+  padding: 0 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.appointment-form fieldset.module-toggles label {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+}
+.appointment-form fieldset.module-toggles input {
+  width: auto;
+}
+.appointment-form small {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.appointment-form input[type='color'] {
+  width: 64px;
+  padding: 2px;
+  block-size: 34px;
+}
+.brand-swatch {
+  display: inline-block;
+  inline-size: 10px;
+  block-size: 10px;
+  margin-inline-end: 8px;
+  border-radius: 50%;
+  vertical-align: middle;
+}

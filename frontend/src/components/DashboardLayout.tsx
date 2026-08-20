@@ -1,11 +1,13 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { navItems } from '../nav'
+import PasswordChangeModal from './PasswordChangeModal'
 
 export default function DashboardLayout() {
   const { session, logout } = useAuth()
   const navigate = useNavigate()
+  const [changingPassword, setChangingPassword] = useState(false)
 
   const tenant = session?.tenant
 
@@ -54,6 +56,9 @@ export default function DashboardLayout() {
         </nav>
 
         <div className="spacer" />
+        <button className="btn ghost" onClick={() => setChangingPassword(true)}>
+          Change password
+        </button>
         <button className="btn ghost" onClick={handleLogout}>Log out</button>
       </aside>
 
@@ -72,6 +77,9 @@ export default function DashboardLayout() {
         <main className="content">
           <Outlet />
         </main>
+        {changingPassword && (
+          <PasswordChangeModal onClose={() => setChangingPassword(false)} />
+        )}
       </div>
     </div>
   )

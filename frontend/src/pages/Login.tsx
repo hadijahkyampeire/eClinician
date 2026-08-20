@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { login as requestLogin } from '../api/auth'
 import { useAuth } from '../auth/AuthContext'
-import { demoUsers, tenantById } from '../auth/demoUsers'
+import { demoUsers } from '../auth/demoUsers'
 import type { Role } from '../auth/AuthContext'
 
 // The seeded demo accounts all share this password (see UserSeeder on the API).
@@ -42,7 +42,7 @@ export default function Login() {
         {
           user: { name: result.name, email: result.email, role: result.role as Role },
           isPlatformAdmin: result.platformAdmin,
-          tenant: tenantById(result.tenantId),
+          tenant: result.tenant,
         },
         result.token,
       )
