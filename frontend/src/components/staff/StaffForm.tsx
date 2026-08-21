@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { STAFF_ROLES, type StaffForm as Form, type StaffRole } from '../../types/staff'
+import PasswordInput from '../PasswordInput'
 
 const empty: Form = { name: '', email: '', role: 'RECEPTIONIST', password: '' }
 
@@ -33,7 +34,7 @@ export default function StaffForm({ busy, onSubmit, onCancel }: {
           </select>
         </label>
         <label>Temporary password
-          <input type="password" value={form.password} autoComplete="new-password"
+          <PasswordInput value={form.password} autoComplete="new-password"
             onChange={e => set('password', e.target.value)} placeholder="At least 8 characters" />
         </label>
       </div>
