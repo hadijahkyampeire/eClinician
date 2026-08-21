@@ -7,7 +7,7 @@ import Logo from '../components/Logo'
 import PasswordInput from '../components/PasswordInput'
 
 export default function Login() {
-  const { login } = useAuth()
+  const { login, expiredNotice, dismissNotice } = useAuth()
   const navigate = useNavigate()
 
   const [email, setEmail] = useState('')
@@ -21,6 +21,7 @@ export default function Login() {
     e.preventDefault()
     setBusy(true)
     setError('')
+    dismissNotice()
     try {
       const result = await requestLogin(email.trim(), password)
       login(
@@ -29,7 +30,11 @@ export default function Login() {
           isPlatformAdmin: result.platformAdmin,
           tenant: result.tenant,
         },
-        result.token,
+        {
+          token: result.token,
+          refreshToken: result.refreshToken,
+          expiresInSeconds: result.expiresInSeconds,
+        },
       )
       navigate(result.platformAdmin ? '/admin' : '/dashboard')
     } catch (err) {
@@ -47,6 +52,12 @@ export default function Login() {
           <h1>HK CLINIC</h1>
         </div>
         <p className="subtitle">Sign in to your clinical workspace</p>
+
+        {expiredNotice && !error && (
+          <p className="form-error" role="status">
+            Your session ended, so you were signed out. Sign in to pick up where you were.
+          </p>
+        )}
 
         <div className="field">
           <label>Email or Hospital ID</label>

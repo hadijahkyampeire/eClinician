@@ -1,11 +1,14 @@
 import type { Tenant } from '../auth/AuthContext'
 
 import { API_URL } from './config'
-import { authHeaders } from './session'
+import { request } from './http'
+import { getRefreshToken } from './session'
 
 /** Mirrors LoginResponse on the API. */
 export interface LoginResult {
   token: string
+  /** Spent for a new pair when the token above expires. */
+  refreshToken: string
   expiresInSeconds: number
   name: string
   email: string
@@ -30,14 +33,23 @@ export async function login(email: string, password: string): Promise<LoginResul
 }
 
 export async function changePassword(currentPassword: string, newPassword: string) {
-  const response = await fetch(`${API_URL}/api/auth/password`, {
+  await request<void>('/api/auth/password', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify({ currentPassword, newPassword }),
-  })
-  if (!response.ok) {
-    const details = await response.json().catch(() => null)
-    const message = details?.message || Object.values(details || {})[0]
-    throw new Error(typeof message === 'string' ? message : 'Could not change the password')
-  }
+  }, 'Could not change the password')
+}
+
+/**
+ * Tears up the refresh token on the server, so a signed-out browser cannot renew its
+ * way back in. Signing out locally must not depend on this working, so a failure here
+ * is deliberately swallowed — the tokens are dropped either way.
+ */
+export async function revokeSession() {
+  const refreshToken = getRefreshToken()
+  if (!refreshToken) return
+  await fetch(`${API_URL}/api/auth/logout`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refreshToken }),
+  }).catch(() => undefined)
 }

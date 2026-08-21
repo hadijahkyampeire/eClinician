@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import ProtectedRoute from './routes/ProtectedRoute'
 import DashboardLayout from './components/DashboardLayout'
+import SessionExpiry from './components/SessionExpiry'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Patients from './pages/Patients'
@@ -22,7 +23,9 @@ const ADMIN: Role[] = ['Administrator']
 
 export default function App() {
   return (
-    <Routes>
+    <>
+      <SessionExpiry />
+      <Routes>
       <Route path="/login" element={<Login />} />
 
       {/* Platform super-admin console: no tenant, and no clinical data. */}
@@ -60,6 +63,7 @@ export default function App() {
       </Route>
 
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
-    </Routes>
+      </Routes>
+    </>
   )
 }

@@ -1,5 +1,7 @@
-import { createContext, useContext, useState, type ReactNode } from 'react';
-import { clearToken, getToken, setToken } from '../api/session';
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { revokeSession } from '../api/auth';
+import { endSession, renewSession, whenSessionExpires } from '../api/http';
+import { clearTokens, getToken, saveTokens, type Tokens } from '../api/session';
 
 export type Role =
   | 'Administrator'
@@ -38,8 +40,13 @@ export interface Session {
 
 interface AuthContextValue {
   session: Session | null;
-  login: (session: Session, token: string) => void;
+  login: (session: Session, tokens: Tokens) => void;
   logout: () => void;
+  /** Trades the refresh token for more time. False means the session is over. */
+  renew: () => Promise<boolean>;
+  /** Set when the session ended by itself, so the login page can say why. */
+  expiredNotice: boolean;
+  dismissNotice: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -58,23 +65,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return null;
     }
   });
+  const [expiredNotice, setExpiredNotice] = useState(false);
 
-  // The session is what the UI renders; the token is what the API trusts. Login.tsx
+  // The API layer discovers an expiry first — it is the one holding the 401. This is
+  // how that reaches the UI without every screen having to listen for it.
+  useEffect(() => {
+    whenSessionExpires(() => {
+      setSession(null);
+      setExpiredNotice(true);
+      localStorage.removeItem(STORAGE_KEY);
+    });
+  }, []);
+
+  // The session is what the UI renders; the tokens are what the API trusts. Login.tsx
   // builds both from POST /api/auth/login.
-  function login(next: Session, token: string) {
-    setToken(token);
+  function login(next: Session, tokens: Tokens) {
+    saveTokens(tokens);
     setSession(next);
+    setExpiredNotice(false);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
   }
 
+  /** Deliberate sign-out: no notice, because the user knows why they are here. */
   function logout() {
-    clearToken();
+    void revokeSession();
+    clearTokens();
     setSession(null);
+    setExpiredNotice(false);
     localStorage.removeItem(STORAGE_KEY);
   }
 
+  async function renew() {
+    if (await renewSession()) return true;
+    endSession();
+    return false;
+  }
+
   return (
-    <AuthContext.Provider value={{ session, login, logout }}>
+    <AuthContext.Provider value={{
+      session, login, logout, renew,
+      expiredNotice, dismissNotice: () => setExpiredNotice(false),
+    }}>
       {children}
     </AuthContext.Provider>
   );
