@@ -32,4 +32,6 @@ public interface PatientRepository
     boolean existsByTenantIdAndNationalIdIgnoreCaseAndIdNot(
             String tenantId, String nationalId, UUID id);
 
+    Optional<Patient> findFirstByTenantIdAndNationalIdIgnoreCase(String tenantId, String nationalId);
+
 }
