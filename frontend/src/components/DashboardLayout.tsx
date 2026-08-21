@@ -1,12 +1,20 @@
 import { useEffect, useState } from 'react'
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import LockResetOutlinedIcon from '@mui/icons-material/LockResetOutlined'
+import LogoutOutlinedIcon from '@mui/icons-material/LogoutOutlined'
 import { useAuth } from '../auth/AuthContext'
 import { navItems } from '../nav'
+import Logo from './Logo'
 import PasswordChangeModal from './PasswordChangeModal'
+
+const today = new Intl.DateTimeFormat(undefined, {
+  weekday: 'long', day: 'numeric', month: 'long',
+})
 
 export default function DashboardLayout() {
   const { session, logout } = useAuth()
   const navigate = useNavigate()
+  const { pathname } = useLocation()
   const [changingPassword, setChangingPassword] = useState(false)
 
   const tenant = session?.tenant
@@ -30,6 +38,9 @@ export default function DashboardLayout() {
     return true
   })
 
+  // The topbar names where you are; the sidebar already carries the branding.
+  const section = items.find((item) => pathname.startsWith(item.to))?.label ?? 'Dashboard'
+
   function handleLogout() {
     logout()
     navigate('/login')
@@ -40,7 +51,7 @@ export default function DashboardLayout() {
       <aside className="sidebar">
         {/* The product's own mark always shows; the clinic's name rides beside it. */}
         <div className="brand">
-          <div className="logo">HK</div>
+          <Logo />
           <div className="brand-names">
             <span className="brand-product">HK CLINIC</span>
             {tenant?.name && <span className="brand-tenant">{tenant.name}</span>}
@@ -57,16 +68,24 @@ export default function DashboardLayout() {
         </nav>
 
         <div className="spacer" />
-        <button className="btn ghost" onClick={() => setChangingPassword(true)}>
-          Change password
-        </button>
-        <button className="btn ghost" onClick={handleLogout}>Log out</button>
+
+        <div className="sidebar-footer">
+          <button type="button" onClick={() => setChangingPassword(true)}>
+            <span className="icon"><LockResetOutlinedIcon fontSize="small" /></span>
+            Change password
+          </button>
+          <button type="button" className="sign-out" onClick={handleLogout}>
+            <span className="icon"><LogoutOutlinedIcon fontSize="small" /></span>
+            Log out
+          </button>
+        </div>
       </aside>
 
       <div className="main">
         <header className="topbar">
           <div className="page-title">
-            HK CLINIC{tenant?.name ? ` · ${tenant.name}` : ''}
+            <span>{section}</span>
+            <small>{today.format(new Date())}</small>
           </div>
           <div className="user">
             <div className="user-meta">
