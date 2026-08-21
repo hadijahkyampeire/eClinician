@@ -11,8 +11,10 @@ import HourglassEmptyOutlinedIcon from '@mui/icons-material/HourglassEmptyOutlin
 import StethoscopeIcon from '@mui/icons-material/MonitorHeartOutlined'
 import TaskAltOutlinedIcon from '@mui/icons-material/TaskAltOutlined'
 import BlockOutlinedIcon from '@mui/icons-material/BlockOutlined'
-import ArrowForwardIcon from '@mui/icons-material/ArrowForward'
 import { getDashboardStats } from '../api/stats'
+import {
+  BookedToday, InTheClinic, PendingMedicines, PendingTests, UnfinishedNotes,
+} from '../components/dashboard/panels'
 import { useAuth, type Role } from '../auth/AuthContext'
 import type { DashboardStats } from '../types/stats'
 
@@ -31,7 +33,8 @@ type View = {
   title: string
   blurb: string
   tiles: Tile[]
-  next: { note: string; to: string; action: string }
+  /** The work itself, under the counts — every role gets the list its number stands for. */
+  panels: ReactNode
 }
 
 const VIEWS: Record<Role, View> = {
@@ -44,7 +47,10 @@ const VIEWS: Record<Role, View> = {
       { label: 'Open Encounters', read: s => s.draftEncounters, icon: <DescriptionOutlinedIcon />, to: '/records' },
       { label: 'Clinicians Documenting', read: s => s.clinicians, icon: <StethoscopeIcon />, to: '/staff' },
     ],
-    next: { note: 'Add a colleague or change what your clinic looks like.', to: '/staff', action: 'Manage staff' },
+    panels: <>
+      <InTheClinic first={{ label: 'See the appointment book', to: '/appointments' }} />
+      <UnfinishedNotes readOnly />
+    </>,
   },
   Clinician: {
     title: 'Clinician Dashboard',
@@ -55,7 +61,10 @@ const VIEWS: Record<Role, View> = {
       { label: 'Open Encounters', read: s => s.draftEncounters, icon: <DescriptionOutlinedIcon />, to: '/records' },
       { label: 'Finalized Today', read: s => s.finalizedToday, icon: <TaskAltOutlinedIcon />, to: '/records' },
     ],
-    next: { note: 'Take the next patient into session, then document the visit under Records.', to: '/appointments', action: 'Open appointments' },
+    panels: <>
+      <InTheClinic act="start-session" first={{ label: 'See who is booked today', to: '/appointments' }} />
+      <UnfinishedNotes />
+    </>,
   },
   Receptionist: {
     title: 'Front Desk Dashboard',
@@ -66,7 +75,10 @@ const VIEWS: Record<Role, View> = {
       { label: 'Appointments Today', read: s => s.appointmentsToday, icon: <CalendarMonthOutlinedIcon />, to: '/appointments' },
       { label: 'Registered Today', read: s => s.newPatientsToday, icon: <GroupsOutlinedIcon />, to: '/patients' },
     ],
-    next: { note: 'Register a patient, then check them in to start their visit.', to: '/patients', action: 'Go to patients' },
+    panels: <>
+      <InTheClinic act="to-room" first={{ label: 'Register or check in a patient', to: '/patients' }} />
+      <BookedToday />
+    </>,
   },
   Pharmacist: {
     title: 'Pharmacy Dashboard',
@@ -77,7 +89,7 @@ const VIEWS: Record<Role, View> = {
       { label: 'Unavailable', read: s => s.prescriptionsUnavailable, icon: <BlockOutlinedIcon />, to: '/pharmacy' },
       { label: 'Finalized Today', read: s => s.finalizedToday, icon: <DescriptionOutlinedIcon /> },
     ],
-    next: { note: 'Every medicine on a finalized visit becomes its own row in the queue.', to: '/pharmacy', action: 'Open the queue' },
+    panels: <PendingMedicines />,
   },
   'Lab Technician': {
     title: 'Laboratory Dashboard',
@@ -88,7 +100,7 @@ const VIEWS: Record<Role, View> = {
       { label: 'Cancelled', read: s => s.labCancelled, icon: <BlockOutlinedIcon />, to: '/laboratory' },
       { label: 'Finalized Today', read: s => s.finalizedToday, icon: <DescriptionOutlinedIcon /> },
     ],
-    next: { note: 'Record a result against the test that was requested, or cancel it with a reason.', to: '/laboratory', action: 'Open the queue' },
+    panels: <PendingTests />,
   },
 }
 
@@ -138,15 +150,7 @@ export default function Dashboard() {
         ))}
       </div>
 
-      <div className="card next-step">
-        <div>
-          <h3>What happens next</h3>
-          <p>{view.next.note}</p>
-        </div>
-        <Link to={view.next.to} className="btn">
-          {view.next.action} <ArrowForwardIcon fontSize="small" />
-        </Link>
-      </div>
+      <div className="panel-grid">{view.panels}</div>
     </>
   )
 }
