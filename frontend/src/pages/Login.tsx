@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { login as requestLogin } from '../api/auth'
 import { useAuth } from '../auth/AuthContext'
 import type { Role } from '../auth/AuthContext'
+import PasswordInput from '../components/PasswordInput'
 
 export default function Login() {
   const { login } = useAuth()
@@ -63,8 +64,7 @@ export default function Login() {
               Forgotten? Ask your administrator
             </span>
           </div>
-          <input
-            type="password"
+          <PasswordInput
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
