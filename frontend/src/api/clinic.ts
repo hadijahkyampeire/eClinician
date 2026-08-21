@@ -1,19 +1,10 @@
-import { API_URL } from './config'
-import { authHeaders } from './session'
+import { request as send } from './http'
+
+/** Every call in this module, through the one place that handles expiry. */
+const request = <T>(path: string, options?: RequestInit) =>
+  send<T>(path, options, 'Clinic request failed')
 import type { ClinicSettings, Hospital } from '../types/tenant'
 
-async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers: { 'Content-Type': 'application/json', ...authHeaders(), ...options?.headers },
-  })
-  if (!response.ok) {
-    const details = await response.json().catch(() => null)
-    const message = details?.message || Object.values(details || {})[0]
-    throw new Error(typeof message === 'string' ? message : 'Clinic request failed')
-  }
-  return response.json()
-}
 
 /** The signed-in user's own clinic — the tenant comes from the token, not the path. */
 export function getClinic() {

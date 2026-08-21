@@ -1,18 +1,10 @@
-import { API_URL } from './config'
-import { authHeaders } from './session'
+import { request as send } from './http'
+
+/** Every call in this module, through the one place that handles expiry. */
+const request = <T>(path: string, options?: RequestInit) =>
+  send<T>(path, options, 'Lab request failed')
 import type { LabOrder, LabResultForm, LabStatus } from '../types/lab'
 
-async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers: { 'Content-Type': 'application/json', ...authHeaders(), ...options?.headers },
-  })
-  if (!response.ok) {
-    const details = await response.json().catch(() => null)
-    throw new Error(details?.message || Object.values(details || {})[0] || 'Lab request failed')
-  }
-  return response.json()
-}
 
 export function getLabOrders(status?: LabStatus) {
   const query = status ? `?status=${status}` : ''

@@ -4,7 +4,7 @@
 make test        # or: cd backend && ./mvnw test
 ```
 
-**43 tests, all green.** They run against in-memory H2, so CI needs no database, and they
+**51 tests, all green.** They run against in-memory H2, so CI needs no database, and they
 point at the service layer where every rule lives.
 
 ## What each test proves
@@ -14,6 +14,7 @@ point at the service layer where every rule lives.
 | `RoleAuthorizationTests` | 9 | A role may do only its own work — a receptionist cannot dispense, a pharmacist cannot register a patient or take one into session, pharmacy and lab cannot read each other's queues, an administrator reads every department and writes to none |
 | `PatientRuleTests` | 6 | The SRS patient rules: no shared phone or national ID inside one clinic, the same number is fine in another clinic, an update does not collide with itself, a patient with visits cannot be deleted, and the national ID cannot be changed after registration |
 | `PlatformConsoleTests` | 6 | The console is closed to a hospital administrator, the platform administrator cannot read a patient, onboarding decides what a hospital's staff see, an identifier cannot be reused, and suspending a hospital stops its staff signing in |
+| `RefreshTokenTests` | 8 | A session can be continued without the password: signing in hands back both tokens, a refresh token buys a fresh pair and is spent doing so, a replayed token ends every session the account holds, signing out stops renewal, and a deactivated account cannot renew its way past being closed |
 | `AuthTests` | 4 | Login, credential rejection, a closed API, and tenant isolation |
 | `StaffManagementTests` | 4 | An administrator adds an account that can then sign in, deactivating it stops the login, an email is unique, and an administrator cannot deactivate themselves |
 | `AppointmentSchedulingTests` | 3 | The SRS scheduling rules: one doctor cannot hold two appointments at a time, cancelling frees the slot, and a visit that has taken place cannot be cancelled |

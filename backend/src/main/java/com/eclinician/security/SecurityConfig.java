@@ -78,6 +78,10 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(requests -> requests
                         .requestMatchers("/api/health", "/api/auth/login").permitAll()
+                        // Renewing and signing out are reached with an access token that
+                        // has usually already expired. The refresh token in the body is
+                        // the credential these two check for themselves.
+                        .requestMatchers("/api/auth/refresh", "/api/auth/logout").permitAll()
                         // The API's own documentation is public; every endpoint it
                         // describes still refuses a caller without a token.
                         .requestMatchers("/swagger-ui.html", "/swagger-ui/**",

@@ -129,6 +129,12 @@ export default function Dashboard() {
     enabled: Boolean(tenantId),
   })
 
+  // An ended session says so for itself; anything else really is the API being out of
+  // reach. Reporting the first as the second is what sent everyone looking at the server.
+  const dashboardError = error?.message.match(/session has ended/i)
+    ? error.message
+    : 'Could not reach the API. Is the backend running?'
+
   // Labels stay visible while loading so the layout doesn't jump.
   const reading = (tile: Tile) =>
     isLoading || error || !data ? '—' : String(tile.read(data))
@@ -141,7 +147,7 @@ export default function Dashboard() {
       </div>
 
       {error && (
-        <div className="card notice error">Could not reach the API. Is the backend running?</div>
+        <div className="card notice error">{dashboardError}</div>
       )}
 
       <div className="stat-grid">
