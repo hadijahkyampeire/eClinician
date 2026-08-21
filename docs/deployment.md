@@ -47,6 +47,10 @@ Open http://localhost:5173 and sign in — the six staff accounts are seeded on 
 - The summarizer takes whichever AI key is present (`auto` prefers OpenAI). With neither,
   the drafting endpoint answers `503` and everything else runs normally.
 - `VITE_API_URL` is read at **build** time — changing it needs a rebuild, not a restart.
+  It is written out in full in the blueprint: Render's `fromService … property: host`
+  resolves to the *private* hostname (`eclinician-api`), which a browser cannot resolve,
+  and the symptom is `ERR_NAME_NOT_RESOLVED` on every API call while the API itself is
+  healthy.
 
 ## Database migrations
 
