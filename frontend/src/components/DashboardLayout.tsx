@@ -4,12 +4,9 @@ import LockResetOutlinedIcon from '@mui/icons-material/LockResetOutlined'
 import LogoutOutlinedIcon from '@mui/icons-material/LogoutOutlined'
 import { useAuth } from '../auth/AuthContext'
 import { navItems } from '../nav'
+import DateChip from './DateChip'
 import Logo from './Logo'
 import PasswordChangeModal from './PasswordChangeModal'
-
-const today = new Intl.DateTimeFormat(undefined, {
-  weekday: 'long', day: 'numeric', month: 'long',
-})
 
 export default function DashboardLayout() {
   const { session, logout } = useAuth()
@@ -83,11 +80,9 @@ export default function DashboardLayout() {
 
       <div className="main">
         <header className="topbar">
-          <div className="page-title">
-            <span>{section}</span>
-            <small>{today.format(new Date())}</small>
-          </div>
+          <div className="page-title">{section}</div>
           <div className="user">
+            <DateChip />
             <div className="user-meta">
               <div className="name">{session?.user.name}</div>
               <div className="role">{session?.user.role}</div>

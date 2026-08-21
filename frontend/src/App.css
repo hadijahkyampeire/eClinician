@@ -376,23 +376,158 @@
   color: var(--text-muted);
 }
 
-.next-step {
+/* ---------- Dashboard panels ---------- */
+.panel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+.panel {
+  padding: 0;
+  overflow: hidden;
+}
+
+.panel-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 24px;
-  flex-wrap: wrap;
-  background: linear-gradient(180deg, var(--surface), var(--brand-bg));
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
 }
 
-.next-step h3 {
+.panel-head h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 15px;
 }
 
-.next-step p {
-  margin: 4px 0 0;
+.pill {
+  min-width: 22px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--brand-bg);
+  color: var(--brand);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.panel-link {
+  color: var(--brand);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.panel-empty {
+  display: grid;
+  justify-items: start;
+  gap: 14px;
+  padding: 22px 20px;
   color: var(--text-muted);
   font-size: 14px;
+}
+
+.panel-empty p {
+  margin: 0;
+}
+
+.panel-rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.panel-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.panel-row:last-child {
+  border-bottom: none;
+}
+
+.row-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.row-primary {
+  font-weight: 500;
+  color: var(--heading);
+}
+
+.row-secondary,
+.row-meta {
+  font-size: 13px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.row-meta {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--bg);
+  white-space: nowrap;
+}
+
+/* Waiting is a clock running; in session is work under way. */
+.row-meta.waiting {
+  background: #fffbeb;
+  color: #b45309;
+}
+
+.row-meta.session {
+  background: var(--brand-bg);
+  color: var(--brand);
+}
+
+.btn.small {
+  padding: 6px 12px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+/* A tear-off leaf with the day drawn into it — the date is clinical furniture. */
+.date-chip {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding-right: 16px;
+  margin-right: 4px;
+  border-right: 1px solid var(--border);
+}
+
+.date-text {
+  display: grid;
+  gap: 1px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  line-height: 1.25;
+}
+
+.date-text strong {
+  color: var(--brand);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+@media (max-width: 720px) {
+  .date-text {
+    display: none;
+  }
 }
 
 .notice.error {
