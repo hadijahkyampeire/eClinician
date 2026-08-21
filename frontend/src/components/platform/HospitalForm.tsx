@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import type { ModuleKey } from '../../auth/AuthContext'
 import { MODULES, type Hospital, type HospitalForm as Form } from '../../types/tenant'
+import PasswordInput from '../PasswordInput'
 
 interface Props {
   hospital: Hospital | null
@@ -86,7 +87,7 @@ export default function HospitalForm({ hospital, isSaving, error, onClose, onSav
               <input required type="email" maxLength={200} placeholder="Email"
                 value={form.adminEmail}
                 onChange={(event) => set('adminEmail', event.target.value)} />
-              <input required type="password" minLength={8} placeholder="Password (8+ characters)"
+              <PasswordInput required minLength={8} placeholder="Password (8+ characters)"
                 value={form.adminPassword}
                 onChange={(event) => set('adminPassword', event.target.value)} />
             </fieldset>

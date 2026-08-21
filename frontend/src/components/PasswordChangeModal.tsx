@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { changePassword } from '../api/auth'
+import PasswordInput from './PasswordInput'
 
 /** Self-service: the account owner changes their own password, current one required. */
 export default function PasswordChangeModal({ onClose }: { onClose: () => void }) {
@@ -39,16 +40,16 @@ export default function PasswordChangeModal({ onClose }: { onClose: () => void }
         ) : (
           <form className="appointment-form" onSubmit={handleSubmit}>
             <label>Current password
-              <input type="password" autoComplete="current-password" required value={current}
+              <PasswordInput autoComplete="current-password" required value={current}
                 onChange={(event) => setCurrent(event.target.value)} />
             </label>
             <label>New password
-              <input type="password" autoComplete="new-password" required minLength={8} value={next}
+              <PasswordInput autoComplete="new-password" required minLength={8} value={next}
                 onChange={(event) => setNext(event.target.value)} />
               <small>At least 8 characters.</small>
             </label>
             <label>Confirm new password
-              <input type="password" autoComplete="new-password" required value={confirm}
+              <PasswordInput autoComplete="new-password" required value={confirm}
                 onChange={(event) => setConfirm(event.target.value)} />
             </label>
 
