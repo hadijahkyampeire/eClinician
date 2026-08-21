@@ -5,35 +5,49 @@ All accounts use the password `demo1234` ([the list is in the README](../README.
 **Three things to make sure they see:** the visit working end to end, a refusal that comes
 from the server, and a second clinic onboarded live.
 
+**Two patients are already in the clinic when you sign in**, so nothing starts from an
+empty screen:
+
+- **Grace Nabirye** — checked in this morning and sitting in the waiting room. She is the
+  waiting-room count on the receptionist's dashboard.
+- **Peter Ochieng** — been and gone, twice. Malaria six weeks ago, a follow-up three weeks
+  ago: both visits finalized, three medicines dispensed, two tests resulted. He is the
+  returning patient the demo follows.
+
 ## Act one — one visit, end to end
 
 | # | As | Do | Say |
 |---|---|---|---|
-| 1 | **Receptionist** | Dashboard | The counts are live — they move as we work |
+| 1 | **Receptionist** | Dashboard | The counts are live — Grace is already waiting, and the numbers move as we work |
 | 2 | | Patients → Register patient | Country-neutral ID, phone validation, split address |
 | 3 | | Appointments → Book appointment | Book the same doctor at the same time twice — the API refuses. Cancel the first and the slot frees |
-| 4 | | Find the patient → Check in | An appointment appears with no doctor: a walk-in never clashes |
-| 5 | | Open the patient → Edit | The government ID is greyed out — recorded once, at registration |
-| 6 | | Type the URL `/pharmacy` | Bounced, and the API refuses it independently — not a hidden button |
-| 7 | **Clinician** | Appointments → Start session | `WAITING → IN_SESSION`, and a `DRAFT` encounter is created |
-| 8 | | Records → document the visit | Vitals, symptoms, examination, diagnosis, plan. **Two medicines and two tests, one per line** |
-| 9 | | Draft with AI | The model drafts the summary from the notes into a field I edit — the clinician signs the record |
-| 10 | | Finalize | One transaction: visit completes, care status clears, four order rows are raised |
-| 11 | **Lab Technician** | Laboratory | Both tests are waiting. Record a result on one, cancel the other with "no reagent" |
-| 12 | **Clinician** | The patient's record | The results are on the record — the review before the patient collects anything |
-| 13 | **Pharmacist** | Pharmacy | One row per medicine. Dispense one, mark the other unavailable — "out of stock" |
+| 4 | | Open **Peter Ochieng** | Two past visits on the record, with what was prescribed and what the lab found. This is a returning patient, not a blank form |
+| 5 | | **Check in** | An appointment appears with no doctor: a walk-in never clashes. His history stays where it is |
+| 6 | | Edit him | The government ID is greyed out — recorded once, at registration |
+| 7 | | Type the URL `/pharmacy` | Bounced, and the API refuses it independently — not a hidden button |
+| 8 | **Clinician** | Appointments → Start session | `WAITING → IN_SESSION`, and a `DRAFT` encounter is created — his third |
+| 9 | | Records → the patient's history | Both earlier visits are in front of the clinician before they write a word — what was diagnosed, dispensed and resulted |
+| 10 | | Document this visit | Vitals, symptoms, examination, diagnosis, plan. **Two medicines and two tests, one per line** |
+| 11 | | Draft with AI | The model drafts the summary from the notes into a field I edit — the clinician signs the record |
+| 12 | | Finalize | One transaction: visit completes, care status clears, four order rows are raised |
+| 13 | **Lab Technician** | Laboratory | Both tests are waiting. Record a result on one, cancel the other with "no reagent" |
+| 14 | **Clinician** | The patient's record | Three visits now, the newest with today's results on it — the review before the patient collects anything |
+| 15 | **Pharmacist** | Pharmacy | One row per medicine. Dispense one, mark the other unavailable — "out of stock" |
+
+If there is time, take **Grace** into session too — she has been waiting since this morning,
+and the waiting-room count drops as she goes in.
 
 ## Act two — one deployment, many clinics
 
 | # | As | Do | Say |
 |---|---|---|---|
-| 14 | **Hospital Administrator** | Staff → Add staff member | They sign in immediately; Deactivate locks them out just as fast |
-| 15 | | Try to register a patient or dispense | `403` — an administrator runs the clinic, they do not do the clinical work |
-| 16 | | Clinic → change the name and colour | Their own clinic's branding, theirs to set |
-| 17 | **Platform Super Admin** | The console | Onboard **SWE Clinic** with its first administrator, and pick the modules they bought |
-| 18 | | Sign in as that administrator | An empty clinic, their own name in the sidebar, only the modules they paid for |
-| 19 | **Platform Super Admin** | Suspend that clinic | Its staff can no longer sign in, and no row of its data was touched |
-| 20 | | Point at what this account cannot do | It holds no tenant: every clinical endpoint answers it `403` |
+| 16 | **Hospital Administrator** | Staff → Add staff member | They sign in immediately; Deactivate locks them out just as fast |
+| 17 | | Try to register a patient or dispense | `403` — an administrator runs the clinic, they do not do the clinical work |
+| 18 | | Clinic → change the name and colour | Their own clinic's branding, theirs to set |
+| 19 | **Platform Super Admin** | The console | Onboard **SWE Clinic** with its first administrator, and pick the modules they bought |
+| 20 | | Sign in as that administrator | An empty clinic, their own name in the sidebar, only the modules they paid for |
+| 21 | **Platform Super Admin** | Suspend that clinic | Its staff can no longer sign in, and no row of its data was touched |
+| 22 | | Point at what this account cannot do | It holds no tenant: every clinical endpoint answers it `403` |
 
 ## Where each role stops
 

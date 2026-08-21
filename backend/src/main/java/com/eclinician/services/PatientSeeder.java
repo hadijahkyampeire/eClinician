@@ -4,10 +4,12 @@ import com.eclinician.domains.entities.Patient;
 import com.eclinician.repositories.PatientRepository;
 import java.time.LocalDate;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 /** Adds a few demo patients on startup so the app isn't empty in dev. */
 @Component
+@Order(2)
 public class PatientSeeder implements CommandLineRunner {
 
     // The demo clinic, seeded by TenantSeeder before this runs.
