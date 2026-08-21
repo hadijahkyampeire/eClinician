@@ -3,6 +3,7 @@ package com.eclinician.controllers;
 import com.eclinician.domains.dtos.LoginRequest;
 import com.eclinician.domains.dtos.LoginResponse;
 import com.eclinician.domains.dtos.PasswordChangeRequest;
+import com.eclinician.domains.dtos.RefreshRequest;
 import com.eclinician.services.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -28,6 +29,23 @@ public class AuthController {
     @PostMapping("/login")
     public LoginResponse login(@Valid @RequestBody LoginRequest request) {
         return authService.login(request);
+    }
+
+    /**
+     * Trades a refresh token for a fresh pair. Open like login is, because the caller's
+     * access token has usually expired by the time they get here — the refresh token is
+     * the credential, and {@link AuthService#refresh} is what checks it.
+     */
+    @PostMapping("/refresh")
+    public LoginResponse refresh(@Valid @RequestBody RefreshRequest request) {
+        return authService.refresh(request.refreshToken());
+    }
+
+    /** Ends the refresh token, so a signed-out browser cannot renew itself back in. */
+    @PostMapping("/logout")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void logout(@Valid @RequestBody RefreshRequest request) {
+        authService.logout(request.refreshToken());
     }
 
     /** Whoever the token says they are, changing their own password and nobody else's. */

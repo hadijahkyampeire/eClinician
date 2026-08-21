@@ -1,23 +1,11 @@
 import type { Appointment, AppointmentForm } from '../types/appointment'
 
-import { API_URL } from './config'
-import { authHeaders } from './session'
+import { request as send } from './http'
 
-async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...authHeaders(),
-      ...options?.headers,
-    },
-  })
-  if (!response.ok) {
-    const details = await response.json().catch(() => null)
-    throw new Error(details?.message || 'Appointment request failed')
-  }
-  return response.json()
-}
+/** Every call in this module, through the one place that handles expiry. */
+const request = <T>(path: string, options?: RequestInit) =>
+  send<T>(path, options, 'Appointment request failed')
+
 
 export function getAppointments(patientId?: string) {
   const query = patientId ? `?patientId=${encodeURIComponent(patientId)}` : ''
