@@ -128,13 +128,28 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 10px 20px;
+  padding: 6px 10px 22px;
 }
 
-.sidebar .brand span {
+.brand-names {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.brand-product {
   color: var(--brand);
   font-weight: 700;
-  font-size: 16px;
+  font-size: 15px;
+  letter-spacing: 0.02em;
+}
+
+.brand-tenant {
+  color: var(--text-muted);
+  font-size: 12.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .nav {
@@ -165,13 +180,48 @@
   font-weight: 600;
 }
 
-.nav .icon {
+.nav .icon,
+.sidebar-footer .icon {
+  display: flex;
   width: 18px;
-  text-align: center;
 }
 
 .sidebar .spacer {
   flex: 1;
+  min-height: 24px;
+}
+
+/* Sits on the floor of the sidebar, fenced off from the navigation above it. */
+.sidebar-footer {
+  display: grid;
+  gap: 2px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.sidebar-footer button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: var(--text-muted);
+  font-size: 14px;
+  text-align: left;
+  transition: background 0.12s, color 0.12s;
+}
+
+.sidebar-footer button:hover {
+  background: var(--bg);
+  color: var(--heading);
+}
+
+.sidebar-footer .sign-out:hover {
+  background: #fef2f2;
+  color: var(--danger);
 }
 
 .main {
@@ -194,9 +244,18 @@
 }
 
 .topbar .page-title {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
   font-size: 16px;
   font-weight: 600;
   color: var(--heading);
+}
+
+.topbar .page-title small {
+  font-size: 12.5px;
+  font-weight: 400;
+  color: var(--text-muted);
 }
 
 .topbar .user {
@@ -257,23 +316,52 @@
 }
 
 .stat-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 4px 14px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 20px;
+  padding: 18px 20px;
   box-shadow: var(--shadow);
 }
 
+.stat-icon {
+  grid-row: span 2;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: var(--brand-bg);
+  color: var(--brand);
+}
+
 .stat-card .label {
+  align-self: end;
   color: var(--text-muted);
   font-size: 13px;
 }
 
 .stat-card .value {
-  font-size: 28px;
+  align-self: start;
+  font-size: 26px;
   font-weight: 700;
+  line-height: 1.1;
   color: var(--heading);
-  margin-top: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* A tile is a way in, not a decoration — every one that has a screen links to it. */
+.stat-card.linked {
+  transition: border-color 0.12s, box-shadow 0.12s, transform 0.12s;
+}
+
+.stat-card.linked:hover {
+  border-color: var(--brand-light);
+  box-shadow: 0 4px 12px rgba(15, 118, 110, 0.1);
+  transform: translateY(-1px);
 }
 
 .card {
@@ -286,6 +374,32 @@
 
 .placeholder {
   color: var(--text-muted);
+}
+
+.next-step {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+  background: linear-gradient(180deg, var(--surface), var(--brand-bg));
+}
+
+.next-step h3 {
+  font-size: 15px;
+}
+
+.next-step p {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.notice.error {
+  margin-bottom: 16px;
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: var(--danger);
 }
 
 /* login form extras */
