@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { login as requestLogin } from '../api/auth'
 import { useAuth } from '../auth/AuthContext'
 import type { Role } from '../auth/AuthContext'
+import Logo from '../components/Logo'
 import PasswordInput from '../components/PasswordInput'
 
 export default function Login() {
@@ -42,7 +43,7 @@ export default function Login() {
     <div className="login-wrap">
       <form className="login-card" onSubmit={handleSubmit}>
         <div className="brand">
-          <div className="logo">HK</div>
+          <Logo size={40} />
           <h1>HK CLINIC</h1>
         </div>
         <p className="subtitle">Sign in to your clinical workspace</p>
