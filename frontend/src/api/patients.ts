@@ -5,28 +5,12 @@ interface PatientPage {
   content: Patient[]
 }
 
-import { API_URL } from './config'
-import { authHeaders } from './session'
+import { request as send } from './http'
 
-async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...authHeaders(),
-      ...options?.headers,
-    },
-  })
+/** Every call in this module, through the one place that handles expiry. */
+const request = <T>(path: string, options?: RequestInit) =>
+  send<T>(path, options, 'Request failed')
 
-  if (!response.ok) {
-    const details = await response.json().catch(() => null)
-    const message = details?.message || Object.values(details || {})[0]
-    throw new Error(typeof message === 'string' ? message : 'Request failed')
-  }
-
-  if (response.status === 204) return undefined as T
-  return response.json()
-}
 
 export async function getPatients(
   search = '',

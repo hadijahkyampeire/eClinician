@@ -21,9 +21,9 @@ outpatient visit from check-in to dispensing.
 | Controller · service · repository · entity | 4 | Controller → service → repository, and the [API docs](https://eclinician-api.onrender.com/swagger-ui.html) generated from the controllers themselves. Open `EncounterService.finalizeEncounter` | 2 min |
 | Vision document | 1 | [docs/vision.md](docs/vision.md) — problem, stakeholders, scope, features | 1 min |
 | SRS and use-case model | 1 | [docs/srs.md](docs/srs.md) — the use-case model, and §4 comparing specification against implementation | 1 min |
-| Testing | 1 | [docs/testing.md](docs/testing.md) — 43 JUnit tests, and what each one proves rather than how many there are | 1 min |
+| Testing | 1 | [docs/testing.md](docs/testing.md) — 51 JUnit tests, and what each one proves rather than how many there are | 1 min |
 | GitHub and code quality | 1 | Branch per feature, reviewed pull requests, package by layer | — |
-| Security *(extra credit)* | 2 | JWT signed server-side, BCrypt hashes, `@PreAuthorize` per endpoint, no key in the source | — |
+| Security *(extra credit)* | 2 | JWT signed server-side, BCrypt hashes, `@PreAuthorize` per endpoint, no key in the source, and rotating refresh tokens stored only as hashes | — |
 | Cloud deployment *(extra credit)* | 2 | [docs/deployment.md](docs/deployment.md) — live on Render, secrets from the environment | — |
 | Questions | — | The defence sheet at the end of [docs/presentation.md](docs/presentation.md) | 5–10 min |
 
@@ -76,7 +76,7 @@ A React SPA calls a REST API with a bearer token; the API is controller → serv
 repository over JPA. Controllers hold no rules, services hold all of them. The tenant and
 the role are claims inside the signed token, never client input, and every repository
 finder takes a `tenantId` — so no query in the codebase *can* return another clinic's row.
-Flyway owns the schema. 43 JUnit tests cover the rules.
+Flyway owns the schema. 51 JUnit tests cover the rules.
 
 ## Run it
 
@@ -84,7 +84,7 @@ Flyway owns the schema. 43 JUnit tests cover the rules.
 docker compose up -d   # Postgres on port 5433
 make install           # npm install + mvn install
 make run               # backend on :8080, frontend on :5173
-make test              # 43 backend tests
+make test              # 51 backend tests
 ```
 
 If the network fails during the demo, this gives the same demo locally.

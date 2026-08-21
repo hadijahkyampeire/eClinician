@@ -28,15 +28,17 @@ public class AuthService {
     private final PasswordEncoder passwords;
     private final JwtEncoder tokens;
     private final TenantService tenantService;
+    private final RefreshTokenService refreshTokens;
     private final Duration ttl;
 
     public AuthService(UserRepository users, PasswordEncoder passwords, JwtEncoder tokens,
-            TenantService tenantService,
+            TenantService tenantService, RefreshTokenService refreshTokens,
             @Value("${app.jwt.ttl-minutes:480}") long ttlMinutes) {
         this.users = users;
         this.passwords = passwords;
         this.tokens = tokens;
         this.tenantService = tenantService;
+        this.refreshTokens = refreshTokens;
         this.ttl = Duration.ofMinutes(ttlMinutes);
     }
 
@@ -48,13 +50,40 @@ public class AuthService {
                 // cannot be used to discover which accounts exist.
                 .orElseThrow(() -> new BadCredentialsException("Invalid email or password"));
 
+        return session(user);
+    }
+
+    /**
+     * Trades a refresh token for a new pair. The account is read again rather than
+     * trusted from the old token, so someone deactivated — or a hospital suspended —
+     * since signing in cannot renew their way past it.
+     */
+    public LoginResponse refresh(String refreshToken) {
+        String email = refreshTokens.exchange(refreshToken);
+        AppUser user = users.findByEmailIgnoreCase(email)
+                .filter(AppUser::isActive)
+                .orElseThrow(() -> new BadCredentialsException(
+                        "Your session has ended. Please sign in again."));
+        return session(user);
+    }
+
+    /** Signing out ends the refresh token too, so the browser cannot renew after it. */
+    public void logout(String refreshToken) {
+        if (refreshToken != null && !refreshToken.isBlank()) {
+            refreshTokens.revoke(refreshToken);
+        }
+    }
+
+    /** The one place a signed-in session is built, for login and for renewal alike. */
+    private LoginResponse session(AppUser user) {
         Tenant tenant = tenantService.configFor(user.getTenantId()).orElse(null);
         // A suspended hospital keeps its data and its accounts; nobody there signs in.
         if (tenant != null && !tenant.isActive()) {
             throw new BadCredentialsException("This hospital's account is suspended");
         }
 
-        return new LoginResponse(token(user), ttl.toSeconds(), user.getName(), user.getEmail(),
+        return new LoginResponse(token(user), refreshTokens.issue(user.getEmail()),
+                ttl.toSeconds(), user.getName(), user.getEmail(),
                 user.getRole().label(), user.getTenantId(), user.isPlatformAdmin(),
                 tenant == null ? null : TenantResponse.from(tenant));
     }
