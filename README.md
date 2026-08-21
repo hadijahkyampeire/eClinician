@@ -11,7 +11,30 @@ outpatient visit from check-in to dispensing.
 > app ten minutes early and leave the tab open. Cmd-click (or Ctrl-click) links here —
 > GitHub will not open them in a new tab on its own.
 
-**Stack:** Java 21 · Spring Boot 4 · PostgreSQL 16 · Flyway · React 19 · TypeScript · Vite
+## What is being graded, and where it is
+
+| What is asked for | Pts | Where it lives | Time |
+|---|---|---|---|
+| **Functional demonstration** | **3** | **[docs/demo.md](docs/demo.md)** — act one is a visit end to end, act two is one deployment serving many clinics | 10–12 min |
+| Presentation and technical understanding | 2 | [docs/presentation.md](docs/presentation.md) — 12 slides with the one sentence that matters on each, and the examiner questions with answers written out | 12 min |
+| Architecture and UML | 2 | [docs/architecture.md](docs/architecture.md) — architecture, ERD, VOPC, sequence, state and collaboration diagrams. Slides 5, 6, 8, 9 | 3 min |
+| Controller · service · repository · entity | 4 | Controller → service → repository, and the [API docs](https://eclinician-api.onrender.com/swagger-ui.html) generated from the controllers themselves. Open `EncounterService.finalizeEncounter` | 2 min |
+| Vision document | 1 | [docs/vision.md](docs/vision.md) — problem, stakeholders, scope, features | 1 min |
+| SRS and use-case model | 1 | [docs/srs.md](docs/srs.md) — the use-case model, and §4 comparing specification against implementation | 1 min |
+| Testing | 1 | [docs/testing.md](docs/testing.md) — 43 JUnit tests, and what each one proves rather than how many there are | 1 min |
+| GitHub and code quality | 1 | Branch per feature, reviewed pull requests, package by layer | — |
+| Security *(extra credit)* | 2 | JWT signed server-side, BCrypt hashes, `@PreAuthorize` per endpoint, no key in the source | — |
+| Cloud deployment *(extra credit)* | 2 | [docs/deployment.md](docs/deployment.md) — live on Render, secrets from the environment | — |
+| Questions | — | The defence sheet at the end of [docs/presentation.md](docs/presentation.md) | 5–10 min |
+
+### The three things to make sure they see
+
+These carry the most marks and are the hardest to claim without showing:
+
+1. **The visit working end to end** — check-in through to dispensing, with the counts moving.
+2. **A refusal coming from the server** — sign in as a receptionist, type `/pharmacy`, and
+   show it is the API saying no, not a hidden button.
+3. **A second clinic onboarded live** — the moment this stops being one hospital's app.
 
 ## Sign in
 
@@ -41,19 +64,19 @@ flowchart LR
     PH --> OUT(["Patient leaves"])
 ```
 
-Finalizing the encounter is one transaction: the visit closes and each line of the
-clinician's prescriptions and lab requests becomes a row in the pharmacy and lab queues.
+The pharmacy is the last stop. Finalizing the encounter is one transaction: the visit
+closes and each line of the clinician's prescriptions and lab requests becomes a row in the
+pharmacy and lab queues.
 
 ## How it is built
 
-```
-  React 19 SPA  ──  REST + Bearer <jwt>  ──►  Spring Boot 4 API  ──JPA──►  PostgreSQL
-  React Query + Zustand                      Controller → Service → Repository
-```
+**Java 21 · Spring Boot 4 · PostgreSQL 16 · Flyway · React 19 · TypeScript · Vite**
 
-The tenant and the role are claims inside the signed token, never client input. Every
-repository finder takes a `tenantId`, so no query can return another clinic's row. Flyway
-owns the schema. 43 JUnit tests cover the rules.
+A React SPA calls a REST API with a bearer token; the API is controller → service →
+repository over JPA. Controllers hold no rules, services hold all of them. The tenant and
+the role are claims inside the signed token, never client input, and every repository
+finder takes a `tenantId` — so no query in the codebase *can* return another clinic's row.
+Flyway owns the schema. 43 JUnit tests cover the rules.
 
 ## Run it
 
@@ -63,6 +86,8 @@ make install           # npm install + mvn install
 make run               # backend on :8080, frontend on :5173
 make test              # 43 backend tests
 ```
+
+If the network fails during the demo, this gives the same demo locally.
 
 ## Docs
 
