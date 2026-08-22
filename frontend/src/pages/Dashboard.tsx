@@ -35,6 +35,8 @@ type View = {
   tiles: Tile[]
   /** The work itself, under the counts — every role gets the list its number stands for. */
   panels: ReactNode
+  /** The one thing this role opens the dashboard to do, always in reach. */
+  action?: { label: string; to: string }
 }
 
 const VIEWS: Record<Role, View> = {
@@ -79,6 +81,7 @@ const VIEWS: Record<Role, View> = {
       <InTheClinic act="to-room" first={{ label: 'Register or check in a patient', to: '/patients' }} />
       <BookedToday />
     </>,
+    action: { label: 'Register a patient', to: '/patients' },
   },
   Pharmacist: {
     title: 'Pharmacy Dashboard',
@@ -141,9 +144,12 @@ export default function Dashboard() {
 
   return (
     <>
-      <div className="page-header">
-        <h2>{view.title}</h2>
-        <p>Welcome back, {session?.user.name?.split(' ')[0]} · {view.blurb}</p>
+      <div className="page-header appointment-page-header">
+        <div>
+          <h2>{view.title}</h2>
+          <p>Welcome back, {session?.user.name?.split(' ')[0]} · {view.blurb}</p>
+        </div>
+        {view.action && <Link className="btn" to={view.action.to}>{view.action.label}</Link>}
       </div>
 
       {error && (
