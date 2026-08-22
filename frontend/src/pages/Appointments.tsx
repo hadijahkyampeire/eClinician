@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   cancelAppointment,
   checkInPatient,
@@ -21,9 +21,11 @@ const activeStatuses: AppointmentStatus[] = ['CHECKED_IN', 'WAITING', 'IN_SESSIO
 
 export default function Appointments() {
   const [params] = useSearchParams()
+  const navigate = useNavigate()
   const { session } = useAuth()
   const queryClient = useQueryClient()
   const [booking, setBooking] = useState<Appointment | null | undefined>(undefined)
+  const [confirmation, setConfirmation] = useState('')
   const patientId = params.get('patientId')
   const action = params.get('action')
   const tenantId = session?.tenant?.id
@@ -56,7 +58,17 @@ export default function Appointments() {
     mutationFn: () => action === 'check-in'
       ? checkInPatient(patientId!)
       : startPatientSession(patientId!),
-    onSuccess: refresh,
+    onSuccess: async () => {
+      const name = patientQuery.data
+        ? `${patientQuery.data.firstName} ${patientQuery.data.lastName}`
+        : 'The patient'
+      setConfirmation(action === 'check-in'
+        ? `${name} is checked in and now in today’s queue.`
+        : `Session started for ${name}.`)
+      // The arrival is recorded, so drop the intent from the URL: the card has done its job.
+      navigate('/appointments', { replace: true })
+      await refresh()
+    },
   })
   const transition = useMutation({
     mutationFn: ({ id, next }: { id: string; next: 'waiting' | 'complete' }) =>
@@ -78,6 +90,12 @@ export default function Appointments() {
     mutationFn: (appointment: Appointment) => cancelAppointment(appointment.id),
     onSuccess: refresh,
   })
+
+  useEffect(() => {
+    if (!confirmation) return
+    const timer = setTimeout(() => setConfirmation(''), 6000)
+    return () => clearTimeout(timer)
+  }, [confirmation])
 
   const appointments = appointmentsQuery.data ?? []
   const active = appointments.filter((appointment) =>
@@ -127,6 +145,10 @@ export default function Appointments() {
             </button>
           </div>
         </div>
+      )}
+
+      {confirmation && (
+        <div className="card notice success" role="status">{confirmation}</div>
       )}
 
       {error && <p className="patient-error">{error.message}</p>}

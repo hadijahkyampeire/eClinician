@@ -310,7 +310,7 @@
 
 .stat-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 16px;
   margin-bottom: 24px;
 }
@@ -339,12 +339,14 @@
 }
 
 .stat-card .label {
+  grid-column: -2;
   align-self: end;
   color: var(--text-muted);
   font-size: 13px;
 }
 
 .stat-card .value {
+  grid-column: -2;
   align-self: start;
   font-size: 26px;
   font-weight: 700;
@@ -381,10 +383,11 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
   gap: 16px;
-  align-items: start;
 }
 
 .panel {
+  display: flex;
+  flex-direction: column;
   padding: 0;
   overflow: hidden;
 }
@@ -425,6 +428,8 @@
 
 .panel-empty {
   display: grid;
+  flex: 1;
+  align-content: center;
   justify-items: start;
   gap: 14px;
   padding: 22px 20px;
@@ -535,6 +540,16 @@
   border-color: #fecaca;
   background: #fef2f2;
   color: var(--danger);
+}
+
+/* An action that worked should say so, not just leave the page quietly different. */
+.notice.success {
+  margin-bottom: 16px;
+  padding: 14px 20px;
+  border-color: var(--brand-light);
+  background: var(--brand-bg);
+  color: var(--brand-dark);
+  font-weight: 500;
 }
 
 /* login form extras */

@@ -101,6 +101,9 @@
   text-transform: none;
 }
 .danger-menu-item { color: var(--danger) !important; }
+/* Table actions read as icons; the words live in the tooltip. */
+.table-icon { color: var(--brand); }
+.table-icon.danger { color: var(--danger); }
 .care-status {
   display: inline-flex;
   align-items: center;
@@ -113,6 +116,20 @@
   white-space: nowrap;
 }
 .care-status.none { background: var(--bg); color: var(--text-muted); font-weight: 500; }
+/* On a patient's own page the status is a headline fact, not a table cell. */
+.care-status.large {
+  gap: 7px;
+  padding: 6px 14px;
+  font-size: 13px;
+  letter-spacing: 0.01em;
+}
+.care-status.large::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
 .care-status.checked_in { background: #ecfdf5; color: #047857; }
 .care-status.waiting { background: #fffbeb; color: #b45309; }
 .care-status.in_session { background: #eff6ff; color: #1d4ed8; }
