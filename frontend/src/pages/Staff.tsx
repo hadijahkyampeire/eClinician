@@ -34,7 +34,7 @@ export default function Staff() {
 
   return (
     <>
-      <div className="page-header">
+      <div className="page-header appointment-page-header">
         <div><h2>Staff</h2><p>Accounts for this facility</p></div>
         {!adding && <button className="btn" onClick={() => setAdding(true)}>Add staff member</button>}
       </div>
