@@ -5,6 +5,7 @@ import { getPatient } from '../api/patients'
 import { getAppointments } from '../api/appointments'
 import { getEncounters } from '../api/encounters'
 import PatientOrderPanels from '../components/patients/PatientOrderPanels'
+import type { PatientCareStatus } from '../types/patient'
 
 export default function PatientDetails() {
   const { patientId = '' } = useParams()
@@ -59,16 +60,16 @@ export default function PatientDetails() {
         </div>
         <div>
           <p className="patient-record-label">Patient record</p>
-          <h2>{fullName}</h2>
+          <div className="patient-profile-name">
+            <h2>{fullName}</h2>
+            <CareStatus status={patient.activeCareStatus} />
+          </div>
           <div className="patient-profile-meta">
             <span>{patient.sex || 'Sex not recorded'}</span>
             <span>{patient.dateOfBirth
               ? `Born ${formatDate(patient.dateOfBirth)}`
               : 'Date of birth not recorded'}</span>
             <span>ID: {patient.nationalId || 'Not recorded'}</span>
-            <span>Current status: {patient.activeCareStatus
-              ? patient.activeCareStatus.replaceAll('_', ' ').toLowerCase()
-              : 'None'}</span>
           </div>
         </div>
         <div className="patient-header-actions">
@@ -191,6 +192,18 @@ export default function PatientDetails() {
       </section>
     </div>
   )
+}
+
+/** Where the patient is in today's care — the one fact here that changes by the hour. */
+function CareStatus({ status }: { status: PatientCareStatus | null }) {
+  const labels: Record<PatientCareStatus, string> = {
+    CHECKED_IN: 'Checked in',
+    WAITING: 'Waiting',
+    IN_SESSION: 'In session',
+  }
+  // No active status is not a state worth a badge; the check-in button says it better.
+  if (!status) return null
+  return <span className={`care-status large ${status.toLowerCase()}`}>{labels[status]}</span>
 }
 
 function Detail({ label, value }: { label: string; value: string | null | undefined }) {
