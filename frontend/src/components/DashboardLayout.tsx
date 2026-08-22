@@ -16,14 +16,19 @@ export default function DashboardLayout() {
 
   const tenant = session?.tenant
 
-  // Apply the hospital's brand color to the CSS variable everything reads from.
+  // Apply the hospital's brand color. The whole ramp is derived from the one colour they
+  // chose — setting --brand alone left every tint and hover state the default teal.
   useEffect(() => {
-    if (tenant?.primaryColor) {
-      document.documentElement.style.setProperty('--brand', tenant.primaryColor)
+    const colour = tenant?.primaryColor
+    const root = document.documentElement
+    const ramp = {
+      '--brand': colour,
+      '--brand-dark': `color-mix(in srgb, ${colour} 82%, black)`,
+      '--brand-light': `color-mix(in srgb, ${colour} 62%, white)`,
+      '--brand-bg': `color-mix(in srgb, ${colour} 8%, white)`,
     }
-    return () => {
-      document.documentElement.style.removeProperty('--brand')
-    }
+    if (colour) Object.entries(ramp).forEach(([name, value]) => root.style.setProperty(name, value!))
+    return () => Object.keys(ramp).forEach(name => root.style.removeProperty(name))
   }, [tenant?.primaryColor])
 
   // Two gates: the user's role must allow it AND (if it's a subscription
