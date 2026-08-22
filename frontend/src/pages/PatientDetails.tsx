@@ -157,7 +157,7 @@ export default function PatientDetails() {
           ) : <div className="history-empty">No appointments recorded.</div>}
         </details>
 
-        {canViewClinicalHistory ? (
+        {canViewClinicalHistory && (
           <>
             <details className="history-panel">
               <summary>
@@ -187,10 +187,6 @@ export default function PatientDetails() {
                 : <div className="history-empty">No doctor notes recorded.</div>}
             </details>
           </>
-        ) : (
-          <div className="restricted-panel">
-            Clinical history and doctor notes are restricted for your role.
-          </div>
         )}
       </section>
     </div>
