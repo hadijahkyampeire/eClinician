@@ -1,4 +1,10 @@
+import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import { IconButton, Tooltip } from '@mui/material'
+import HourglassEmptyOutlinedIcon from '@mui/icons-material/HourglassEmptyOutlined'
+import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined'
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
+import EventBusyOutlinedIcon from '@mui/icons-material/EventBusyOutlined'
 import type { Appointment, AppointmentStatus } from '../../types/appointment'
 
 /** The statuses a receptionist may still change: a visit that started is history. */
@@ -41,21 +47,29 @@ export default function AppointmentTable({
               <td>{appointment.checkedInAt ? formatDateTime(appointment.checkedInAt) : '—'}</td>
               <td className="table-actions">
                 {desk && appointment.status === 'CHECKED_IN' && (
-                  <button className="link-button" disabled={busy}
-                    onClick={() => onTransition(appointment.id, 'waiting')}>Mark waiting</button>
+                  <IconAction title="Take to the waiting room" disabled={busy}
+                    onClick={() => onTransition(appointment.id, 'waiting')}>
+                    <HourglassEmptyOutlinedIcon fontSize="small" />
+                  </IconAction>
                 )}
                 {(role === 'Clinician' || role === 'Administrator')
                   && appointment.status === 'IN_SESSION' && (
-                  <Link className="link-button"
-                    to={`/records?patientId=${appointment.patientId}`}>Document visit</Link>
+                  <IconAction title="Document visit"
+                    to={`/records?patientId=${appointment.patientId}`}>
+                    <DescriptionOutlinedIcon fontSize="small" />
+                  </IconAction>
                 )}
                 {desk && onEdit && editable.includes(appointment.status) && (
-                  <button className="link-button" disabled={busy}
-                    onClick={() => onEdit(appointment)}>Edit</button>
+                  <IconAction title="Edit appointment" disabled={busy}
+                    onClick={() => onEdit(appointment)}>
+                    <EditOutlinedIcon fontSize="small" />
+                  </IconAction>
                 )}
                 {desk && onCancel && editable.includes(appointment.status) && (
-                  <button className="link-button danger" disabled={busy}
-                    onClick={() => onCancel(appointment)}>Cancel</button>
+                  <IconAction title="Cancel appointment" danger disabled={busy}
+                    onClick={() => onCancel(appointment)}>
+                    <EventBusyOutlinedIcon fontSize="small" />
+                  </IconAction>
                 )}
               </td>
             </tr>
@@ -64,6 +78,28 @@ export default function AppointmentTable({
       </table>
     </div>
   )
+}
+
+/** An action reads as an icon; the words move into the tooltip and the aria-label. */
+function IconAction({ title, danger, disabled, to, onClick, children }: {
+  title: string
+  danger?: boolean
+  disabled?: boolean
+  to?: string
+  onClick?: () => void
+  children: ReactNode
+}) {
+  const className = `table-icon${danger ? ' danger' : ''}`
+  const button = to
+    ? <IconButton className={className} size="small" component={Link} to={to} aria-label={title}>
+        {children}
+      </IconButton>
+    : <IconButton className={className} size="small" disabled={disabled} aria-label={title}
+        onClick={onClick}>
+        {children}
+      </IconButton>
+  // A disabled button fires no hover events, so the span keeps the tooltip reachable.
+  return <Tooltip title={title}><span>{button}</span></Tooltip>
 }
 
 function AppointmentBadge({ status }: { status: AppointmentStatus }) {

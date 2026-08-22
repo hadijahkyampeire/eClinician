@@ -101,6 +101,9 @@
   text-transform: none;
 }
 .danger-menu-item { color: var(--danger) !important; }
+/* Table actions read as icons; the words live in the tooltip. */
+.table-icon { color: var(--brand); }
+.table-icon.danger { color: var(--danger); }
 .care-status {
   display: inline-flex;
   align-items: center;
