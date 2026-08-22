@@ -50,6 +50,136 @@ the role lives on the account and the API enforces it.
 | Hospital Administrator | `hkadmin@hkclinics.com` | Staff · Clinic settings · read-only oversight |
 | Platform Super Admin | `root@eclinician.com` | The hospital console — and no patient data |
 
+## What to demo as each actor
+
+Every use case below is wired end to end. [docs/demo.md](docs/demo.md) runs these as one
+15-minute story; this list is the same ground cut by actor, for rehearsing a single role or
+answering "show me what a pharmacist does".
+
+### Receptionist — `hkreceptionist@hkclinics.com`
+
+The front desk owns everyone who is not yet with a clinician.
+
+1. **Register a patient** — Patients → *Add patient*. Country-neutral government ID, phone
+   validated against the chosen country, address split into line, city, district, state,
+   country.
+2. **Find a patient** — search by name or phone, or open *Filters* for sex, country, date
+   of birth range, enrolment range, care status and national ID.
+3. **Open a patient** — demographics, contact, and the appointment history. Clinical
+   history is not on this page for this role, and the API refuses it too.
+4. **Check a patient in** — from the patient row, the patient page, or the dashboard.
+   `SCHEDULED → CHECKED_IN`, and the page confirms the arrival by name.
+5. **Take them to the waiting room** — the hourglass action on the queue row, or the same
+   action on the dashboard's *In the clinic now* panel. `CHECKED_IN → WAITING`.
+6. **Book, edit and cancel appointments** — book the same doctor at the same time twice and
+   the API refuses it; cancel the first and the slot frees.
+7. **Be refused** — type `/records` or `/pharmacy` in the URL bar. The nav item is not
+   merely hidden: the API returns 403 on its own.
+
+*Also available to every role:* change your own password from the sidebar.
+
+### Clinician — `hkdoctor@hkclinics.com`
+
+1. **See who is waiting** — the dashboard lists them longest-wait-first with *Start session*
+   on the row itself.
+2. **Start a session** — `WAITING → IN_SESSION`, and a `DRAFT` encounter is opened.
+3. **Document the visit** — vitals (blood pressure, temperature, pulse, weight), symptoms
+   and history, examination notes, diagnosis, treatment plan.
+4. **Raise orders** — prescriptions and lab requests, one per line. These become the
+   pharmacy and lab queues.
+5. **Draft the summary with AI** — the model drafts from the notes into a field the
+   clinician then edits. The clinician signs the record, not the model.
+6. **Save a draft and come back** — unfinished notes are a panel on the dashboard with
+   *Continue* on each row.
+7. **Finalize** — one transaction: the encounter completes, the patient's care status
+   clears, and every prescription and lab line becomes a queue row. The record is read-only
+   afterwards.
+8. **Review results** — reopen the patient after the lab has resulted, with every past
+   visit in front of you.
+
+### Lab Technician — `hklabtech@hkclinics.com`
+
+1. **Work the queue** — Lab Results, filtered *Pending / Completed / Cancelled / All*.
+2. **Record a result** — on a pending test. `PENDING → COMPLETED`, and it appears on the
+   clinician's copy of the record.
+3. **Cancel a test with a reason** — "no reagent". `PENDING → CANCELLED`; the reason is
+   stored, not discarded.
+4. **The dashboard** — pending, resulted today, cancelled, and the pending list itself.
+
+This role sees no patient list and no records — only the tests asked of it.
+
+### Pharmacist — `hkpharmacy@hkclinics.com`
+
+1. **Work the queue** — Pharmacy, filtered *Pending / Dispensed / Unavailable / All*. A row
+   appears the moment a clinician finalizes.
+2. **Dispense** — `PENDING → DISPENSED`.
+3. **Mark unavailable with a reason** — "out of stock". `PENDING → UNAVAILABLE`.
+4. **The dashboard** — pending, dispensed today, unavailable, and the queue itself.
+
+### Hospital Administrator — `hkadmin@hkclinics.com`
+
+Runs one hospital. Sees the work, does not do the clinical work.
+
+1. **Add a staff member** — Staff → *Add staff member*: name, email, role, first password.
+   They can sign in immediately.
+2. **Deactivate an account** — the row toggles. Their data stays; their sign-in stops.
+   You cannot deactivate yourself.
+3. **Rename the clinic and change its colour** — Clinic settings. The name rides beside the
+   HK CLINIC mark; the colour takes effect the next time staff sign in.
+4. **See the subscription** — the modules this hospital bought, read-only. Only the
+   platform team changes them.
+5. **Oversight** — totals across the facility, who is in the clinic, and unfinished notes
+   across every clinician, read-only.
+
+### Platform Super Admin — `root@eclinician.com`
+
+A separate console at `/platform`, with no patient data on it at all — the point being that
+the person who runs the platform cannot read anyone's medical record.
+
+1. **Onboard a hospital** — *Onboard hospital* asks for:
+   - **Name** — shown beside the HK CLINIC mark to that hospital's staff.
+   - **Identifier** — lowercase and hyphenated, and permanent: it is written into every row
+     the hospital will ever own, so it cannot be edited afterwards.
+   - **Brand colour** — a colour picker.
+   - **Subscription** — which of Patients, Appointments, Records, Pharmacy and Laboratory
+     they have bought.
+   - **First administrator** — name, email, password.
+
+   The hospital and its administrator are created in **one transaction**
+   ([`TenantService.create`](backend/src/main/java/com/eclinician/services/TenantService.java)) —
+   a hospital nobody can sign in to would be worse than no hospital.
+
+2. **Sign in as the clinic you just made** — log out, log in as that new administrator, and
+   the app is wearing their colour with their name beside the mark. This is the moment the
+   demo stops being one hospital's app.
+3. **Turn a module off** — uncheck Pharmacy, and that hospital's pharmacist loses the nav
+   item *and* the endpoint.
+4. **Suspend a hospital** — its staff can no longer sign in; every row it owns is kept.
+5. **Edit a hospital** — name, colour and modules. The identifier stays greyed out.
+
+## What is themed, and what is not
+
+A hospital picks **a name and one colour**. On sign-in the API returns both inside the
+session, and the whole brand ramp is derived from that one colour — the buttons, the hover
+states, the tinted chips and the panel accents all follow it.
+
+What deliberately does **not** change is the product itself: the HK CLINIC mark, the
+layout, the type, the spacing, the icons. A tenant is a customer wearing your product's
+clothes, not a rebrand of it — so their name sits *beside* your mark rather than replacing
+it, and everything structural stays yours.
+
+**On tenant logos:** there is no logo anywhere in the system today — no upload, no column,
+no storage. It is worth being deliberate about rather than adding by reflex. A logo is a
+file, which means an upload endpoint, size and type validation, somewhere to put the bytes,
+and a broken-image state on every page that shows it — and the payoff would be a second
+mark competing with yours in a 248px sidebar. The clinic's *name* beside your mark already
+answers "whose clinic am I in?", which is the question a logo would be answering. If it is
+ever wanted, the honest place for it is the patient-facing artefacts a clinic hands over —
+a printed visit summary or a discharge note — not the chrome of the app.
+
+**One caveat to know before you demo it:** the colour is read from the session, so a change
+made in Clinic settings shows up on the *next* sign-in, not immediately. The form says so.
+
 ## The clinical loop
 
 ```mermaid
