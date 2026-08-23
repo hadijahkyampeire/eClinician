@@ -31,18 +31,22 @@ public class PatientService {
     private final PatientRepository repo;
     private final AppointmentRepository appointments;
     private final EncounterRepository encounters;
+    private final CheckInExpiry expiry;
 
     public PatientService(PatientRepository repo, AppointmentRepository appointments,
-            EncounterRepository encounters) {
+            EncounterRepository encounters, CheckInExpiry expiry) {
         this.repo = repo;
         this.appointments = appointments;
         this.encounters = encounters;
+        this.expiry = expiry;
     }
 
     public Page<PatientResponse> list(String tenantId, String q, String sex, String country,
             String careStatus, String nationalId, LocalDate dobFrom, LocalDate dobTo,
             LocalDate enrolledFrom,
             LocalDate enrolledTo, Pageable pageable) {
+        // So nobody still wears yesterday's "checked in" badge.
+        expiry.sweep(tenantId);
         Specification<Patient> filters = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(cb.equal(root.<String>get("tenantId"), tenantId));
@@ -97,6 +101,7 @@ public class PatientService {
     }
 
     public PatientResponse get(String tenantId, UUID id) {
+        expiry.sweep(tenantId);
         return PatientResponse.from(find(tenantId, id));
     }
 
