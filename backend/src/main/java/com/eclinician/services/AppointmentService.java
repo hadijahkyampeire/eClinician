@@ -31,15 +31,19 @@ public class AppointmentService {
     private final AppointmentRepository appointments;
     private final PatientRepository patients;
     private final UserRepository users;
+    private final CheckInExpiry expiry;
 
     public AppointmentService(AppointmentRepository appointments, PatientRepository patients,
-            UserRepository users) {
+            UserRepository users, CheckInExpiry expiry) {
         this.appointments = appointments;
         this.patients = patients;
         this.users = users;
+        this.expiry = expiry;
     }
 
+    @Transactional
     public List<AppointmentResponse> list(String tenantId, UUID patientId) {
+        expiry.sweep(tenantId);
         Sort newest = Sort.by(Sort.Direction.DESC, "createdAt");
         List<Appointment> result = patientId == null
                 ? appointments.findByTenantId(tenantId, newest)
@@ -205,7 +209,9 @@ public class AppointmentService {
         }
     }
 
+    /** Yesterday's check-in is not active care, so it is settled before we look. */
     private java.util.Optional<Appointment> active(String tenantId, UUID patientId) {
+        expiry.sweep(tenantId);
         return appointments.findFirstByTenantIdAndPatientIdAndStatusInOrderByCreatedAtDesc(
                 tenantId, patientId, ACTIVE);
     }
