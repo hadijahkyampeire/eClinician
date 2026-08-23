@@ -24,6 +24,10 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
             String tenantId, UUID doctorId, Instant scheduledAt,
             Collection<AppointmentStatus> statuses);
 
+    /** Check-ins left open from an earlier day — see CheckInExpiry. */
+    List<Appointment> findByTenantIdAndStatusInAndCheckedInAtBefore(
+            String tenantId, Collection<AppointmentStatus> statuses, Instant before);
+
     List<Appointment> findByTenantId(String tenantId, Sort sort);
 
     List<Appointment> findByTenantIdAndPatientId(String tenantId, UUID patientId, Sort sort);

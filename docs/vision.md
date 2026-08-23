@@ -74,7 +74,11 @@ price per clinic affordable.
 **Shaped during implementation.** The SRS specifies appointment *scheduling*, and that is
 built. Added beside it is **arrival** — check in → waiting → in session → completed —
 because in a walk-in clinic who is waiting now matters as much as who is booked for
-Thursday. A walk-in carries no doctor, so it never collides with a booking. The remaining
+Thursday. A walk-in carries no doctor, so it never collides with a booking.
+
+Because there are no wards, a check-in is good only for the day it was made: a visit
+still open from an earlier day is someone who left without being seen, and it is
+recorded as a no-show the next time anyone reads that clinic's records. The remaining
 differences are in [srs.md §4](srs.md#4-as-built-specification-against-implementation).
 
 ## 5. Major features
