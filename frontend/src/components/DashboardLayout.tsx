@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown'
 import LockResetOutlinedIcon from '@mui/icons-material/LockResetOutlined'
 import LogoutOutlinedIcon from '@mui/icons-material/LogoutOutlined'
 import AccountCircleOutlinedIcon from '@mui/icons-material/AccountCircleOutlined'
+import { ButtonBase, Divider, ListItemIcon, ListItemText, Menu, MenuItem } from '@mui/material'
 import { useAuth } from '../auth/AuthContext'
 import { navItems } from '../nav'
 import DateChip from './DateChip'
@@ -15,8 +16,7 @@ export default function DashboardLayout() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const [changingPassword, setChangingPassword] = useState(false)
-  const [accountOpen, setAccountOpen] = useState(false)
-  const accountMenu = useRef<HTMLDivElement>(null)
+  const [accountAnchor, setAccountAnchor] = useState<HTMLElement | null>(null)
 
   const tenant = session?.tenant
 
@@ -48,15 +48,8 @@ export default function DashboardLayout() {
   const section = pathname.startsWith('/profile') ? 'Your profile'
     : items.find((item) => pathname.startsWith(item.to))?.label ?? 'Dashboard'
 
-  useEffect(() => {
-    function closeAccount(event: MouseEvent) {
-      if (!accountMenu.current?.contains(event.target as Node)) setAccountOpen(false)
-    }
-    document.addEventListener('mousedown', closeAccount)
-    return () => document.removeEventListener('mousedown', closeAccount)
-  }, [])
-
   function handleLogout() {
+    setAccountAnchor(null)
     logout()
     navigate('/login')
   }
@@ -97,9 +90,11 @@ export default function DashboardLayout() {
           <div className="page-title">{section}</div>
           <div className="user">
             <DateChip />
-            <div className="account-menu" ref={accountMenu}>
-              <button type="button" className="account-trigger" aria-haspopup="menu"
-                aria-expanded={accountOpen} onClick={() => setAccountOpen(open => !open)}>
+            <div className="account-menu">
+              <ButtonBase className="account-trigger" aria-haspopup="menu"
+                aria-controls={accountAnchor ? 'account-menu' : undefined}
+                aria-expanded={Boolean(accountAnchor)}
+                onClick={event => setAccountAnchor(event.currentTarget)}>
                 <div className="user-meta">
                   <div className="name">{session?.user.name}</div>
                   <div className="role">{session?.user.role}</div>
@@ -109,21 +104,35 @@ export default function DashboardLayout() {
                     ? <img src={session.user.profileImage} alt="" />
                     : session?.user.name?.[0]?.toUpperCase() ?? '?'}
                 </div>
-                <KeyboardArrowDownIcon className={accountOpen ? 'open' : ''} fontSize="small" />
-              </button>
-              {accountOpen && (
-                <div className="account-dropdown" role="menu">
-                  <button type="button" role="menuitem" onClick={() => {
-                    setAccountOpen(false); navigate('/profile')
-                  }}><AccountCircleOutlinedIcon fontSize="small" /> View profile</button>
-                  <button type="button" role="menuitem" onClick={() => {
-                    setAccountOpen(false); setChangingPassword(true)
-                  }}><LockResetOutlinedIcon fontSize="small" /> Change password</button>
-                  <button type="button" role="menuitem" className="danger" onClick={handleLogout}>
-                    <LogoutOutlinedIcon fontSize="small" /> Log out
-                  </button>
-                </div>
-              )}
+                <KeyboardArrowDownIcon className={accountAnchor ? 'open' : ''} fontSize="small" />
+              </ButtonBase>
+              <Menu id="account-menu" anchorEl={accountAnchor} open={Boolean(accountAnchor)}
+                onClose={() => setAccountAnchor(null)}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                slotProps={{
+                  paper: { sx: { mt: 1, minWidth: 220, borderRadius: 2 } },
+                  list: { 'aria-label': 'Account options', sx: { py: 0.75 } },
+                }}>
+                <MenuItem onClick={() => {
+                  setAccountAnchor(null); navigate('/profile')
+                }}>
+                  <ListItemIcon><AccountCircleOutlinedIcon fontSize="small" /></ListItemIcon>
+                  <ListItemText>View profile</ListItemText>
+                </MenuItem>
+                <MenuItem onClick={() => {
+                  setAccountAnchor(null); setChangingPassword(true)
+                }}>
+                  <ListItemIcon><LockResetOutlinedIcon fontSize="small" /></ListItemIcon>
+                  <ListItemText>Change password</ListItemText>
+                </MenuItem>
+                <Divider sx={{ my: 0.5 }} />
+                <MenuItem onClick={handleLogout} sx={{ color: 'error.main',
+                  '& .MuiListItemIcon-root': { color: 'inherit' } }}>
+                  <ListItemIcon><LogoutOutlinedIcon fontSize="small" /></ListItemIcon>
+                  <ListItemText>Log out</ListItemText>
+                </MenuItem>
+              </Menu>
             </div>
           </div>
         </header>
