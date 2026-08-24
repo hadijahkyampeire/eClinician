@@ -15,4 +15,5 @@ public record StaffRequest(
         @NotBlank @Size(max = 150) String name,
         @NotBlank @Email @Size(max = 200) String email,
         @NotNull UserRole role,
+        @Size(max = 100) String specialty,
         @Size(min = 8, max = 100) String password) {}

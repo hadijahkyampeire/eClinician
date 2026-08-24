@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -29,12 +30,18 @@ public class EncounterController {
         this.service = service;
     }
 
+    @PreAuthorize("hasAnyRole('CLINICIAN', 'ADMINISTRATOR')")
     @GetMapping
     public List<EncounterResponse> list(@CurrentTenant String tenantId,
-            @RequestParam(required = false) UUID patientId) {
-        return service.list(tenantId, patientId);
+            @CurrentUserName String userName,
+            @RequestParam(required = false) UUID patientId,
+            Authentication authentication) {
+        boolean clinician = authentication.getAuthorities().stream()
+                .anyMatch(authority -> authority.getAuthority().equals("ROLE_CLINICIAN"));
+        return service.list(tenantId, patientId, clinician ? userName : null);
     }
 
+    @PreAuthorize("hasAnyRole('CLINICIAN', 'ADMINISTRATOR')")
     @GetMapping("/{id}")
     public EncounterResponse get(@CurrentTenant String tenantId,
             @PathVariable UUID id) {

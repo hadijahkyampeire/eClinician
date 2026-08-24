@@ -21,7 +21,7 @@ export interface NavItem {
 
 export const navItems: NavItem[] = [
   { to: '/dashboard',    label: 'Dashboard',    roles: ['Administrator', 'Clinician', 'Receptionist', 'Pharmacist', 'Lab Technician'], icon: <DashboardOutlinedIcon fontSize="small" /> },
-  { to: '/patients',     label: 'Patients',     roles: ['Administrator', 'Clinician', 'Receptionist'], moduleKey: 'patients',     icon: <GroupsOutlinedIcon fontSize="small" /> },
+  { to: '/patients',     label: 'Patients',     roles: ['Administrator', 'Receptionist'],              moduleKey: 'patients',     icon: <GroupsOutlinedIcon fontSize="small" /> },
   { to: '/appointments', label: 'Appointments', roles: ['Administrator', 'Clinician', 'Receptionist'], moduleKey: 'appointments', icon: <CalendarMonthOutlinedIcon fontSize="small" /> },
   { to: '/records',      label: 'Records',      roles: ['Administrator', 'Clinician'],                 moduleKey: 'records',      icon: <DescriptionOutlinedIcon fontSize="small" /> },
   { to: '/pharmacy',     label: 'Pharmacy',     roles: ['Administrator', 'Pharmacist'],               moduleKey: 'pharmacy',     icon: <MedicationOutlinedIcon fontSize="small" /> },

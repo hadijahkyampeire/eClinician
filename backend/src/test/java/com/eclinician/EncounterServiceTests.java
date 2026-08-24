@@ -7,6 +7,7 @@ import com.eclinician.domains.dtos.EncounterResponse;
 import com.eclinician.domains.entities.Patient;
 import com.eclinician.domains.enums.AppointmentStatus;
 import com.eclinician.domains.enums.EncounterStatus;
+import com.eclinician.domains.enums.PatientCareStatus;
 import com.eclinician.repositories.PatientRepository;
 import com.eclinician.services.AppointmentService;
 import com.eclinician.services.EncounterService;
@@ -44,7 +45,8 @@ class EncounterServiceTests {
         assertThat(appointments.list(patient.getTenantId(), patient.getId()))
                 .singleElement().extracting(AppointmentResponse::status)
                 .isEqualTo(AppointmentStatus.COMPLETED);
-        assertThat(patients.findById(patient.getId()).orElseThrow().getActiveCareStatus()).isNull();
+        assertThat(patients.findById(patient.getId()).orElseThrow().getActiveCareStatus())
+                .isEqualTo(PatientCareStatus.PHARMACY);
     }
 
     @Test

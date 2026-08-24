@@ -36,6 +36,10 @@ public class AppUser {
     @Column(nullable = false, length = 150)
     private String name;
 
+    /** Clinical discipline shown when reception assigns an appointment. */
+    @Column(length = 100)
+    private String specialty;
+
     @Column(nullable = false, unique = true, length = 200)
     private String email;
 

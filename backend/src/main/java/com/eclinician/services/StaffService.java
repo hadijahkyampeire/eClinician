@@ -86,5 +86,7 @@ public class StaffService {
     private void apply(StaffRequest request, AppUser user) {
         user.setName(request.name().trim());
         user.setRole(request.role());
+        user.setSpecialty(request.role() == UserRole.CLINICIAN && request.specialty() != null
+                && !request.specialty().isBlank() ? request.specialty().trim() : null);
     }
 }

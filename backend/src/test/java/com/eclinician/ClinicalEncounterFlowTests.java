@@ -2,6 +2,7 @@ package com.eclinician;
 
 import com.eclinician.domains.entities.Patient;
 import com.eclinician.domains.enums.UserRole;
+import com.eclinician.domains.enums.PatientCareStatus;
 import com.eclinician.repositories.PatientRepository;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -38,6 +39,7 @@ class ClinicalEncounterFlowTests {
         String reception = accounts.bearerFor(TENANT, UserRole.RECEPTIONIST);
         String clinician = accounts.bearerFor(TENANT, UserRole.CLINICIAN);
         String labTech = accounts.bearerFor(TENANT, UserRole.LAB_TECHNICIAN);
+        String pharmacist = accounts.bearerFor(TENANT, UserRole.PHARMACIST);
 
         String checkedInBody = mvc.perform(post("/api/appointments/check-in")
                         .header("Authorization", reception)
@@ -47,6 +49,19 @@ class ClinicalEncounterFlowTests {
                 .andExpect(jsonPath("$.status").value("CHECKED_IN"))
                 .andReturn().getResponse().getContentAsString();
         String appointmentId = mapper.readTree(checkedInBody).get("id").asText();
+
+        mvc.perform(post("/api/appointments/{id}/waiting", appointmentId)
+                        .header("Authorization", reception))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("WAITING"))
+                .andExpect(jsonPath("$.waitingAt").isNotEmpty());
+
+        // A clinician sees both reception arrivals and waiting-room patients.
+        mvc.perform(get("/api/appointments")
+                        .header("Authorization", clinician))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(appointmentId))
+                .andExpect(jsonPath("$[0].status").value("WAITING"));
 
         mvc.perform(post("/api/appointments/patients/{patientId}/start-session", patient.getId())
                         .header("Authorization", clinician))
@@ -82,6 +97,29 @@ class ClinicalEncounterFlowTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("FINALIZED"))
                 .andExpect(jsonPath("$.diagnosis").value("Uncomplicated malaria"));
+
+        org.assertj.core.api.Assertions.assertThat(
+                patients.findById(patient.getId()).orElseThrow().getActiveCareStatus())
+                .isEqualTo(PatientCareStatus.PHARMACY);
+
+        String prescriptionBody = mvc.perform(get("/api/pharmacy/prescriptions")
+                        .header("Authorization", pharmacist)
+                        .queryParam("status", "PENDING"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].medication").value("Artemether/lumefantrine"))
+                .andReturn().getResponse().getContentAsString();
+
+        mvc.perform(post("/api/pharmacy/prescriptions/{id}",
+                        mapper.readTree(prescriptionBody).get(0).get("id").asText())
+                        .header("Authorization", pharmacist)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"DISPENSED\",\"notes\":\"\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("DISPENSED"));
+
+        org.assertj.core.api.Assertions.assertThat(
+                patients.findById(patient.getId()).orElseThrow().getActiveCareStatus())
+                .isNull();
 
         mvc.perform(get("/api/encounters")
                         .header("Authorization", clinician)

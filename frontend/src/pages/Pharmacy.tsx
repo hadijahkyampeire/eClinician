@@ -32,6 +32,8 @@ export default function Pharmacy() {
       setError('')
       void queryClient.invalidateQueries({ queryKey: ['prescriptions'] })
       void queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
+      void queryClient.invalidateQueries({ queryKey: ['patients'] })
+      void queryClient.invalidateQueries({ queryKey: ['patient'] })
     },
     onError: (err: Error) => {
       setError(err.message || 'Failed to update prescription')

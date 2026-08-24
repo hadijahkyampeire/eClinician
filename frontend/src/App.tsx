@@ -20,6 +20,8 @@ import type { Role } from './auth/AuthContext'
 const PHARMACY: Role[] = ['Pharmacist', 'Administrator']
 const LABORATORY: Role[] = ['Lab Technician', 'Administrator']
 const ADMIN: Role[] = ['Administrator']
+const PATIENT_DIRECTORY: Role[] = ['Receptionist', 'Administrator']
+const APPOINTMENTS: Role[] = ['Receptionist', 'Clinician', 'Administrator']
 
 export default function App() {
   return (
@@ -48,9 +50,11 @@ export default function App() {
       >
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/patients" element={<Patients />} />
+        <Route path="/patients" element={
+          <ProtectedRoute roles={PATIENT_DIRECTORY}><Patients /></ProtectedRoute>} />
         <Route path="/patients/:patientId" element={<PatientDetails />} />
-        <Route path="/appointments" element={<Appointments />} />
+        <Route path="/appointments" element={
+          <ProtectedRoute roles={APPOINTMENTS}><Appointments /></ProtectedRoute>} />
         <Route path="/records" element={<MedicalRecords />} />
         <Route path="/pharmacy" element={
           <ProtectedRoute roles={PHARMACY}><Pharmacy /></ProtectedRoute>} />

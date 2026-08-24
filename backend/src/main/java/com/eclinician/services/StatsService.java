@@ -10,6 +10,8 @@ import com.eclinician.repositories.EncounterRepository;
 import com.eclinician.repositories.LabOrderRepository;
 import com.eclinician.repositories.PatientRepository;
 import com.eclinician.repositories.PrescriptionOrderRepository;
+import com.eclinician.repositories.UserRepository;
+import com.eclinician.domains.entities.AppUser;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -25,35 +27,68 @@ public class StatsService {
     private final PrescriptionOrderRepository orders;
     private final LabOrderRepository labOrders;
     private final CheckInExpiry expiry;
+    private final UserRepository users;
 
     public StatsService(PatientRepository patients, AppointmentRepository appointments,
             EncounterRepository encounters, PrescriptionOrderRepository orders,
-            LabOrderRepository labOrders, CheckInExpiry expiry) {
+            LabOrderRepository labOrders, CheckInExpiry expiry, UserRepository users) {
         this.patients = patients;
         this.appointments = appointments;
         this.encounters = encounters;
         this.orders = orders;
         this.labOrders = labOrders;
         this.expiry = expiry;
+        this.users = users;
     }
 
     public DashboardStats dashboard(String tenantId) {
+        return dashboard(tenantId, null);
+    }
+
+    public DashboardStats dashboard(String tenantId, String clinicianEmail) {
         // Clears yesterday's leftovers so the waiting-room tiles count today only.
         expiry.sweep(tenantId);
 
         // "Today" follows the server clock; set TZ on the host to match the clinic.
         Instant dayStart = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant();
         Instant dayEnd = dayStart.plus(1, ChronoUnit.DAYS);
+        AppUser clinician = clinicianEmail == null ? null
+                : users.findByEmailIgnoreCase(clinicianEmail)
+                        .filter(user -> tenantId.equals(user.getTenantId()))
+                        .orElse(null);
+        long checkedIn = clinician == null
+                ? patients.countByTenantIdAndActiveCareStatus(tenantId, PatientCareStatus.CHECKED_IN)
+                : appointments.countVisibleToClinician(
+                        tenantId, com.eclinician.domains.enums.AppointmentStatus.CHECKED_IN,
+                        clinician.getId());
+        long waiting = clinician == null
+                ? patients.countByTenantIdAndActiveCareStatus(tenantId, PatientCareStatus.WAITING)
+                : appointments.countVisibleToClinician(
+                        tenantId, com.eclinician.domains.enums.AppointmentStatus.WAITING,
+                        clinician.getId());
+        long inSession = clinician == null
+                ? patients.countByTenantIdAndActiveCareStatus(tenantId, PatientCareStatus.IN_SESSION)
+                : appointments.countVisibleToClinician(
+                        tenantId, com.eclinician.domains.enums.AppointmentStatus.IN_SESSION,
+                        clinician.getId());
+        long drafts = clinician == null
+                ? encounters.countByTenantIdAndStatus(tenantId, EncounterStatus.DRAFT)
+                : encounters.countByTenantIdAndClinicianNameAndStatus(
+                        tenantId, clinician.getName(), EncounterStatus.DRAFT);
+        long finalized = clinician == null
+                ? encounters.countByTenantIdAndFinalizedAtAfter(tenantId, dayStart)
+                : encounters.countByTenantIdAndClinicianNameAndFinalizedAtAfter(
+                        tenantId, clinician.getName(), dayStart);
 
         return new DashboardStats(
                 patients.countByTenantId(tenantId),
                 patients.countByTenantIdAndCreatedAtAfter(tenantId, dayStart),
-                patients.countByTenantIdAndActiveCareStatus(tenantId, PatientCareStatus.CHECKED_IN),
-                patients.countByTenantIdAndActiveCareStatus(tenantId, PatientCareStatus.WAITING),
-                patients.countByTenantIdAndActiveCareStatus(tenantId, PatientCareStatus.IN_SESSION),
+                checkedIn,
+                waiting,
+                inSession,
                 appointments.countByTenantIdAndScheduledAtBetween(tenantId, dayStart, dayEnd),
-                encounters.countByTenantIdAndStatus(tenantId, EncounterStatus.DRAFT),
-                encounters.countByTenantIdAndFinalizedAtAfter(tenantId, dayStart),
+                drafts,
+                finalized,
                 encounters.countClinicians(tenantId),
                 orders.countByTenantIdAndStatus(tenantId, PrescriptionStatus.PENDING),
                 orders.countByTenantIdAndStatusAndDispensedAtAfter(tenantId,

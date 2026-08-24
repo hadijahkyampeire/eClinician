@@ -11,12 +11,13 @@ public record StaffResponse(
         String email,
         String role,
         String roleLabel,
+        String specialty,
         boolean active,
         Instant createdAt) {
 
     public static StaffResponse from(AppUser user) {
         return new StaffResponse(user.getId(), user.getName(), user.getEmail(),
-                user.getRole().name(), user.getRole().label(), user.isActive(),
+                user.getRole().name(), user.getRole().label(), user.getSpecialty(), user.isActive(),
                 user.getCreatedAt());
     }
 }
