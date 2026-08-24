@@ -13,10 +13,29 @@ export interface LoginResult {
   name: string
   email: string
   role: string
+  profileImage: string | null
   tenantId: string | null
   platformAdmin: boolean
   /** The hospital's branding and subscription, read from the tenants table. */
   tenant: Tenant | null
+}
+
+export interface Profile {
+  name: string
+  email: string
+  role: string
+  profileImage: string | null
+}
+
+export function getProfile() {
+  return request<Profile>('/api/auth/profile', {}, 'Could not load your profile')
+}
+
+export function updateProfile(name: string, profileImage: string | null) {
+  return request<Profile>('/api/auth/profile', {
+    method: 'PUT',
+    body: JSON.stringify({ name, profileImage }),
+  }, 'Could not update your profile')
 }
 
 export async function login(email: string, password: string): Promise<LoginResult> {
