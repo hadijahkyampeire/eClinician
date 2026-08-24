@@ -26,7 +26,11 @@ export default function AppointmentTable({
   const desk = role === 'Receptionist' || role === 'Administrator'
   if (!appointments.length) {
     return <p className="appointment-empty">
-      {active ? 'No patients are currently checked in.' : 'No appointment history yet.'}
+      {active
+        ? role === 'Clinician'
+          ? 'No patients are waiting for you.'
+          : 'No patients are currently in the waiting room.'
+        : 'No appointment history yet.'}
     </p>
   }
   return (
@@ -34,7 +38,7 @@ export default function AppointmentTable({
       <table className="patient-table appointment-table">
         <thead><tr>
           <th>Patient</th><th>Doctor</th><th>Status</th><th>Scheduled</th>
-          <th>Checked in</th><th>Actions</th>
+          <th>Checked in</th><th>Waiting since</th><th>Actions</th>
         </tr></thead>
         <tbody>
           {appointments.map((appointment) => (
@@ -45,6 +49,7 @@ export default function AppointmentTable({
               <td><AppointmentBadge status={appointment.status} /></td>
               <td>{formatDateTime(appointment.scheduledAt)}</td>
               <td>{appointment.checkedInAt ? formatDateTime(appointment.checkedInAt) : '—'}</td>
+              <td>{appointment.waitingAt ? formatDateTime(appointment.waitingAt) : '—'}</td>
               <td className="table-actions">
                 {desk && appointment.status === 'CHECKED_IN' && (
                   <IconAction title="Take to the waiting room" disabled={busy}

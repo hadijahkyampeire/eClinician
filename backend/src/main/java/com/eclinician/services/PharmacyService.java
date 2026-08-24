@@ -4,6 +4,7 @@ import com.eclinician.domains.dtos.DispenseRequest;
 import com.eclinician.domains.dtos.PrescriptionResponse;
 import com.eclinician.domains.entities.PrescriptionOrder;
 import com.eclinician.domains.enums.PrescriptionStatus;
+import com.eclinician.domains.enums.PatientCareStatus;
 import com.eclinician.repositories.PatientRepository;
 import com.eclinician.repositories.PrescriptionOrderRepository;
 import com.eclinician.web.ConflictException;
@@ -71,7 +72,19 @@ public class PharmacyService {
             value.setDispensedBy(pharmacistName);
             value.setDispensedAt(Instant.now());
         }
-        return response(tenantId, orders.save(value));
+        PrescriptionOrder saved = orders.save(value);
+        // Keep the patient at Pharmacy until every medicine from their active visit
+        // has been dispensed. UNAVAILABLE remains actionable and therefore stays active.
+        if (!orders.existsByTenantIdAndPatientIdAndStatusNot(
+                tenantId, value.getPatientId(), PrescriptionStatus.DISPENSED)) {
+            patients.findByIdAndTenantId(value.getPatientId(), tenantId).ifPresent(patient -> {
+                if (patient.getActiveCareStatus() == PatientCareStatus.PHARMACY) {
+                    patient.setActiveCareStatus(null);
+                    patients.save(patient);
+                }
+            });
+        }
+        return response(tenantId, saved);
     }
 
     private PrescriptionOrder order(String tenantId, UUID encounterId, UUID patientId,
@@ -95,4 +108,3 @@ public class PharmacyService {
                 value.getCreatedAt());
     }
 }
-

@@ -43,6 +43,8 @@ public class Appointment {
     private Instant scheduledAt;
 
     private Instant checkedInAt;
+    /** When reception moved the arrived patient into the waiting room. */
+    private Instant waitingAt;
     private Instant sessionStartedAt;
     private Instant completedAt;
 

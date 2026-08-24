@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { STAFF_ROLES, type StaffForm as Form, type StaffRole } from '../../types/staff'
 import PasswordInput from '../PasswordInput'
 
-const empty: Form = { name: '', email: '', role: 'RECEPTIONIST', password: '' }
+const empty: Form = { name: '', email: '', role: 'RECEPTIONIST', specialty: '', password: '' }
 
 /** Add-a-colleague form. Kept beside the list rather than in a modal — it is short. */
 export default function StaffForm({ busy, onSubmit, onCancel }: {
@@ -37,6 +37,10 @@ export default function StaffForm({ busy, onSubmit, onCancel }: {
           <PasswordInput value={form.password} autoComplete="new-password"
             onChange={e => set('password', e.target.value)} placeholder="At least 8 characters" />
         </label>
+        {form.role === 'CLINICIAN' && <label>Specialty
+          <input value={form.specialty} onChange={e => set('specialty', e.target.value)}
+            placeholder="e.g. Dentist" />
+        </label>}
       </div>
       <div className="staff-form-actions">
         <button type="button" className="btn ghost" onClick={onCancel}>Cancel</button>

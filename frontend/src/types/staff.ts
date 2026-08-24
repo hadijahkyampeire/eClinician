@@ -16,6 +16,7 @@ export interface Staff {
   email: string
   role: StaffRole
   roleLabel: string
+  specialty: string | null
   active: boolean
   createdAt: string
 }
@@ -25,5 +26,6 @@ export interface StaffForm {
   name: string
   email: string
   role: StaffRole
+  specialty: string
   password: string
 }

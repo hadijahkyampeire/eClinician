@@ -61,7 +61,9 @@ export default function AppointmentFormModal({
               onChange={(event) => set('doctorId', event.target.value)}>
               <option value="">No doctor yet (walk-in)</option>
               {clinicians.data?.map((doctor) => (
-                <option key={doctor.id} value={doctor.id}>{doctor.name}</option>
+                <option key={doctor.id} value={doctor.id}>
+                  {doctor.name}{doctor.specialty ? ` — ${doctor.specialty}` : ''}
+                </option>
               ))}
             </select>
           </label>

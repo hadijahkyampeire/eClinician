@@ -39,8 +39,17 @@ public class EncounterService {
     }
 
     public List<EncounterResponse> list(String tenantId, UUID patientId) {
+        return list(tenantId, patientId, null);
+    }
+
+    /** A clinician's unscoped records list is their own work; patient history remains complete. */
+    public List<EncounterResponse> list(
+            String tenantId, UUID patientId, String clinicianName) {
         List<Encounter> result = patientId == null
-                ? encounters.findByTenantIdOrderByCreatedAtDesc(tenantId)
+                ? clinicianName == null
+                        ? encounters.findByTenantIdOrderByCreatedAtDesc(tenantId)
+                        : encounters.findByTenantIdAndClinicianNameOrderByCreatedAtDesc(
+                                tenantId, clinicianName)
                 : encounters.findByTenantIdAndPatientIdOrderByCreatedAtDesc(tenantId, patientId);
         return result.stream().map(value -> response(tenantId, value)).toList();
     }
@@ -103,7 +112,9 @@ public class EncounterService {
         value.setFinalizedAt(Instant.now());
         appointment.setStatus(AppointmentStatus.COMPLETED);
         appointment.setCompletedAt(Instant.now());
-        patient.setActiveCareStatus(null);
+        patient.setActiveCareStatus(blank(value.getPrescriptions())
+                ? null
+                : com.eclinician.domains.enums.PatientCareStatus.PHARMACY);
         appointments.save(appointment);
         patients.save(patient);
         pharmacyService.createFromEncounter(tenantId, value.getId(), value.getPatientId(), value.getPrescriptions());

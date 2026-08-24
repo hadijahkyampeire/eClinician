@@ -16,6 +16,7 @@ export interface Appointment {
   status: AppointmentStatus
   scheduledAt: string
   checkedInAt: string | null
+  waitingAt: string | null
   sessionStartedAt: string | null
   completedAt: string | null
   reason: string | null

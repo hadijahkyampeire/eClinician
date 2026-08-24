@@ -75,6 +75,7 @@ export default function PatientPageControls({
               <MenuItem value="CHECKED_IN">Checked in</MenuItem>
               <MenuItem value="WAITING">Waiting</MenuItem>
               <MenuItem value="IN_SESSION">In session</MenuItem>
+              <MenuItem value="PHARMACY">Pharmacy</MenuItem>
             </TextField>
             <TextField select size="small" label="Sex" value={filters.sex}
               onChange={(event) => change('sex', event.target.value)}>

@@ -5,8 +5,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.eclinician.domains.dtos.AppointmentRequest;
 import com.eclinician.domains.entities.Patient;
 import com.eclinician.repositories.PatientRepository;
+import com.eclinician.domains.enums.UserRole;
+import com.eclinician.services.AppointmentService;
 import java.time.LocalDate;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +27,7 @@ class AuthTests {
     @Autowired MockMvc mvc;
     @Autowired PatientRepository patients;
     @Autowired TestAccounts accounts;
+    @Autowired AppointmentService appointments;
 
     @Test
     void loginReturnsATokenAndTheRoleTheFrontendRenders() throws Exception {
@@ -56,14 +60,46 @@ class AuthTests {
 
     @Test
     void oneHospitalCannotReadAnothersPatients() throws Exception {
-        patients.save(patient("theirs-hospital"));
+        Patient theirs = patients.save(patient("theirs-hospital"));
 
         // A valid token — for the wrong hospital. The tenant comes from the token, so
         // there is no header left to lie in.
         mvc.perform(get("/api/patients")
-                        .header("Authorization", accounts.bearerFor("ours-hospital")))
+                        .header("Authorization", accounts.bearerFor(
+                                "ours-hospital", UserRole.RECEPTIONIST)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isEmpty());
+
+        mvc.perform(get("/api/patients/{id}", theirs.getId())
+                        .header("Authorization", accounts.bearerFor(
+                                "ours-hospital", UserRole.CLINICIAN)))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void aClinicianHasNoPatientDirectoryAndTheirQueueContainsOnlyArrivals() throws Exception {
+        String tenant = "clinician-visibility-hospital";
+        Patient booked = patient(tenant);
+        booked.setPhone("+256700000010");
+        booked = patients.save(booked);
+        Patient arrived = patient(tenant);
+        arrived.setPhone("+256700000011");
+        arrived = patients.save(arrived);
+
+        appointments.schedule(tenant,
+                new AppointmentRequest(booked.getId(), null, "Future review"));
+        appointments.checkIn(tenant,
+                new AppointmentRequest(arrived.getId(), null, "Walk-in"));
+        String clinician = accounts.bearerFor(tenant, UserRole.CLINICIAN);
+
+        mvc.perform(get("/api/patients").header("Authorization", clinician))
+                .andExpect(status().isForbidden());
+
+        mvc.perform(get("/api/appointments").header("Authorization", clinician))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].patientId").value(arrived.getId().toString()))
+                .andExpect(jsonPath("$[0].status").value("CHECKED_IN"));
     }
 
     private String body(String email, String password) {

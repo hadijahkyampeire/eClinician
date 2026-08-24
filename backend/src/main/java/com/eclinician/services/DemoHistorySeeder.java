@@ -63,7 +63,7 @@ public class DemoHistorySeeder implements CommandLineRunner {
         if (doctor == null) return;
 
         stillHere(register("Grace", "Nabirye", LocalDate.of(1994, 6, 18), "Female",
-                "+256700777888", "CF9406187XY1", "6 Bombo Road", "Kampala"));
+                "+256700777888", "CF9406187XY1", "6 Bombo Road", "Kampala"), doctor);
 
         Patient returning = register("Peter", "Ochieng", LocalDate.of(1988, 11, 4), "Male",
                 "+256700999000", RETURNING_ID, "31 Lake View Close", "Jinja");
@@ -86,7 +86,7 @@ public class DemoHistorySeeder implements CommandLineRunner {
     }
 
     /** Checked in this morning and sitting in the waiting room, ready to be taken in. */
-    private void stillHere(Patient patient) {
+    private void stillHere(Patient patient, AppUser doctor) {
         patient.setActiveCareStatus(PatientCareStatus.WAITING);
         patients.save(patient);
 
@@ -94,9 +94,11 @@ public class DemoHistorySeeder implements CommandLineRunner {
         Appointment visit = new Appointment();
         visit.setTenantId(TENANT);
         visit.setPatientId(patient.getId());
+        visit.setDoctorId(doctor.getId());
         visit.setStatus(AppointmentStatus.WAITING);
         visit.setScheduledAt(arrived);
         visit.setCheckedInAt(arrived);
+        visit.setWaitingAt(Instant.now().minus(Duration.ofMinutes(34)));
         visit.setReason("Cough and sore throat");
         appointments.save(visit);
     }

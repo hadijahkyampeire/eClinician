@@ -34,22 +34,38 @@ public class UserSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        add("Amina Okello", "hkadmin@hkclinics.com", UserRole.ADMINISTRATOR, TENANT, false);
-        add("Dr. Sarah Jenkins", "hkdoctor@hkclinics.com", UserRole.CLINICIAN, TENANT, false);
-        add("Grace Nakato", "hkreceptionist@hkclinics.com", UserRole.RECEPTIONIST, TENANT, false);
-        add("John Etyang", "hkpharmacy@hkclinics.com", UserRole.PHARMACIST, TENANT, false);
-        add("Peter Ssali", "hklabtech@hkclinics.com", UserRole.LAB_TECHNICIAN, TENANT, false);
+        add("Amina Okello", "hkadmin@hkclinics.com", UserRole.ADMINISTRATOR, null, TENANT, false);
+        add("Dr. Sarah Jenkins", "hkdoctor@hkclinics.com", UserRole.CLINICIAN,
+                "General Practitioner", TENANT, false);
+        add("Dr. Daniel Kato", "hkdentist@hkclinics.com", UserRole.CLINICIAN,
+                "Dentist", TENANT, false);
+        add("Dr. Miriam Atwine", "hkpediatrician@hkclinics.com", UserRole.CLINICIAN,
+                "Pediatrician", TENANT, false);
+        add("Dr. Joel Ssemanda", "hkoptometrist@hkclinics.com", UserRole.CLINICIAN,
+                "Optometrist", TENANT, false);
+        add("Grace Nakato", "hkreceptionist@hkclinics.com", UserRole.RECEPTIONIST, null, TENANT, false);
+        add("John Etyang", "hkpharmacy@hkclinics.com", UserRole.PHARMACIST, null, TENANT, false);
+        add("Peter Ssali", "hklabtech@hkclinics.com", UserRole.LAB_TECHNICIAN, null, TENANT, false);
         // No tenant: the platform admin onboards hospitals, and reads no clinical data.
-        add("Hadijah K.", "root@eclinician.com", UserRole.ADMINISTRATOR, null, true);
+        add("Hadijah K.", "root@eclinician.com", UserRole.ADMINISTRATOR, null, null, true);
     }
 
-    private void add(String name, String email, UserRole role, String tenantId, boolean platform) {
-        if (users.existsByEmailIgnoreCase(email)) return;
+    private void add(String name, String email, UserRole role, String specialty,
+            String tenantId, boolean platform) {
+        AppUser existing = users.findByEmailIgnoreCase(email).orElse(null);
+        if (existing != null) {
+            if (role == UserRole.CLINICIAN && existing.getSpecialty() == null) {
+                existing.setSpecialty(specialty);
+                users.save(existing);
+            }
+            return;
+        }
         AppUser user = new AppUser();
         user.setName(name);
         user.setEmail(email);
         user.setPasswordHash(passwords.encode(password));
         user.setRole(role);
+        user.setSpecialty(specialty);
         user.setTenantId(tenantId);
         user.setPlatformAdmin(platform);
         users.save(user);
