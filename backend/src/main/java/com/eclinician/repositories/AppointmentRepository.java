@@ -9,6 +9,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 public interface AppointmentRepository extends JpaRepository<Appointment, UUID> {
 
@@ -33,4 +34,8 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
     List<Appointment> findByTenantIdAndPatientId(String tenantId, UUID patientId, Sort sort);
 
     long countByTenantIdAndScheduledAtBetween(String tenantId, Instant from, Instant to);
+
+    @Query("select count(a) from Appointment a where a.tenantId = ?1 and a.status = ?2 "
+            + "and (a.doctorId = ?3 or a.doctorId is null)")
+    long countVisibleToClinician(String tenantId, AppointmentStatus status, UUID clinicianId);
 }

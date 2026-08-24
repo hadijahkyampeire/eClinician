@@ -19,6 +19,9 @@ public interface PrescriptionOrderRepository extends JpaRepository<PrescriptionO
     List<PrescriptionOrder> findByTenantIdAndPatientIdOrderByCreatedAtDesc(
             String tenantId, UUID patientId);
 
+    boolean existsByTenantIdAndPatientIdAndStatusNot(
+            String tenantId, UUID patientId, PrescriptionStatus status);
+
     Optional<PrescriptionOrder> findByIdAndTenantId(UUID id, String tenantId);
 
     /** Guards against creating a second set of orders if finalize is retried. */

@@ -7,6 +7,7 @@ import com.eclinician.services.AppointmentService;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.security.core.Authentication;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -29,11 +30,16 @@ public class AppointmentController {
         this.service = service;
     }
 
+    @PreAuthorize("hasAnyRole('RECEPTIONIST', 'CLINICIAN', 'ADMINISTRATOR')")
     @GetMapping
     public List<AppointmentResponse> list(
             @CurrentTenant String tenantId,
-            @RequestParam(required = false) UUID patientId) {
-        return service.list(tenantId, patientId);
+            @RequestParam(required = false) UUID patientId,
+            Authentication authentication) {
+        boolean clinician = authentication.getAuthorities().stream()
+                .anyMatch(authority -> authority.getAuthority().equals("ROLE_CLINICIAN"));
+        return service.list(tenantId, patientId,
+                clinician ? authentication.getName() : null);
     }
 
     @PreAuthorize("hasRole('RECEPTIONIST')")
@@ -80,8 +86,9 @@ public class AppointmentController {
     @PostMapping("/patients/{patientId}/start-session")
     public AppointmentResponse startSession(
             @CurrentTenant String tenantId,
-            @PathVariable UUID patientId) {
-        return service.startSession(tenantId, patientId);
+            @PathVariable UUID patientId,
+            Authentication authentication) {
+        return service.startSession(tenantId, patientId, authentication.getName());
     }
 
     @PreAuthorize("hasRole('CLINICIAN')")

@@ -20,7 +20,10 @@ function useAppointments() {
 }
 
 function byArrival(a: Appointment, b: Appointment) {
-  return (a.checkedInAt ?? a.scheduledAt).localeCompare(b.checkedInAt ?? b.scheduledAt)
+  const queueTime = (value: Appointment) => value.status === 'WAITING'
+    ? value.waitingAt ?? value.checkedInAt ?? value.scheduledAt
+    : value.checkedInAt ?? value.scheduledAt
+  return queueTime(a).localeCompare(queueTime(b))
 }
 
 function isToday(iso: string) {
@@ -56,7 +59,9 @@ export function InTheClinic({ act, first }: {
           tone={visit.status === 'IN_SESSION' ? 'session' : 'waiting'}
           meta={visit.status === 'IN_SESSION'
             ? `In session ${since(visit.sessionStartedAt) ?? ''}`
-            : `${visit.status === 'WAITING' ? 'Waiting' : 'Checked in'} ${since(visit.checkedInAt) ?? ''}`}
+            : visit.status === 'WAITING'
+              ? `Waiting ${since(visit.waitingAt) ?? ''}`
+              : `Checked in ${since(visit.checkedInAt) ?? ''}`}
           action={
             act === 'to-room' && visit.status === 'CHECKED_IN' ? (
               <button className="btn small" disabled={busy} onClick={() => toRoom.mutate(visit.id)}>

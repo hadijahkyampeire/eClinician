@@ -133,13 +133,13 @@ export default function PatientDetails() {
         <div className="history-heading">
           <div>
             <h3>Patient history</h3>
-            <p>Appointments, visits, and clinical information will appear here.</p>
+            <p>A timeline of bookings, consultations, prescriptions, and clinical notes.</p>
           </div>
         </div>
 
         <details className="history-panel" open>
           <summary>
-            <span>Appointments</span>
+            <span>Appointment history</span>
             <small>{appointmentsQuery.data?.length || 0} recorded</small>
           </summary>
           {appointmentsQuery.data?.length ? (
@@ -147,9 +147,9 @@ export default function PatientDetails() {
               {appointmentsQuery.data.map((appointment) => (
                 <div key={appointment.id}>
                   <div>
-                    <b>{appointment.status.replaceAll('_', ' ').toLowerCase()}</b>
+                    <b>{formatStatus(appointment.status)}</b>
                     <small>{[appointment.doctorName, appointment.reason]
-                      .filter(Boolean).join(' · ') || 'No reason recorded'}</small>
+                      .filter(Boolean).join(' · ') || 'Walk-in · reason not recorded'}</small>
                   </div>
                   <time>{formatDateTime(appointment.scheduledAt)}</time>
                 </div>
@@ -200,10 +200,16 @@ function CareStatus({ status }: { status: PatientCareStatus | null }) {
     CHECKED_IN: 'Checked in',
     WAITING: 'Waiting',
     IN_SESSION: 'In session',
+    PHARMACY: 'Pharmacy',
   }
   // No active status is not a state worth a badge; the check-in button says it better.
   if (!status) return null
   return <span className={`care-status large ${status.toLowerCase()}`}>{labels[status]}</span>
+}
+
+function formatStatus(value: string) {
+  const words = value.replaceAll('_', ' ').toLowerCase()
+  return words.charAt(0).toUpperCase() + words.slice(1)
 }
 
 function Detail({ label, value }: { label: string; value: string | null | undefined }) {

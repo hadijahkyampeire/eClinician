@@ -4,5 +4,7 @@ package com.eclinician.domains.enums;
 public enum PatientCareStatus {
     CHECKED_IN,
     WAITING,
-    IN_SESSION
+    IN_SESSION,
+    /** The consultation is complete, but prescribed medicine is still awaiting pharmacy. */
+    PHARMACY
 }

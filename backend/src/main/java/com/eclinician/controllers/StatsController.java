@@ -6,6 +6,7 @@ import com.eclinician.services.StatsService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.Authentication;
 
 @RestController
 @RequestMapping("/api/stats")
@@ -18,7 +19,9 @@ public class StatsController {
     }
 
     @GetMapping("/dashboard")
-    public DashboardStats dashboard(@CurrentTenant String tenantId) {
-        return service.dashboard(tenantId);
+    public DashboardStats dashboard(@CurrentTenant String tenantId, Authentication authentication) {
+        boolean clinician = authentication.getAuthorities().stream()
+                .anyMatch(authority -> authority.getAuthority().equals("ROLE_CLINICIAN"));
+        return service.dashboard(tenantId, clinician ? authentication.getName() : null);
     }
 }

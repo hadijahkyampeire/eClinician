@@ -58,7 +58,9 @@ const VIEWS: Record<Role, View> = {
     title: 'Clinician Dashboard',
     blurb: 'Your schedule and clinical tasks',
     tiles: [
-      { label: 'Waiting Now', read: s => s.waiting, icon: <HourglassEmptyOutlinedIcon />, to: '/appointments' },
+      // Everyone in the building who is not yet in session — a clinician does not care
+      // whether the front desk has walked them to the waiting room yet.
+      { label: 'Waiting Now', read: s => s.checkedIn + s.waiting, icon: <HourglassEmptyOutlinedIcon />, to: '/appointments' },
       { label: 'In Session', read: s => s.inSession, icon: <StethoscopeIcon />, to: '/appointments' },
       { label: 'Open Encounters', read: s => s.draftEncounters, icon: <DescriptionOutlinedIcon />, to: '/records' },
       { label: 'Finalized Today', read: s => s.finalizedToday, icon: <TaskAltOutlinedIcon />, to: '/records' },
@@ -107,6 +109,10 @@ const VIEWS: Record<Role, View> = {
   },
 }
 
+// Names are stored with their title, and "Welcome back, Dr." greets nobody.
+const firstName = (name?: string) =>
+  name?.replace(/^(dr|mr|mrs|ms|prof)\.?\s+/i, '').split(' ')[0]
+
 function Stat({ tile, value }: { tile: Tile; value: string }) {
   const body = (
     <>
@@ -147,7 +153,7 @@ export default function Dashboard() {
       <div className="page-header appointment-page-header">
         <div>
           <h2>{view.title}</h2>
-          <p>Welcome back, {session?.user.name?.split(' ')[0]} · {view.blurb}</p>
+          <p>Welcome back, {firstName(session?.user.name)} · {view.blurb}</p>
         </div>
         {view.action && <Link className="btn" to={view.action.to}>{view.action.label}</Link>}
       </div>

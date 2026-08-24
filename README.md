@@ -44,7 +44,11 @@ the role lives on the account and the API enforces it.
 | Role | Email | Opens |
 |---|---|---|
 | Receptionist | `hkreceptionist@hkclinics.com` | Patients · Appointments |
-| Clinician | `hkdoctor@hkclinics.com` | Patients · Appointments · Records |
+| General Practitioner | `hkdoctor@hkclinics.com` | Assigned queue · Records |
+| Dentist | `hkdentist@hkclinics.com` | Assigned queue · Records |
+| Pediatrician | `hkpediatrician@hkclinics.com` | Assigned queue · Records |
+| Optometrist | `hkoptometrist@hkclinics.com` | Assigned queue · Records |
+| Obstetrician/Gynecologist | `hkobgyn@hkclinics.com` | Assigned queue · Records |
 | Lab Technician | `hklabtech@hkclinics.com` | Lab Results |
 | Pharmacist | `hkpharmacy@hkclinics.com` | Pharmacy |
 | Hospital Administrator | `hkadmin@hkclinics.com` | Staff · Clinic settings · read-only oversight |
@@ -68,7 +72,9 @@ The front desk owns everyone who is not yet with a clinician.
 3. **Open a patient** — demographics, contact, and the appointment history. Clinical
    history is not on this page for this role, and the API refuses it too.
 4. **Check a patient in** — from the patient row, the patient page, or the dashboard.
-   `SCHEDULED → CHECKED_IN`, and the page confirms the arrival by name.
+   Ask whether they prefer the general practitioner, dentist, pediatrician, optometrist,
+   or obstetrician/gynecologist; the page assigns that clinician as it records
+   `SCHEDULED → CHECKED_IN`.
 5. **Take them to the waiting room** — the hourglass action on the queue row, or the same
    action on the dashboard's *In the clinic now* panel. `CHECKED_IN → WAITING`.
 6. **Book, edit and cancel appointments** — book the same doctor at the same time twice and
@@ -80,8 +86,8 @@ The front desk owns everyone who is not yet with a clinician.
 
 ### Clinician — `hkdoctor@hkclinics.com`
 
-1. **See who is waiting** — the dashboard lists them longest-wait-first with *Start session*
-   on the row itself.
+1. **See who is waiting** — the dashboard lists patients assigned to this clinician,
+   longest-wait-first, plus unassigned walk-ins any available clinician may claim.
 2. **Start a session** — `WAITING → IN_SESSION`, and a `DRAFT` encounter is opened.
 3. **Document the visit** — vitals (blood pressure, temperature, pulse, weight), symptoms
    and history, examination notes, diagnosis, treatment plan.
