@@ -65,7 +65,7 @@ function StaffRow({ member, busy, isSelf, onToggle }: {
   return <div className="record-row">
     <div>
       <b>{member.name}{isSelf && <span className="staff-you"> · you</span>}</b>
-      <small>{member.email} · {member.roleLabel}</small>
+      <small>{member.email} · {member.specialty || member.roleLabel}</small>
     </div>
     <div>
       <span className={`record-status ${member.active ? 'dispensed' : 'unavailable'}`}>

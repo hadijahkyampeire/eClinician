@@ -11,14 +11,20 @@ import org.springframework.data.jpa.repository.Query;
 
 public interface EncounterRepository extends JpaRepository<Encounter, UUID> {
     List<Encounter> findByTenantIdOrderByCreatedAtDesc(String tenantId);
+    List<Encounter> findByTenantIdAndClinicianNameOrderByCreatedAtDesc(
+            String tenantId, String clinicianName);
     List<Encounter> findByTenantIdAndPatientIdOrderByCreatedAtDesc(String tenantId, UUID patientId);
     Optional<Encounter> findByIdAndTenantId(UUID id, String tenantId);
     boolean existsByTenantIdAndPatientId(String tenantId, UUID patientId);
     Optional<Encounter> findByAppointmentIdAndTenantId(UUID appointmentId, String tenantId);
 
     long countByTenantIdAndStatus(String tenantId, EncounterStatus status);
+    long countByTenantIdAndClinicianNameAndStatus(
+            String tenantId, String clinicianName, EncounterStatus status);
 
     long countByTenantIdAndFinalizedAtAfter(String tenantId, Instant finalizedAfter);
+    long countByTenantIdAndClinicianNameAndFinalizedAtAfter(
+            String tenantId, String clinicianName, Instant finalizedAfter);
 
     /** Clinicians who have documented at least one encounter — our only staff signal so far. */
     @Query("select count(distinct e.clinicianName) from Encounter e where e.tenantId = ?1")

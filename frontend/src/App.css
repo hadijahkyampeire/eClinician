@@ -7,6 +7,28 @@
   background: linear-gradient(135deg, var(--brand-bg), #e0f2fe);
 }
 
+.availability-card { display: grid; gap: 1.25rem; }
+.availability-list { display: grid; gap: .75rem; }
+.availability-row {
+  display: grid;
+  grid-template-columns: minmax(9rem, 1fr) 8rem auto 8rem minmax(10rem, 1fr);
+  gap: .75rem;
+  align-items: center;
+}
+.availability-row label { font-weight: 600; }
+.availability-row input[type='time'], .availability-row input[type='text'],
+.availability-row input:not([type]) {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: .65rem .75rem;
+}
+.availability-message { margin: 0; color: var(--brand-dark); }
+@media (max-width: 760px) {
+  .availability-row { grid-template-columns: 1fr 1fr; }
+  .availability-row label, .availability-row input:last-child { grid-column: 1 / -1; }
+  .availability-row span { display: none; }
+}
+
 .login-card {
   width: 100%;
   max-width: 380px;

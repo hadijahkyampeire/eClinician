@@ -12,6 +12,7 @@ import {
   updateAppointment,
 } from '../api/appointments'
 import { getPatient } from '../api/patients'
+import { getClinicians } from '../api/staff'
 import { useAuth } from '../auth/AuthContext'
 import AppointmentFormModal from '../components/appointments/AppointmentFormModal'
 import AppointmentTable from '../components/appointments/AppointmentTable'
@@ -26,6 +27,7 @@ export default function Appointments() {
   const queryClient = useQueryClient()
   const [booking, setBooking] = useState<Appointment | null | undefined>(undefined)
   const [confirmation, setConfirmation] = useState('')
+  const [checkInDoctorId, setCheckInDoctorId] = useState('')
   const patientId = params.get('patientId')
   const action = params.get('action')
   const tenantId = session?.tenant?.id
@@ -46,6 +48,20 @@ export default function Appointments() {
     queryFn: () => getAppointments(),
     enabled: Boolean(tenantId),
   })
+  const cliniciansQuery = useQuery({
+    queryKey: ['clinicians', tenantId],
+    queryFn: () => getClinicians(new Date().toISOString()),
+    enabled: Boolean(tenantId && action === 'check-in' && role === 'Receptionist'),
+  })
+  const bookedDoctorId = appointmentsQuery.data?.find(appointment =>
+    appointment.patientId === patientId
+      && ['SCHEDULED', 'CHECKED_IN', 'WAITING'].includes(appointment.status))?.doctorId
+
+  useEffect(() => {
+    // Preserve the clinician already chosen when a booked patient arrives.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (action === 'check-in' && bookedDoctorId) setCheckInDoctorId(bookedDoctorId)
+  }, [action, bookedDoctorId])
 
   const refresh = async () => {
     await Promise.all([
@@ -56,7 +72,7 @@ export default function Appointments() {
   }
   const workflow = useMutation({
     mutationFn: () => action === 'check-in'
-      ? checkInPatient(patientId!)
+      ? checkInPatient(patientId!, checkInDoctorId)
       : startPatientSession(patientId!),
     onSuccess: async () => {
       const name = patientQuery.data
@@ -129,15 +145,29 @@ export default function Appointments() {
               ? `${patientQuery.data.firstName} ${patientQuery.data.lastName}`
               : 'Loading patient...'}</h3>
             <p>{action === 'check-in'
-              ? 'Confirm the patient’s arrival and add them to today’s queue.'
+              ? 'Confirm arrival and assign a preferred clinician, or leave the walk-in unassigned.'
               : 'Start the consultation for this checked-in patient.'}</p>
+            {action === 'check-in' && role === 'Receptionist' && (
+              <label className="appointment-doctor-choice">Preferred clinician
+                <select value={checkInDoctorId}
+                  onChange={event => setCheckInDoctorId(event.target.value)}>
+                  <option value="">Select an available clinician</option>
+                  {cliniciansQuery.data?.map(doctor => <option key={doctor.id} value={doctor.id}>
+                    {doctor.name}{doctor.specialty ? ` — ${doctor.specialty}` : ''}
+                    {doctor.consultationRoom ? ` — ${doctor.consultationRoom}` : ''}
+                  </option>)}
+                </select>
+              </label>
+            )}
           </div>
           <div className="appointment-context-actions">
             <Link className="btn ghost"
               to={patientQuery.data ? `/patients/${patientQuery.data.id}` : '/patients'}>
               Back
             </Link>
-            <button className="btn" disabled={!patientQuery.data || workflow.isPending}
+            <button className="btn"
+              disabled={!patientQuery.data || workflow.isPending
+                || (action === 'check-in' && !checkInDoctorId)}
               onClick={() => workflow.mutate()}>
               {workflow.isPending
                 ? 'Updating...'

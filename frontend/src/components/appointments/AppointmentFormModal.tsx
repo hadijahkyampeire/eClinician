@@ -23,13 +23,18 @@ export default function AppointmentFormModal({
     reason: appointment?.reason || '',
   })
   const patients = useQuery({ queryKey: ['patients', 'booking'], queryFn: () => getPatients() })
-  const clinicians = useQuery({ queryKey: ['clinicians'], queryFn: getClinicians })
+  const availableAt = form.scheduledAt ? new Date(form.scheduledAt).toISOString() : undefined
+  const clinicians = useQuery({
+    queryKey: ['clinicians', availableAt],
+    queryFn: () => getClinicians(availableAt),
+    enabled: Boolean(availableAt),
+  })
   const set = (field: keyof AppointmentForm, value: string) =>
     setForm((current) => ({ ...current, [field]: value }))
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault()
-    if (form.patientId) onSave(form)
+    if (form.patientId && form.doctorId) onSave(form)
   }
 
   return (
@@ -57,11 +62,14 @@ export default function AppointmentFormModal({
             </select>
           </label>
           <label>Doctor
-            <select value={form.doctorId}
+            <select required value={form.doctorId}
               onChange={(event) => set('doctorId', event.target.value)}>
-              <option value="">No doctor yet (walk-in)</option>
+              <option value="">Select an available clinician</option>
               {clinicians.data?.map((doctor) => (
-                <option key={doctor.id} value={doctor.id}>{doctor.name}</option>
+                <option key={doctor.id} value={doctor.id}>
+                  {doctor.name}{doctor.specialty ? ` — ${doctor.specialty}` : ''}
+                  {doctor.consultationRoom ? ` — ${doctor.consultationRoom}` : ''}
+                </option>
               ))}
             </select>
           </label>
@@ -77,7 +85,8 @@ export default function AppointmentFormModal({
           {error && <p className="patient-error">{error}</p>}
           <div className="modal-actions">
             <button type="button" className="btn ghost" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn" disabled={isSaving || !form.patientId}>
+            <button type="submit" className="btn"
+              disabled={isSaving || !form.patientId || !form.doctorId}>
               {isSaving ? 'Saving...' : appointment ? 'Save changes' : 'Book appointment'}
             </button>
           </div>

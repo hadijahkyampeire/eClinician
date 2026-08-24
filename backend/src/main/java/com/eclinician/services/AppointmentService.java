@@ -43,12 +43,28 @@ public class AppointmentService {
 
     @Transactional
     public List<AppointmentResponse> list(String tenantId, UUID patientId) {
+        return list(tenantId, patientId, null);
+    }
+
+    /** Clinicians' general queue contains arrivals only; a patient-specific history stays whole. */
+    @Transactional
+    public List<AppointmentResponse> list(
+            String tenantId, UUID patientId, String clinicianEmail) {
         expiry.sweep(tenantId);
+        UUID clinicianId = clinicianEmail == null ? null
+                : clinician(tenantId, clinicianEmail).getId();
         Sort newest = Sort.by(Sort.Direction.DESC, "createdAt");
         List<Appointment> result = patientId == null
                 ? appointments.findByTenantId(tenantId, newest)
                 : appointments.findByTenantIdAndPatientId(tenantId, patientId, newest);
-        return result.stream().map(appointment -> response(tenantId, appointment)).toList();
+        return result.stream()
+                .filter(appointment -> clinicianId == null || patientId != null
+                        || ((appointment.getStatus() == AppointmentStatus.CHECKED_IN
+                                || appointment.getStatus() == AppointmentStatus.WAITING
+                                || appointment.getStatus() == AppointmentStatus.IN_SESSION)
+                            && (appointment.getDoctorId() == null
+                                || appointment.getDoctorId().equals(clinicianId))))
+                .map(appointment -> response(tenantId, appointment)).toList();
     }
 
     @Transactional
@@ -109,10 +125,12 @@ public class AppointmentService {
     @Transactional
     public AppointmentResponse checkIn(String tenantId, AppointmentRequest request) {
         Patient patient = patient(tenantId, request.patientId());
+        AppUser requestedDoctor = doctor(tenantId, request.doctorId());
         Appointment appointment = active(tenantId, patient.getId()).orElseGet(() -> {
             Appointment created = new Appointment();
             created.setTenantId(tenantId);
             created.setPatientId(patient.getId());
+            created.setDoctorId(requestedDoctor == null ? null : requestedDoctor.getId());
             created.setScheduledAt(request.scheduledAt() == null
                     ? Instant.now() : request.scheduledAt());
             created.setReason(request.reason());
@@ -122,6 +140,7 @@ public class AppointmentService {
         if (appointment.getStatus() == AppointmentStatus.IN_SESSION) {
             throw new ConflictException("Patient is already in session");
         }
+        if (requestedDoctor != null) appointment.setDoctorId(requestedDoctor.getId());
         appointment.setStatus(AppointmentStatus.CHECKED_IN);
         if (appointment.getCheckedInAt() == null) appointment.setCheckedInAt(Instant.now());
         patient.setActiveCareStatus(PatientCareStatus.CHECKED_IN);
@@ -135,6 +154,7 @@ public class AppointmentService {
         requireStatus(appointment, AppointmentStatus.CHECKED_IN);
         Patient patient = patient(tenantId, appointment.getPatientId());
         appointment.setStatus(AppointmentStatus.WAITING);
+        appointment.setWaitingAt(Instant.now());
         patient.setActiveCareStatus(PatientCareStatus.WAITING);
         patients.save(patient);
         return response(patient, appointments.save(appointment));
@@ -142,12 +162,24 @@ public class AppointmentService {
 
     @Transactional
     public AppointmentResponse startSession(String tenantId, UUID patientId) {
+        return startSession(tenantId, patientId, null);
+    }
+
+    @Transactional
+    public AppointmentResponse startSession(
+            String tenantId, UUID patientId, String clinicianEmail) {
         Patient patient = patient(tenantId, patientId);
+        AppUser clinician = clinicianEmail == null ? null : clinician(tenantId, clinicianEmail);
         Appointment appointment = active(tenantId, patientId)
                 .filter(value -> value.getStatus() == AppointmentStatus.CHECKED_IN
                         || value.getStatus() == AppointmentStatus.WAITING)
+                .filter(value -> clinician == null || value.getDoctorId() == null
+                        || value.getDoctorId().equals(clinician.getId()))
                 .orElseThrow(() -> new ConflictException(
-                        "Patient must be checked in before starting a session"));
+                        "Patient must be checked in and assigned to you before starting a session"));
+        if (appointment.getDoctorId() == null && clinician != null) {
+            appointment.setDoctorId(clinician.getId());
+        }
         appointment.setStatus(AppointmentStatus.IN_SESSION);
         appointment.setSessionStartedAt(Instant.now());
         patient.setActiveCareStatus(PatientCareStatus.IN_SESSION);
@@ -196,10 +228,20 @@ public class AppointmentService {
         if (doctorId == null) return null;
         AppUser doctor = users.findByIdAndTenantId(doctorId, tenantId)
                 .orElseThrow(() -> new NotFoundException("Doctor not found"));
-        if (doctor.getRole() != UserRole.CLINICIAN) {
-            throw new ConflictException("Appointments can only be booked with a clinician");
+        if (doctor.getRole() != UserRole.CLINICIAN || !doctor.isActive()) {
+            throw new ConflictException("Appointments can only be booked with an active clinician");
         }
         return doctor;
+    }
+
+    private AppUser clinician(String tenantId, String email) {
+        AppUser clinician = users.findByEmailIgnoreCase(email)
+                .filter(user -> tenantId.equals(user.getTenantId()))
+                .orElseThrow(() -> new NotFoundException("Clinician not found"));
+        if (clinician.getRole() != UserRole.CLINICIAN || !clinician.isActive()) {
+            throw new ConflictException("An active clinician is required");
+        }
+        return clinician;
     }
 
     private void requireOpen(Appointment appointment) {

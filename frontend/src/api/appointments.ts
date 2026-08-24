@@ -40,10 +40,10 @@ function toBody(form: AppointmentForm) {
   }
 }
 
-export function checkInPatient(patientId: string) {
+export function checkInPatient(patientId: string, doctorId?: string) {
   return request<Appointment>('/api/appointments/check-in', {
     method: 'POST',
-    body: JSON.stringify({ patientId }),
+    body: JSON.stringify({ patientId, doctorId: doctorId || null }),
   })
 }
 

@@ -35,6 +35,7 @@ public class PatientController {
         this.service = service;
     }
 
+    @PreAuthorize("hasAnyRole('RECEPTIONIST', 'ADMINISTRATOR')")
     @GetMapping
     public Page<PatientResponse> list(@CurrentTenant String tenantId,
             @RequestParam(required = false) String q,
@@ -56,6 +57,7 @@ public class PatientController {
                 enrolledFrom, enrolledTo, pageable);
     }
 
+    @PreAuthorize("hasAnyRole('RECEPTIONIST', 'CLINICIAN', 'ADMINISTRATOR')")
     @GetMapping("/{id}")
     public PatientResponse get(@CurrentTenant String tenantId, @PathVariable UUID id) {
         return service.get(tenantId, id);
