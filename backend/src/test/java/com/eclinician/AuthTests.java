@@ -2,6 +2,7 @@ package com.eclinician;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -56,6 +57,37 @@ class AuthTests {
     void theApiIsClosedWithoutAToken() throws Exception {
         mvc.perform(get("/api/patients"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void signedInUserCanUpdateOnlyTheirOwnProfile() throws Exception {
+        String tenant = "profile-hospital";
+        String bearer = accounts.bearerFor(tenant, UserRole.RECEPTIONIST);
+        String image = "data:image/png;base64,iVBORw0KGgo=";
+
+        mvc.perform(put("/api/auth/profile")
+                        .header("Authorization", bearer)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Grace Updated\",\"profileImage\":\"" + image + "\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Grace Updated"))
+                .andExpect(jsonPath("$.profileImage").value(image));
+
+        mvc.perform(get("/api/auth/profile").header("Authorization", bearer))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Grace Updated"))
+                .andExpect(jsonPath("$.role").value("Receptionist"));
+    }
+
+    @Test
+    void profileRejectsContentThatIsNotAValidatedImage() throws Exception {
+        String bearer = accounts.bearerFor("profile-image-hospital", UserRole.CLINICIAN);
+
+        mvc.perform(put("/api/auth/profile")
+                        .header("Authorization", bearer)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Doctor\",\"profileImage\":\"javascript:alert(1)\"}"))
+                .andExpect(status().isConflict());
     }
 
     @Test

@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown'
 import LockResetOutlinedIcon from '@mui/icons-material/LockResetOutlined'
 import LogoutOutlinedIcon from '@mui/icons-material/LogoutOutlined'
+import AccountCircleOutlinedIcon from '@mui/icons-material/AccountCircleOutlined'
+import { ButtonBase, Divider, ListItemIcon, ListItemText, Menu, MenuItem } from '@mui/material'
 import { useAuth } from '../auth/AuthContext'
 import { navItems } from '../nav'
 import DateChip from './DateChip'
@@ -13,6 +16,7 @@ export default function DashboardLayout() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const [changingPassword, setChangingPassword] = useState(false)
+  const [accountAnchor, setAccountAnchor] = useState<HTMLElement | null>(null)
 
   const tenant = session?.tenant
 
@@ -41,9 +45,11 @@ export default function DashboardLayout() {
   })
 
   // The topbar names where you are; the sidebar already carries the branding.
-  const section = items.find((item) => pathname.startsWith(item.to))?.label ?? 'Dashboard'
+  const section = pathname.startsWith('/profile') ? 'Your profile'
+    : items.find((item) => pathname.startsWith(item.to))?.label ?? 'Dashboard'
 
   function handleLogout() {
+    setAccountAnchor(null)
     logout()
     navigate('/login')
   }
@@ -72,10 +78,6 @@ export default function DashboardLayout() {
         <div className="spacer" />
 
         <div className="sidebar-footer">
-          <button type="button" onClick={() => setChangingPassword(true)}>
-            <span className="icon"><LockResetOutlinedIcon fontSize="small" /></span>
-            Change password
-          </button>
           <button type="button" className="sign-out" onClick={handleLogout}>
             <span className="icon"><LogoutOutlinedIcon fontSize="small" /></span>
             Log out
@@ -88,11 +90,50 @@ export default function DashboardLayout() {
           <div className="page-title">{section}</div>
           <div className="user">
             <DateChip />
-            <div className="user-meta">
-              <div className="name">{session?.user.name}</div>
-              <div className="role">{session?.user.role}</div>
+            <div className="account-menu">
+              <ButtonBase className="account-trigger" aria-haspopup="menu"
+                aria-controls={accountAnchor ? 'account-menu' : undefined}
+                aria-expanded={Boolean(accountAnchor)}
+                onClick={event => setAccountAnchor(event.currentTarget)}>
+                <div className="user-meta">
+                  <div className="name">{session?.user.name}</div>
+                  <div className="role">{session?.user.role}</div>
+                </div>
+                <div className="avatar">
+                  {session?.user.profileImage
+                    ? <img src={session.user.profileImage} alt="" />
+                    : session?.user.name?.[0]?.toUpperCase() ?? '?'}
+                </div>
+                <KeyboardArrowDownIcon className={accountAnchor ? 'open' : ''} fontSize="small" />
+              </ButtonBase>
+              <Menu id="account-menu" anchorEl={accountAnchor} open={Boolean(accountAnchor)}
+                onClose={() => setAccountAnchor(null)}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                slotProps={{
+                  paper: { sx: { mt: 1, minWidth: 220, borderRadius: 2 } },
+                  list: { 'aria-label': 'Account options', sx: { py: 0.75 } },
+                }}>
+                <MenuItem onClick={() => {
+                  setAccountAnchor(null); navigate('/profile')
+                }}>
+                  <ListItemIcon><AccountCircleOutlinedIcon fontSize="small" /></ListItemIcon>
+                  <ListItemText>View profile</ListItemText>
+                </MenuItem>
+                <MenuItem onClick={() => {
+                  setAccountAnchor(null); setChangingPassword(true)
+                }}>
+                  <ListItemIcon><LockResetOutlinedIcon fontSize="small" /></ListItemIcon>
+                  <ListItemText>Change password</ListItemText>
+                </MenuItem>
+                <Divider sx={{ my: 0.5 }} />
+                <MenuItem onClick={handleLogout} sx={{ color: 'error.main',
+                  '& .MuiListItemIcon-root': { color: 'inherit' } }}>
+                  <ListItemIcon><LogoutOutlinedIcon fontSize="small" /></ListItemIcon>
+                  <ListItemText>Log out</ListItemText>
+                </MenuItem>
+              </Menu>
             </div>
-            <div className="avatar">{session?.user.name?.[0]?.toUpperCase() ?? '?'}</div>
           </div>
         </header>
 

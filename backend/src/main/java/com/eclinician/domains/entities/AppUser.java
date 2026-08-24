@@ -43,6 +43,10 @@ public class AppUser {
     @Column(nullable = false, unique = true, length = 200)
     private String email;
 
+    /** Small self-service avatar stored as a validated image data URL. */
+    @Column(columnDefinition = "text")
+    private String profileImage;
+
     /** BCrypt. The plain password is never stored or logged. */
     @Column(nullable = false, length = 100)
     private String passwordHash;

@@ -16,6 +16,7 @@ public record LoginResponse(
         String name,
         String email,
         String role,
+        String profileImage,
         String tenantId,
         boolean platformAdmin,
         TenantResponse tenant) {}
