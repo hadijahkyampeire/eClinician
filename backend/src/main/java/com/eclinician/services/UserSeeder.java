@@ -43,6 +43,8 @@ public class UserSeeder implements CommandLineRunner {
                 "Pediatrician", TENANT, false);
         add("Dr. Joel Ssemanda", "hkoptometrist@hkclinics.com", UserRole.CLINICIAN,
                 "Optometrist", TENANT, false);
+        add("Dr. Ruth Namusoke", "hkobgyn@hkclinics.com", UserRole.CLINICIAN,
+                "Obstetrician/Gynecologist", TENANT, false);
         add("Grace Nakato", "hkreceptionist@hkclinics.com", UserRole.RECEPTIONIST, null, TENANT, false);
         add("John Etyang", "hkpharmacy@hkclinics.com", UserRole.PHARMACIST, null, TENANT, false);
         add("Peter Ssali", "hklabtech@hkclinics.com", UserRole.LAB_TECHNICIAN, null, TENANT, false);

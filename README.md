@@ -48,6 +48,7 @@ the role lives on the account and the API enforces it.
 | Dentist | `hkdentist@hkclinics.com` | Assigned queue · Records |
 | Pediatrician | `hkpediatrician@hkclinics.com` | Assigned queue · Records |
 | Optometrist | `hkoptometrist@hkclinics.com` | Assigned queue · Records |
+| Obstetrician/Gynecologist | `hkobgyn@hkclinics.com` | Assigned queue · Records |
 | Lab Technician | `hklabtech@hkclinics.com` | Lab Results |
 | Pharmacist | `hkpharmacy@hkclinics.com` | Pharmacy |
 | Hospital Administrator | `hkadmin@hkclinics.com` | Staff · Clinic settings · read-only oversight |
@@ -71,8 +72,9 @@ The front desk owns everyone who is not yet with a clinician.
 3. **Open a patient** — demographics, contact, and the appointment history. Clinical
    history is not on this page for this role, and the API refuses it too.
 4. **Check a patient in** — from the patient row, the patient page, or the dashboard.
-   Ask whether they prefer the general practitioner, dentist, pediatrician, or optometrist;
-   the page assigns that clinician as it records `SCHEDULED → CHECKED_IN`.
+   Ask whether they prefer the general practitioner, dentist, pediatrician, optometrist,
+   or obstetrician/gynecologist; the page assigns that clinician as it records
+   `SCHEDULED → CHECKED_IN`.
 5. **Take them to the waiting room** — the hourglass action on the queue row, or the same
    action on the dashboard's *In the clinic now* panel. `CHECKED_IN → WAITING`.
 6. **Book, edit and cancel appointments** — book the same doctor at the same time twice and
