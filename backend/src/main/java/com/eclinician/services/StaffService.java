@@ -5,10 +5,15 @@ import com.eclinician.domains.dtos.StaffResponse;
 import com.eclinician.domains.entities.AppUser;
 import com.eclinician.domains.enums.UserRole;
 import com.eclinician.repositories.UserRepository;
+import com.eclinician.repositories.ClinicianAvailabilityRepository;
 import com.eclinician.web.ConflictException;
 import com.eclinician.web.NotFoundException;
 import java.util.List;
 import java.util.UUID;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.util.Map;
+import java.util.stream.Collectors;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,10 +24,13 @@ public class StaffService {
 
     private final UserRepository users;
     private final PasswordEncoder passwords;
+    private final ClinicianAvailabilityRepository availability;
 
-    public StaffService(UserRepository users, PasswordEncoder passwords) {
+    public StaffService(UserRepository users, PasswordEncoder passwords,
+            ClinicianAvailabilityRepository availability) {
         this.users = users;
         this.passwords = passwords;
+        this.availability = availability;
     }
 
     public List<StaffResponse> list(String tenantId) {
@@ -32,8 +40,24 @@ public class StaffService {
 
     /** Active clinicians only: a deactivated doctor must not appear in a booking form. */
     public List<StaffResponse> clinicians(String tenantId) {
+        return clinicians(tenantId, null);
+    }
+
+    /** At a booking time, reception sees only clinicians whose published shift covers it. */
+    public List<StaffResponse> clinicians(String tenantId, Instant at) {
+        Map<UUID, String> availableRooms = at == null ? null
+                : availability.findAvailableShifts(tenantId,
+                        at.atZone(ZoneId.systemDefault()).getDayOfWeek(),
+                        at.atZone(ZoneId.systemDefault()).toLocalTime()).stream()
+                        .collect(Collectors.toMap(
+                                shift -> shift.getClinicianId(), shift -> shift.getRoom(),
+                                (first, ignored) -> first));
         return users.findByTenantIdAndRoleAndActiveTrueOrderByNameAsc(tenantId, UserRole.CLINICIAN)
-                .stream().map(StaffResponse::from).toList();
+                .stream().filter(user -> availableRooms == null
+                        || availableRooms.containsKey(user.getId()))
+                .map(user -> StaffResponse.from(user,
+                        availableRooms == null ? null : availableRooms.get(user.getId())))
+                .toList();
     }
 
     @Transactional

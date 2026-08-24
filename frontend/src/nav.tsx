@@ -8,6 +8,7 @@ import MedicationOutlinedIcon from '@mui/icons-material/MedicationOutlined'
 import ScienceOutlinedIcon from '@mui/icons-material/ScienceOutlined'
 import BadgeOutlinedIcon from '@mui/icons-material/BadgeOutlined'
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined'
+import ScheduleOutlinedIcon from '@mui/icons-material/ScheduleOutlined'
 
 export interface NavItem {
   to: string
@@ -24,6 +25,7 @@ export const navItems: NavItem[] = [
   { to: '/patients',     label: 'Patients',     roles: ['Administrator', 'Receptionist'],              moduleKey: 'patients',     icon: <GroupsOutlinedIcon fontSize="small" /> },
   { to: '/appointments', label: 'Appointments', roles: ['Administrator', 'Clinician', 'Receptionist'], moduleKey: 'appointments', icon: <CalendarMonthOutlinedIcon fontSize="small" /> },
   { to: '/records',      label: 'Records',      roles: ['Administrator', 'Clinician'],                 moduleKey: 'records',      icon: <DescriptionOutlinedIcon fontSize="small" /> },
+  { to: '/availability', label: 'Availability', roles: ['Clinician'],                                  icon: <ScheduleOutlinedIcon fontSize="small" /> },
   { to: '/pharmacy',     label: 'Pharmacy',     roles: ['Administrator', 'Pharmacist'],               moduleKey: 'pharmacy',     icon: <MedicationOutlinedIcon fontSize="small" /> },
   { to: '/laboratory',   label: 'Lab Results',  roles: ['Administrator', 'Lab Technician'],           moduleKey: 'laboratory', icon: <ScienceOutlinedIcon fontSize="small" /> },
   { to: '/staff',        label: 'Staff',        roles: ['Administrator'],                               icon: <BadgeOutlinedIcon fontSize="small" /> },

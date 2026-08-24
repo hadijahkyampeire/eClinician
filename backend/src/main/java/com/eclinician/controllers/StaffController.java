@@ -7,6 +7,8 @@ import com.eclinician.services.StaffService;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
+import java.time.Instant;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -40,8 +42,9 @@ public class StaffController {
     /** Receptionists book appointments, so they may read the clinician list — and only that. */
     @PreAuthorize("hasAnyRole('RECEPTIONIST', 'CLINICIAN', 'ADMINISTRATOR')")
     @GetMapping("/clinicians")
-    public List<StaffResponse> clinicians(@CurrentTenant String tenantId) {
-        return staffService.clinicians(tenantId);
+    public List<StaffResponse> clinicians(@CurrentTenant String tenantId,
+            @RequestParam(required = false) Instant availableAt) {
+        return staffService.clinicians(tenantId, availableAt);
     }
 
     @PostMapping

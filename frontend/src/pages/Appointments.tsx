@@ -50,9 +50,18 @@ export default function Appointments() {
   })
   const cliniciansQuery = useQuery({
     queryKey: ['clinicians', tenantId],
-    queryFn: getClinicians,
+    queryFn: () => getClinicians(new Date().toISOString()),
     enabled: Boolean(tenantId && action === 'check-in' && role === 'Receptionist'),
   })
+  const bookedDoctorId = appointmentsQuery.data?.find(appointment =>
+    appointment.patientId === patientId
+      && ['SCHEDULED', 'CHECKED_IN', 'WAITING'].includes(appointment.status))?.doctorId
+
+  useEffect(() => {
+    // Preserve the clinician already chosen when a booked patient arrives.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (action === 'check-in' && bookedDoctorId) setCheckInDoctorId(bookedDoctorId)
+  }, [action, bookedDoctorId])
 
   const refresh = async () => {
     await Promise.all([
@@ -142,9 +151,10 @@ export default function Appointments() {
               <label className="appointment-doctor-choice">Preferred clinician
                 <select value={checkInDoctorId}
                   onChange={event => setCheckInDoctorId(event.target.value)}>
-                  <option value="">Any available clinician</option>
+                  <option value="">Select an available clinician</option>
                   {cliniciansQuery.data?.map(doctor => <option key={doctor.id} value={doctor.id}>
                     {doctor.name}{doctor.specialty ? ` — ${doctor.specialty}` : ''}
+                    {doctor.consultationRoom ? ` — ${doctor.consultationRoom}` : ''}
                   </option>)}
                 </select>
               </label>
@@ -155,7 +165,9 @@ export default function Appointments() {
               to={patientQuery.data ? `/patients/${patientQuery.data.id}` : '/patients'}>
               Back
             </Link>
-            <button className="btn" disabled={!patientQuery.data || workflow.isPending}
+            <button className="btn"
+              disabled={!patientQuery.data || workflow.isPending
+                || (action === 'check-in' && !checkInDoctorId)}
               onClick={() => workflow.mutate()}>
               {workflow.isPending
                 ? 'Updating...'
