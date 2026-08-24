@@ -13,6 +13,7 @@ import Laboratory from './pages/Laboratory'
 import Staff from './pages/Staff'
 import ClinicSettings from './pages/ClinicSettings'
 import PlatformAdmin from './pages/PlatformAdmin'
+import Availability from './pages/Availability'
 import type { Role } from './auth/AuthContext'
 
 // Mirrors the @PreAuthorize rules on the API. The server is the one that enforces
@@ -22,6 +23,7 @@ const LABORATORY: Role[] = ['Lab Technician', 'Administrator']
 const ADMIN: Role[] = ['Administrator']
 const PATIENT_DIRECTORY: Role[] = ['Receptionist', 'Administrator']
 const APPOINTMENTS: Role[] = ['Receptionist', 'Clinician', 'Administrator']
+const CLINICIAN: Role[] = ['Clinician']
 
 export default function App() {
   return (
@@ -56,6 +58,8 @@ export default function App() {
         <Route path="/appointments" element={
           <ProtectedRoute roles={APPOINTMENTS}><Appointments /></ProtectedRoute>} />
         <Route path="/records" element={<MedicalRecords />} />
+        <Route path="/availability" element={
+          <ProtectedRoute roles={CLINICIAN}><Availability /></ProtectedRoute>} />
         <Route path="/pharmacy" element={
           <ProtectedRoute roles={PHARMACY}><Pharmacy /></ProtectedRoute>} />
         <Route path="/laboratory" element={

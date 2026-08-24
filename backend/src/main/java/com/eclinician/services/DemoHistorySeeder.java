@@ -31,7 +31,7 @@ import org.springframework.stereotype.Component;
  * home: check him in again and his history is already there, one encounter longer.
  */
 @Component
-@Order(3)
+@Order(4)
 public class DemoHistorySeeder implements CommandLineRunner {
 
     private static final String TENANT = "hk-clinics";

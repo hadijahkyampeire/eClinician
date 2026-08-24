@@ -17,6 +17,7 @@ export interface Staff {
   role: StaffRole
   roleLabel: string
   specialty: string | null
+  consultationRoom: string | null
   active: boolean
   createdAt: string
 }
