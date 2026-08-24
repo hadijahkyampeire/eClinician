@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown'
 import LockResetOutlinedIcon from '@mui/icons-material/LockResetOutlined'
 import LogoutOutlinedIcon from '@mui/icons-material/LogoutOutlined'
+import AccountCircleOutlinedIcon from '@mui/icons-material/AccountCircleOutlined'
 import { useAuth } from '../auth/AuthContext'
 import { navItems } from '../nav'
 import DateChip from './DateChip'
@@ -13,6 +15,8 @@ export default function DashboardLayout() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const [changingPassword, setChangingPassword] = useState(false)
+  const [accountOpen, setAccountOpen] = useState(false)
+  const accountMenu = useRef<HTMLDivElement>(null)
 
   const tenant = session?.tenant
 
@@ -41,7 +45,16 @@ export default function DashboardLayout() {
   })
 
   // The topbar names where you are; the sidebar already carries the branding.
-  const section = items.find((item) => pathname.startsWith(item.to))?.label ?? 'Dashboard'
+  const section = pathname.startsWith('/profile') ? 'Your profile'
+    : items.find((item) => pathname.startsWith(item.to))?.label ?? 'Dashboard'
+
+  useEffect(() => {
+    function closeAccount(event: MouseEvent) {
+      if (!accountMenu.current?.contains(event.target as Node)) setAccountOpen(false)
+    }
+    document.addEventListener('mousedown', closeAccount)
+    return () => document.removeEventListener('mousedown', closeAccount)
+  }, [])
 
   function handleLogout() {
     logout()
@@ -72,10 +85,6 @@ export default function DashboardLayout() {
         <div className="spacer" />
 
         <div className="sidebar-footer">
-          <button type="button" onClick={() => setChangingPassword(true)}>
-            <span className="icon"><LockResetOutlinedIcon fontSize="small" /></span>
-            Change password
-          </button>
           <button type="button" className="sign-out" onClick={handleLogout}>
             <span className="icon"><LogoutOutlinedIcon fontSize="small" /></span>
             Log out
@@ -88,11 +97,34 @@ export default function DashboardLayout() {
           <div className="page-title">{section}</div>
           <div className="user">
             <DateChip />
-            <div className="user-meta">
-              <div className="name">{session?.user.name}</div>
-              <div className="role">{session?.user.role}</div>
+            <div className="account-menu" ref={accountMenu}>
+              <button type="button" className="account-trigger" aria-haspopup="menu"
+                aria-expanded={accountOpen} onClick={() => setAccountOpen(open => !open)}>
+                <div className="user-meta">
+                  <div className="name">{session?.user.name}</div>
+                  <div className="role">{session?.user.role}</div>
+                </div>
+                <div className="avatar">
+                  {session?.user.profileImage
+                    ? <img src={session.user.profileImage} alt="" />
+                    : session?.user.name?.[0]?.toUpperCase() ?? '?'}
+                </div>
+                <KeyboardArrowDownIcon className={accountOpen ? 'open' : ''} fontSize="small" />
+              </button>
+              {accountOpen && (
+                <div className="account-dropdown" role="menu">
+                  <button type="button" role="menuitem" onClick={() => {
+                    setAccountOpen(false); navigate('/profile')
+                  }}><AccountCircleOutlinedIcon fontSize="small" /> View profile</button>
+                  <button type="button" role="menuitem" onClick={() => {
+                    setAccountOpen(false); setChangingPassword(true)
+                  }}><LockResetOutlinedIcon fontSize="small" /> Change password</button>
+                  <button type="button" role="menuitem" className="danger" onClick={handleLogout}>
+                    <LogoutOutlinedIcon fontSize="small" /> Log out
+                  </button>
+                </div>
+              )}
             </div>
-            <div className="avatar">{session?.user.name?.[0]?.toUpperCase() ?? '?'}</div>
           </div>
         </header>
 

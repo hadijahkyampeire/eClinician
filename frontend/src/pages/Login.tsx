@@ -26,7 +26,8 @@ export default function Login() {
       const result = await requestLogin(email.trim(), password)
       login(
         {
-          user: { name: result.name, email: result.email, role: result.role as Role },
+          user: { name: result.name, email: result.email, role: result.role as Role,
+            profileImage: result.profileImage },
           isPlatformAdmin: result.platformAdmin,
           tenant: result.tenant,
         },

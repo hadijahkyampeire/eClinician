@@ -2,6 +2,8 @@ package com.eclinician.services;
 
 import com.eclinician.domains.dtos.LoginRequest;
 import com.eclinician.domains.dtos.PasswordChangeRequest;
+import com.eclinician.domains.dtos.ProfileRequest;
+import com.eclinician.domains.dtos.ProfileResponse;
 import com.eclinician.domains.dtos.LoginResponse;
 import com.eclinician.domains.dtos.TenantResponse;
 import com.eclinician.domains.entities.AppUser;
@@ -84,8 +86,31 @@ public class AuthService {
 
         return new LoginResponse(token(user), refreshTokens.issue(user.getEmail()),
                 ttl.toSeconds(), user.getName(), user.getEmail(),
-                user.getRole().label(), user.getTenantId(), user.isPlatformAdmin(),
+                user.getRole().label(), user.getProfileImage(), user.getTenantId(), user.isPlatformAdmin(),
                 tenant == null ? null : TenantResponse.from(tenant));
+    }
+
+    public ProfileResponse profile(String email) {
+        return ProfileResponse.from(activeUser(email));
+    }
+
+    @Transactional
+    public ProfileResponse updateProfile(String email, ProfileRequest request) {
+        AppUser user = activeUser(email);
+        String image = request.profileImage();
+        if (image != null && !image.isBlank()
+                && !image.matches("^data:image/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$")) {
+            throw new ConflictException("Profile photo must be a PNG, JPEG, or WebP image");
+        }
+        user.setName(request.name().trim());
+        user.setProfileImage(image == null || image.isBlank() ? null : image);
+        return ProfileResponse.from(users.save(user));
+    }
+
+    private AppUser activeUser(String email) {
+        return users.findByEmailIgnoreCase(email)
+                .filter(AppUser::isActive)
+                .orElseThrow(() -> new BadCredentialsException("Your account is unavailable"));
     }
 
     /**

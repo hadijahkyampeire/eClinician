@@ -14,6 +14,7 @@ import Staff from './pages/Staff'
 import ClinicSettings from './pages/ClinicSettings'
 import PlatformAdmin from './pages/PlatformAdmin'
 import Availability from './pages/Availability'
+import Profile from './pages/Profile'
 import type { Role } from './auth/AuthContext'
 
 // Mirrors the @PreAuthorize rules on the API. The server is the one that enforces
@@ -60,6 +61,7 @@ export default function App() {
         <Route path="/records" element={<MedicalRecords />} />
         <Route path="/availability" element={
           <ProtectedRoute roles={CLINICIAN}><Availability /></ProtectedRoute>} />
+        <Route path="/profile" element={<Profile />} />
         <Route path="/pharmacy" element={
           <ProtectedRoute roles={PHARMACY}><Pharmacy /></ProtectedRoute>} />
         <Route path="/laboratory" element={
