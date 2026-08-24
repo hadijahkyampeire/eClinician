@@ -321,10 +321,6 @@
 .account-trigger:hover, .account-trigger[aria-expanded='true'] { background: var(--bg); }
 .account-trigger > svg { color: var(--text-muted); transition: transform .15s; }
 .account-trigger > svg.open { transform: rotate(180deg); }
-.account-dropdown { position: absolute; z-index: 20; top: calc(100% + 8px); right: 0; width: 200px; padding: 6px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); box-shadow: 0 12px 32px rgb(15 23 42 / 14%); }
-.account-dropdown button { display: flex; align-items: center; gap: 9px; width: 100%; padding: 9px 10px; border: 0; border-radius: 7px; background: transparent; color: var(--text); font-size: 13px; text-align: left; }
-.account-dropdown button:hover { background: var(--bg); }
-.account-dropdown button.danger { color: var(--danger); border-top: 1px solid var(--border); border-radius: 0 0 7px 7px; margin-top: 4px; padding-top: 10px; }
 
 .content {
   padding: 24px;
