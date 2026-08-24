@@ -16,11 +16,9 @@ import java.time.temporal.ChronoUnit;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.transaction.annotation.Transactional;
 
 /** A check-in only lasts the day: this is an outpatient clinic, nobody stays over. */
 @SpringBootTest
-@Transactional
 class StaleCheckInTests {
 
     private static final String TENANT = "workflow-test-hospital";
