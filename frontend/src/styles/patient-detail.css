@@ -154,6 +154,8 @@
 }
 .appointment-context h3 { margin-top: 3px; font-size: 18px; }
 .appointment-context p { margin: 4px 0 0; color: var(--text-muted); }
+.appointment-doctor-choice { max-width: 460px; margin-top: 18px !important; }
+.appointment-doctor-choice .MuiFormHelperText-root { margin-left: 2px; }
 .appointment-context-actions { display: flex; gap: 10px; }
 .appointment-section {
   margin-bottom: 16px;

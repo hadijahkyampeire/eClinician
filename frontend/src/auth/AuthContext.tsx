@@ -21,6 +21,7 @@ export interface User {
   name: string;
   email: string;
   role: Role;
+  profileImage?: string | null;
 }
 
 export interface Tenant {
@@ -42,6 +43,7 @@ interface AuthContextValue {
   session: Session | null;
   login: (session: Session, tokens: Tokens) => void;
   logout: () => void;
+  updateUser: (user: Partial<User>) => void;
   /** Trades the refresh token for more time. False means the session is over. */
   renew: () => Promise<boolean>;
   /** Set when the session ended by itself, so the login page can say why. */
@@ -95,6 +97,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(STORAGE_KEY);
   }
 
+  function updateUser(user: Partial<User>) {
+    setSession(current => {
+      if (!current) return current;
+      const next = { ...current, user: { ...current.user, ...user } };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      return next;
+    });
+  }
+
   async function renew() {
     if (await renewSession()) return true;
     endSession();
@@ -103,7 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider value={{
-      session, login, logout, renew,
+      session, login, logout, updateUser, renew,
       expiredNotice, dismissNotice: () => setExpiredNotice(false),
     }}>
       {children}

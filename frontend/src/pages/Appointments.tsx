@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { MenuItem, TextField } from '@mui/material'
 import {
   cancelAppointment,
   checkInPatient,
@@ -145,19 +146,21 @@ export default function Appointments() {
               ? `${patientQuery.data.firstName} ${patientQuery.data.lastName}`
               : 'Loading patient...'}</h3>
             <p>{action === 'check-in'
-              ? 'Confirm arrival and assign a preferred clinician, or leave the walk-in unassigned.'
+              ? 'Confirm arrival and assign the clinician whose room the patient should wait for.'
               : 'Start the consultation for this checked-in patient.'}</p>
             {action === 'check-in' && role === 'Receptionist' && (
-              <label className="appointment-doctor-choice">Preferred clinician
-                <select value={checkInDoctorId}
-                  onChange={event => setCheckInDoctorId(event.target.value)}>
-                  <option value="">Select an available clinician</option>
-                  {cliniciansQuery.data?.map(doctor => <option key={doctor.id} value={doctor.id}>
-                    {doctor.name}{doctor.specialty ? ` — ${doctor.specialty}` : ''}
-                    {doctor.consultationRoom ? ` — ${doctor.consultationRoom}` : ''}
-                  </option>)}
-                </select>
-              </label>
+              <TextField className="appointment-doctor-choice" select size="small" fullWidth
+                label="Preferred clinician" value={checkInDoctorId}
+                onChange={event => setCheckInDoctorId(event.target.value)}
+                helperText={cliniciansQuery.isLoading
+                  ? 'Loading clinicians scheduled today…'
+                  : 'Choose the clinician whose room the patient should wait for'}>
+                <MenuItem value="" disabled>Select an available clinician</MenuItem>
+                {cliniciansQuery.data?.map(doctor => <MenuItem key={doctor.id} value={doctor.id}>
+                  {doctor.name}{doctor.specialty ? ` — ${doctor.specialty}` : ''}
+                  {doctor.consultationRoom ? ` — ${doctor.consultationRoom}` : ''}
+                </MenuItem>)}
+              </TextField>
             )}
           </div>
           <div className="appointment-context-actions">

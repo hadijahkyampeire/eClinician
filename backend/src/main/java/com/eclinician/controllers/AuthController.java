@@ -3,6 +3,8 @@ package com.eclinician.controllers;
 import com.eclinician.domains.dtos.LoginRequest;
 import com.eclinician.domains.dtos.LoginResponse;
 import com.eclinician.domains.dtos.PasswordChangeRequest;
+import com.eclinician.domains.dtos.ProfileRequest;
+import com.eclinician.domains.dtos.ProfileResponse;
 import com.eclinician.domains.dtos.RefreshRequest;
 import com.eclinician.services.AuthService;
 import jakarta.validation.Valid;
@@ -10,6 +12,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -54,5 +58,16 @@ public class AuthController {
     public void changePassword(@AuthenticationPrincipal Jwt caller,
             @Valid @RequestBody PasswordChangeRequest request) {
         authService.changePassword(caller.getSubject(), request);
+    }
+
+    @GetMapping("/profile")
+    public ProfileResponse profile(@AuthenticationPrincipal Jwt caller) {
+        return authService.profile(caller.getSubject());
+    }
+
+    @PutMapping("/profile")
+    public ProfileResponse updateProfile(@AuthenticationPrincipal Jwt caller,
+            @Valid @RequestBody ProfileRequest request) {
+        return authService.updateProfile(caller.getSubject(), request);
     }
 }

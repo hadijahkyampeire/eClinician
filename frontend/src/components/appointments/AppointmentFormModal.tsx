@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { MenuItem, TextField } from '@mui/material'
 import { getPatients } from '../../api/patients'
 import { getClinicians } from '../../api/staff'
 import type { Appointment, AppointmentForm } from '../../types/appointment'
@@ -61,18 +62,19 @@ export default function AppointmentFormModal({
               ))}
             </select>
           </label>
-          <label>Doctor
-            <select required value={form.doctorId}
-              onChange={(event) => set('doctorId', event.target.value)}>
-              <option value="">Select an available clinician</option>
+          <TextField select required size="small" fullWidth label="Doctor"
+            value={form.doctorId} onChange={(event) => set('doctorId', event.target.value)}
+            helperText={form.scheduledAt
+              ? 'Only clinicians available at this time are shown'
+              : 'Choose a date and time to see available clinicians'}>
+              <MenuItem value="" disabled>Select an available clinician</MenuItem>
               {clinicians.data?.map((doctor) => (
-                <option key={doctor.id} value={doctor.id}>
+                <MenuItem key={doctor.id} value={doctor.id}>
                   {doctor.name}{doctor.specialty ? ` — ${doctor.specialty}` : ''}
                   {doctor.consultationRoom ? ` — ${doctor.consultationRoom}` : ''}
-                </option>
+                </MenuItem>
               ))}
-            </select>
-          </label>
+          </TextField>
           <label>Date and time
             <input type="datetime-local" required value={form.scheduledAt}
               onChange={(event) => set('scheduledAt', event.target.value)} />
