@@ -1,4 +1,4 @@
-.PHONY: install run backend frontend clean
+.PHONY: install run backend frontend test test-report lint format clean
 
 install:
 	cd frontend && npm install
@@ -26,6 +26,17 @@ run:
 
 test:
 	cd backend && ./mvnw test
+
+# The same run, with Spring's start-up logging filtered out so the result fits on one
+# screen. The output is Maven's own, unedited — only the noise around it is dropped — and
+# the exit code is still the suite's, so a failure here is a failure.
+test-report:
+	@cd backend && ./mvnw test > target/test-run.log 2>&1; status=$$?; \
+	echo ""; \
+	grep -E "^\[(INFO|ERROR)\] (Tests run:|Results:|BUILD|Total time)|<<< (FAILURE|ERROR)" target/test-run.log; \
+	echo ""; \
+	[ $$status -eq 0 ] || echo "See backend/target/test-run.log for the failure."; \
+	exit $$status
 
 lint:
 	cd frontend && npm run lint

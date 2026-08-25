@@ -103,7 +103,11 @@ public class DemoHistorySeeder implements CommandLineRunner {
         appointments.save(visit);
     }
 
-    /** One visit walked all the way through: seen, documented, dispensed, resulted, closed. */
+    /**
+     * One visit walked all the way through: seen, documented, dispensed, resulted, closed.
+     * Every row is stamped with when it actually happened rather than when the seeder ran,
+     * so a dashboard filtered to "today" does not turn up a visit from six weeks ago.
+     */
     private void closedVisit(Patient patient, AppUser doctor, Duration ago, Visit notes) {
         Instant arrived = Instant.now().minus(ago);
 
@@ -117,6 +121,7 @@ public class DemoHistorySeeder implements CommandLineRunner {
         visit.setSessionStartedAt(arrived.plus(Duration.ofMinutes(25)));
         visit.setCompletedAt(arrived.plus(Duration.ofMinutes(55)));
         visit.setReason(notes.chiefComplaint());
+        visit.setCreatedAt(arrived);
         appointments.save(visit);
 
         Encounter record = new Encounter();
@@ -137,6 +142,7 @@ public class DemoHistorySeeder implements CommandLineRunner {
         record.setPrescriptions(notes.prescriptions());
         record.setLabRequests(notes.test());
         record.setFinalizedAt(arrived.plus(Duration.ofMinutes(55)));
+        record.setCreatedAt(arrived.plus(Duration.ofMinutes(25)));
         encounters.save(record);
 
         for (String medication : notes.prescriptions().split("\n")) {
@@ -148,6 +154,7 @@ public class DemoHistorySeeder implements CommandLineRunner {
             order.setStatus(PrescriptionStatus.DISPENSED);
             order.setDispensedBy("John Etyang");
             order.setDispensedAt(arrived.plus(Duration.ofMinutes(80)));
+            order.setCreatedAt(arrived.plus(Duration.ofMinutes(55)));
             prescriptions.save(order);
         }
 
@@ -160,6 +167,7 @@ public class DemoHistorySeeder implements CommandLineRunner {
         test.setResult(notes.result());
         test.setResultedBy("Peter Ssali");
         test.setResultedAt(arrived.plus(Duration.ofMinutes(70)));
+        test.setCreatedAt(arrived.plus(Duration.ofMinutes(55)));
         labs.save(test);
     }
 

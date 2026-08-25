@@ -7,6 +7,7 @@ import AccountCircleOutlinedIcon from '@mui/icons-material/AccountCircleOutlined
 import { ButtonBase, Divider, ListItemIcon, ListItemText, Menu, MenuItem } from '@mui/material'
 import { useAuth } from '../auth/AuthContext'
 import { navItems } from '../nav'
+import { DEPARTMENTS } from './dashboard/departments'
 import DateChip from './DateChip'
 import Logo from './Logo'
 import PasswordChangeModal from './PasswordChangeModal'
@@ -20,20 +21,33 @@ export default function DashboardLayout() {
 
   const tenant = session?.tenant
 
-  // Apply the hospital's brand color. The whole ramp is derived from the one colour they
-  // chose — setting --brand alone left every tint and hover state the default teal.
+  // Two things decide what colour this session is drawn in: the hospital the user belongs
+  // to, and the department they work in. Both ramps are set on the root rather than on the
+  // layout, because --dept is *computed* from --brand at :root, and a value overridden
+  // further down the tree would never reach that computation.
+  //
+  // --dept is the department pulled a quarter of the way towards the hospital's colour, so
+  // every accent carries both: the pharmacist's screens are green, and a hospital branded
+  // purple turns all five departments purple-ward on their next sign-in.
+  const colour = tenant?.primaryColor
+  const accent = session ? DEPARTMENTS[session.user.role].accent : undefined
+
   useEffect(() => {
-    const colour = tenant?.primaryColor
     const root = document.documentElement
-    const ramp = {
+    const dept = accent && `color-mix(in srgb, ${accent} 78%, ${colour ?? 'var(--teal)'})`
+    const ramp: Record<string, string | undefined> = {
       '--brand': colour,
-      '--brand-dark': `color-mix(in srgb, ${colour} 82%, black)`,
-      '--brand-light': `color-mix(in srgb, ${colour} 62%, white)`,
-      '--brand-bg': `color-mix(in srgb, ${colour} 8%, white)`,
+      '--brand-dark': colour && `color-mix(in srgb, ${colour} 82%, black)`,
+      '--brand-light': colour && `color-mix(in srgb, ${colour} 62%, white)`,
+      '--brand-bg': colour && `color-mix(in srgb, ${colour} 8%, white)`,
+      '--dept': dept,
+      '--dept-dark': dept && `color-mix(in srgb, ${dept} 80%, black)`,
+      '--dept-light': dept && `color-mix(in srgb, ${dept} 62%, white)`,
+      '--dept-bg': dept && `color-mix(in srgb, ${dept} 12%, white)`,
     }
-    if (colour) Object.entries(ramp).forEach(([name, value]) => root.style.setProperty(name, value!))
+    Object.entries(ramp).forEach(([name, value]) => value && root.style.setProperty(name, value))
     return () => Object.keys(ramp).forEach(name => root.style.removeProperty(name))
-  }, [tenant?.primaryColor])
+  }, [colour, accent])
 
   // Two gates: the user's role must allow it AND (if it's a subscription
   // module) the hospital's plan must have it enabled.

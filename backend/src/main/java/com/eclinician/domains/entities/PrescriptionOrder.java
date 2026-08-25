@@ -63,7 +63,15 @@ public class PrescriptionOrder {
 
     @PrePersist
     void onCreate() {
-        createdAt = updatedAt = Instant.now();
+        // Seeded demo history arrives carrying the timestamps of the visit it stands for,
+        // so a row that says it was resulted in July is not also created today. Nothing a
+        // client sends can reach these: no request DTO has a createdAt to set.
+        if (createdAt == null) {
+            createdAt = Instant.now();
+        }
+        if (updatedAt == null) {
+            updatedAt = createdAt;
+        }
     }
 
     @PreUpdate

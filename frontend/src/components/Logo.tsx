@@ -1,14 +1,27 @@
 /**
- * The product mark: a heartbeat crossing a clinical cross. It inherits the clinic's
- * brand colour, so an onboarded hospital gets its own mark without a new asset.
+ * The product mark: a heartbeat crossing a clinical cross.
+ *
+ * It blends the two colours in play rather than picking one. The tile runs from the
+ * department the signed-in user works in, through the clinic's own brand — so the mark
+ * always contains the colour of whatever surrounds it and never sits against the sidebar
+ * looking borrowed from another product, while the hospital's colour still owns most of
+ * it. The heartbeat carries the same gradient darkened, so it reads at both ends.
  */
 export default function Logo({ size = 38 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 40 40" role="img" aria-label="eClinician">
       <defs>
         <linearGradient id="eclinician-mark" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="var(--brand-light)" />
+          {/* The department holds the first third outright, so the mark reads as this
+              part of the clinic before it fades into the hospital's own colour. */}
+          <stop offset="0" stopColor="var(--dept)" />
+          <stop offset="0.3" stopColor="var(--dept)" />
+          <stop offset="0.72" stopColor="var(--brand-light)" />
           <stop offset="1" stopColor="var(--brand)" />
+        </linearGradient>
+        <linearGradient id="eclinician-pulse" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stopColor="var(--dept-dark)" />
+          <stop offset="1" stopColor="var(--brand-dark)" />
         </linearGradient>
       </defs>
       <rect width="40" height="40" rx="11" fill="url(#eclinician-mark)" />
@@ -20,7 +33,7 @@ export default function Logo({ size = 38 }: { size?: number }) {
       <path
         d="M8 20h5.2l2.4-4.6L19.4 25l2.6-5h8"
         fill="none"
-        stroke="var(--brand-dark)"
+        stroke="url(#eclinician-pulse)"
         strokeWidth="2.4"
         strokeLinecap="round"
         strokeLinejoin="round"

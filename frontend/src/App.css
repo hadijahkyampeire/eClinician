@@ -1,10 +1,15 @@
 /* ---------- Login ---------- */
+/* The clinic behind the card. Stored as WebP: the same illustration at 51 KB instead of
+   1.2 MB, which matters on a free instance and on a phone. */
 .login-wrap {
   min-height: 100svh;
   display: grid;
   place-items: center;
   padding: 24px;
-  background: linear-gradient(135deg, var(--brand-bg), #e0f2fe);
+  background:
+    linear-gradient(rgba(240, 253, 250, 0.2), rgba(224, 242, 254, 0.2)),
+    url('/login-clinic-illustration.webp') center / cover no-repeat,
+    linear-gradient(135deg, #f0fdfa, #e0f2fe);
 }
 
 .availability-card { display: grid; gap: 1.25rem; }
@@ -22,20 +27,27 @@
   border-radius: 8px;
   padding: .65rem .75rem;
 }
-.availability-message { margin: 0; color: var(--brand-dark); }
+.availability-message { margin: 0; color: var(--dept-dark); }
 @media (max-width: 760px) {
   .availability-row { grid-template-columns: 1fr 1fr; }
   .availability-row label, .availability-row input:last-child { grid-column: 1 / -1; }
   .availability-row span { display: none; }
 }
 
+/* The illustration behind this card is almost white, so the default grey hairline
+   vanished into it. The card holds its own edge in the house green instead, over a shadow
+   tinted the same, and sits on solid white rather than a wash — the point of the page is
+   the form, not the picture. */
 .login-card {
   width: 100%;
   max-width: 380px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
+  background: #fff;
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--dept);
+  border-radius: 14px;
+  box-shadow:
+    0 16px 36px color-mix(in srgb, var(--dept) 16%, transparent),
+    0 3px 8px rgba(15, 42, 66, 0.05);
   padding: 32px;
 }
 
@@ -50,15 +62,17 @@
   width: 36px;
   height: 36px;
   border-radius: 8px;
-  background: var(--brand);
+  background: var(--dept);
   color: #fff;
   display: grid;
   place-items: center;
   font-weight: 700;
 }
 
-.login-card h1 {
-  font-size: 22px;
+/* Same wordmark as the sidebar — same colour, weight and letter-spacing, only larger,
+   because here it is the heading of the page rather than a label above the navigation. */
+.login-card .brand-product {
+  font-size: 19px;
 }
 
 .login-card .subtitle {
@@ -91,7 +105,7 @@
 
 .field input:focus,
 .field select:focus {
-  border-color: var(--brand-light);
+  border-color: var(--dept-light);
   box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.15);
 }
 
@@ -103,14 +117,14 @@
   padding: 10px 16px;
   border: 1px solid transparent;
   border-radius: 8px;
-  background: var(--brand);
+  background: var(--dept);
   color: #fff;
   font-weight: 500;
   transition: background 0.15s;
 }
 
 .btn:hover {
-  background: var(--brand-dark);
+  background: var(--dept-dark);
 }
 
 .btn.block {
@@ -159,8 +173,9 @@
   min-width: 0;
 }
 
+/* The wordmark follows the department, like everything else in this sidebar. */
 .brand-product {
-  color: var(--brand);
+  color: var(--dept);
   font-weight: 700;
   font-size: 15px;
   letter-spacing: 0.02em;
@@ -197,8 +212,8 @@
 }
 
 .nav a.active {
-  background: var(--brand-bg);
-  color: var(--brand);
+  background: var(--dept-bg);
+  color: var(--dept);
   font-weight: 600;
 }
 
@@ -290,8 +305,8 @@
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  background: var(--brand-bg);
-  color: var(--brand);
+  background: var(--dept-bg);
+  color: var(--dept);
   display: grid;
   place-items: center;
   font-weight: 600;
@@ -366,8 +381,8 @@
   width: 42px;
   height: 42px;
   border-radius: 12px;
-  background: var(--brand-bg);
-  color: var(--brand);
+  background: var(--dept-bg);
+  color: var(--dept);
 }
 
 .stat-card .label {
@@ -393,8 +408,8 @@
 }
 
 .stat-card.linked:hover {
-  border-color: var(--brand-light);
-  box-shadow: 0 4px 12px rgba(15, 118, 110, 0.1);
+  border-color: var(--dept-light);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--dept) 18%, transparent);
   transform: translateY(-1px);
 }
 
@@ -444,15 +459,15 @@
   min-width: 22px;
   padding: 1px 7px;
   border-radius: 999px;
-  background: var(--brand-bg);
-  color: var(--brand);
+  background: var(--dept-bg);
+  color: var(--dept);
   font-size: 12px;
   font-weight: 600;
   text-align: center;
 }
 
 .panel-link {
-  color: var(--brand);
+  color: var(--dept);
   font-size: 13px;
   font-weight: 500;
   white-space: nowrap;
@@ -526,8 +541,8 @@
 }
 
 .row-meta.session {
-  background: var(--brand-bg);
-  color: var(--brand);
+  background: var(--dept-bg);
+  color: var(--dept);
 }
 
 .btn.small {
@@ -555,7 +570,7 @@
 }
 
 .date-text strong {
-  color: var(--brand);
+  color: var(--dept);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -578,9 +593,9 @@
 .notice.success {
   margin-bottom: 16px;
   padding: 14px 20px;
-  border-color: var(--brand-light);
-  background: var(--brand-bg);
-  color: var(--brand-dark);
+  border-color: var(--dept-light);
+  background: var(--dept-bg);
+  color: var(--dept-dark);
   font-weight: 500;
 }
 
@@ -592,7 +607,7 @@
 }
 .forgot {
   font-size: 12px;
-  color: var(--brand);
+  color: var(--dept);
 }
 .form-error {
   color: var(--danger);
@@ -656,6 +671,6 @@
 }
 
 .password-toggle:focus-visible {
-  outline: 2px solid var(--brand-light);
+  outline: 2px solid var(--dept-light);
   outline-offset: 1px;
 }

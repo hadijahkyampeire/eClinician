@@ -11,9 +11,9 @@
 }
 .pharmacy-tab:hover { background: var(--bg); }
 .pharmacy-tab.active { 
-  border-color: var(--brand); 
-  background: var(--brand-bg); 
-  color: var(--brand); 
+  border-color: var(--dept); 
+  background: var(--dept-bg); 
+  color: var(--dept); 
   font-weight: 600; 
 }
 .pharmacy-actions { display: flex; gap: 8px; }

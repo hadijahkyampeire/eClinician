@@ -19,7 +19,7 @@
 .encounter-grid label { display: flex; flex-direction: column; gap: 6px; color: var(--heading); font-size: 12px; font-weight: 600; }
 .encounter-grid label small { color: var(--text-muted); font-weight: 400; }
 .encounter-grid input, .encounter-grid textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 7px; background: white; color: var(--text); font: inherit; resize: vertical; }
-.encounter-grid input:focus, .encounter-grid textarea:focus { outline: 2px solid var(--brand-bg); border-color: var(--brand); }
+.encounter-grid input:focus, .encounter-grid textarea:focus { outline: 2px solid var(--dept-bg); border-color: var(--dept); }
 .encounter-grid input:disabled, .encounter-grid textarea:disabled { background: var(--bg); color: var(--text); }
 .encounter-wide { grid-column: 1 / -1; }
 .encounter-actions { display: flex; justify-content: flex-end; gap: 10px; padding: 4px 0 28px; }

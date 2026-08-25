@@ -30,7 +30,7 @@
 .staff-form-grid input:focus,
 .staff-form-grid select:focus {
   outline: none;
-  border-color: var(--brand, #0f766e);
+  border-color: var(--dept, #0f766e);
 }
 
 .staff-form-actions {
