@@ -1,6 +1,7 @@
 package com.eclinician.services;
 
 import com.eclinician.domains.dtos.ClinicSettingsRequest;
+import com.eclinician.domains.dtos.HospitalFilterOptions;
 import com.eclinician.domains.dtos.PlatformStats;
 import com.eclinician.domains.dtos.TenantRequest;
 import com.eclinician.domains.dtos.TenantResponse;
@@ -32,8 +33,21 @@ public class TenantService {
         this.passwords = passwords;
     }
 
-    public List<TenantResponse> list() {
-        return tenants.findAllByOrderByNameAsc().stream().map(TenantResponse::from).toList();
+    /**
+     * The console's list, filtered in the database rather than in the browser. A blank
+     * filter and an absent one mean the same thing, so both become the empty string the
+     * query reads as "do not filter on this".
+     */
+    public List<TenantResponse> list(String search, String country, String subdivision) {
+        return tenants.search(asFilter(search), asFilter(country).toUpperCase(),
+                        asFilter(subdivision))
+                .stream().map(TenantResponse::from).toList();
+    }
+
+    /** Only values a hospital actually has, so no filter can select an empty result. */
+    public HospitalFilterOptions filterOptions(String country) {
+        return new HospitalFilterOptions(tenants.findDistinctCountries(),
+                tenants.findDistinctSubdivisions(asFilter(country).toUpperCase()));
     }
 
     public PlatformStats stats() {
@@ -121,5 +135,29 @@ public class TenantService {
         tenant.setName(request.name().trim());
         tenant.setPrimaryColor(request.primaryColor().trim());
         tenant.setModuleList(request.modules());
+        tenant.setAddressLine(trimToNull(request.addressLine()));
+        tenant.setCity(trimToNull(request.city()));
+        tenant.setSubdivision(trimToNull(request.subdivision()));
+        tenant.setPostalCode(trimToNull(request.postalCode()));
+        // Stored upper case so the country filter is a plain equality match, whatever
+        // case the console happened to send.
+        tenant.setCountry(upperOrNull(request.country()));
+        tenant.setPhone(trimToNull(request.phone()));
+        tenant.setEmail(trimToNull(request.email()));
+    }
+
+    /** A filter nobody set. Never null — see the note on {@link TenantRepository#search}. */
+    private static String asFilter(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    /** An empty box in the form and an absent field mean the same thing: not recorded. */
+    private static String trimToNull(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private static String upperOrNull(String value) {
+        String trimmed = trimToNull(value);
+        return trimmed == null ? null : trimmed.toUpperCase();
     }
 }

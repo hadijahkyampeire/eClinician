@@ -3,19 +3,28 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button, Chip } from '@mui/material'
 import AddBusinessOutlinedIcon from '@mui/icons-material/AddBusinessOutlined'
 import { createHospital, setHospitalActive, updateHospital } from '../../api/platform'
-import { useHospitals } from '../../hooks/usePlatform'
+import { useHospitalFilterOptions, useHospitals } from '../../hooks/usePlatform'
+import { useDebounced } from '../../hooks/useDebounced'
 import HospitalForm from '../../components/platform/HospitalForm'
 import HospitalTable from '../../components/platform/HospitalTable'
-import type { Hospital, HospitalForm as Form } from '../../types/tenant'
+import HospitalToolbar from '../../components/platform/HospitalToolbar'
+import type { Hospital, HospitalFilters, HospitalForm as Form } from '../../types/tenant'
 
-/** Onboarding a hospital, correcting its details, and deciding what it has bought. */
+const NO_FILTERS: HospitalFilters = { search: '', country: '', subdivision: '' }
+
+/** Onboarding a hospital, finding one again, and deciding what it has bought. */
 export default function Hospitals() {
   const queryClient = useQueryClient()
-  const hospitals = useHospitals()
+  const [filters, setFilters] = useState<HospitalFilters>(NO_FILTERS)
   const [editing, setEditing] = useState<Hospital | null | undefined>(undefined)
 
+  // Only the search needs settling; picking from a dropdown is already a deliberate act.
+  const search = useDebounced(filters.search)
+  const hospitals = useHospitals({ ...filters, search })
+  const options = useHospitalFilterOptions(filters.country)
+
   const refresh = () => Promise.all(
-    ['hospitals', 'platform-stats'].map((key) =>
+    ['hospitals', 'hospital-locations', 'platform-stats'].map((key) =>
       queryClient.invalidateQueries({ queryKey: [key] })))
 
   const save = useMutation({
@@ -27,6 +36,8 @@ export default function Hospitals() {
     mutationFn: (hospital: Hospital) => setHospitalActive(hospital.id, !hospital.active),
     onSuccess: refresh,
   })
+
+  const filtered = Boolean(search || filters.country || filters.subdivision)
 
   return (
     <>
@@ -45,14 +56,16 @@ export default function Hospitals() {
 
       <section className="card appointment-section">
         <div className="appointment-section-heading">
-          <div>
-            <h3>Onboarded clinics</h3>
-            <p>Only the name, colour and subscription are the platform's to change.</p>
-          </div>
-          <Chip size="small" label={`${hospitals.data?.length ?? 0} onboarded`} />
+          <HospitalToolbar filters={filters} options={options.data} onChange={setFilters} />
+          <Chip size="small" label={filtered
+            ? `${hospitals.data?.length ?? 0} matching`
+            : `${hospitals.data?.length ?? 0} onboarded`} />
         </div>
         <HospitalTable hospitals={hospitals.data ?? []} busy={toggle.isPending}
           isLoading={hospitals.isLoading}
+          emptyMessage={filtered
+            ? 'No hospital matches those filters.'
+            : 'No hospitals onboarded yet.'}
           onEdit={setEditing} onToggleActive={(hospital) => toggle.mutate(hospital)} />
       </section>
 

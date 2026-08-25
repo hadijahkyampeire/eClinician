@@ -32,6 +32,13 @@ public class TenantSeeder implements CommandLineRunner {
         tenant.setId(TENANT);
         tenant.setName("SWE Clinic");
         tenant.setPrimaryColor("#0f766e");
+        tenant.setAddressLine("Plot 12, Kimathi Avenue");
+        tenant.setCity("Kampala");
+        tenant.setSubdivision("Kampala");
+        tenant.setPostalCode("P.O. Box 7062");
+        tenant.setCountry("UG");
+        tenant.setPhone("+256700000000");
+        tenant.setEmail("reception@sweclinic.test");
         tenant.setModuleList(List.of(ClinicModule.values()));
         tenants.save(tenant);
     }

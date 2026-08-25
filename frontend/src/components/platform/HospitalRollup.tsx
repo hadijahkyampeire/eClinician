@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { Chip } from '@mui/material'
 import ModuleChips from './ModuleChips'
+import HospitalLocation from './HospitalLocation'
 import type { Hospital } from '../../types/tenant'
 
 /** One hospital on the overview: who it is, how big it is, and what it has bought. */
@@ -15,7 +16,7 @@ export default function HospitalRollup({ hospital, staff, patients }: {
         style={{ background: hospital.primaryColor }} />
       <div className="rollup-name">
         <b>{hospital.name}</b>
-        <code>{hospital.id}</code>
+        <HospitalLocation hospital={hospital} />
       </div>
       <div className="rollup-counts">
         <Link to={`/admin/staff?hospital=${hospital.id}`}>

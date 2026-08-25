@@ -1,5 +1,6 @@
 package com.eclinician.controllers;
 
+import com.eclinician.domains.dtos.HospitalFilterOptions;
 import com.eclinician.domains.dtos.PlatformPatientRow;
 import com.eclinician.domains.dtos.PlatformStaffRow;
 import com.eclinician.domains.dtos.PlatformStats;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -42,9 +44,19 @@ public class PlatformController {
         return tenantService.stats();
     }
 
+    /** All three filters are optional; absent means "do not narrow on this". */
     @GetMapping("/hospitals")
-    public List<TenantResponse> list() {
-        return tenantService.list();
+    public List<TenantResponse> list(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String country,
+            @RequestParam(required = false) String subdivision) {
+        return tenantService.list(search, country, subdivision);
+    }
+
+    /** What the two location filters may offer, given the country already chosen. */
+    @GetMapping("/hospitals/locations")
+    public HospitalFilterOptions locations(@RequestParam(required = false) String country) {
+        return tenantService.filterOptions(country);
     }
 
     /** Read-only: who works at each hospital. The platform never edits these accounts. */

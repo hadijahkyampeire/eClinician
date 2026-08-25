@@ -23,6 +23,20 @@ public record TenantRequest(
 
         @NotNull List<ClinicModule> modules,
 
+        // Where the hospital is, in the shape international addresses agree on. Optional
+        // throughout — a clinic can be onboarded before anyone has its address — but
+        // subdivision and country are what the console filters on, so leaving them blank
+        // means this hospital will not answer those filters.
+        @Size(max = 255) String addressLine,
+        @Size(max = 100) String city,
+        /* District, state, province — whichever this country calls it. */
+        @Size(max = 100) String subdivision,
+        @Size(max = 20) String postalCode,
+        @Pattern(regexp = "^([A-Za-z]{2})?$", message = "Use a two-letter country code")
+        String country,
+        @Size(max = 30) String phone,
+        @Email @Size(max = 254) String email,
+
         // Onboarding a hospital that nobody can sign in to is onboarding nothing, so the
         // console creates its first administrator in the same step. Ignored on update.
         @Size(max = 150) String adminName,
@@ -32,6 +46,15 @@ public record TenantRequest(
     /** Editing an existing hospital, where the administrator already exists. */
     public TenantRequest(String id, String name, String primaryColor,
             List<ClinicModule> modules) {
-        this(id, name, primaryColor, modules, null, null, null);
+        this(id, name, primaryColor, modules, null, null, null, null, null, null, null,
+                null, null, null);
+    }
+
+    /** Onboarding, before anyone thought to record where the hospital is. */
+    public TenantRequest(String id, String name, String primaryColor,
+            List<ClinicModule> modules, String adminName, String adminEmail,
+            String adminPassword) {
+        this(id, name, primaryColor, modules, null, null, null, null, null, null, null,
+                adminName, adminEmail, adminPassword);
     }
 }

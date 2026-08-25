@@ -38,6 +38,37 @@ public class Tenant {
     @Column(nullable = false, length = 255)
     private String modules;
 
+    /**
+     * Where the hospital is, and how to reach it. All optional: a hospital onboarded
+     * before this existed has none of it, and the console says so rather than pretending.
+     */
+    @Column(length = 255)
+    private String addressLine;
+
+    @Column(length = 100)
+    private String city;
+
+    /**
+     * ISO 3166-2's name for the level below a country — a district in Uganda, a state in
+     * the US, a province in Canada. One field for whichever this hospital has, so the
+     * console can filter clinics anywhere in the world by the same column.
+     */
+    @Column(length = 100)
+    private String subdivision;
+
+    @Column(length = 20)
+    private String postalCode;
+
+    /** ISO 3166-1 alpha-2, upper case. The other filter. */
+    @Column(length = 2)
+    private String country;
+
+    @Column(length = 30)
+    private String phone;
+
+    @Column(length = 254)
+    private String email;
+
     /** A suspended hospital keeps its data; nobody there can sign in. */
     @Column(nullable = false)
     private boolean active = true;
