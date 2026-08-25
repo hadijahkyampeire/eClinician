@@ -98,6 +98,47 @@ class PrescriptionDispensingTests {
         assertThat(refused.notes()).isEqualTo("No cold chain today");
     }
 
+    /**
+     * A bottle of syrup is two facts, not one: the shelf loses a bottle, and the patient
+     * receives 100ml. Recording only the count would leave nobody able to say whether the
+     * child got 60ml or 200ml.
+     */
+    @Test
+    void aContainerRecordsBothTheCountAndWhatIsInside() {
+        PrescriptionResponse order = prescribe("Amoxicillin 125mg/5ml suspension");
+
+        PrescriptionResponse given = pharmacy.update(TENANT, "P. Harmacist", order.id(),
+                new DispenseRequest(PrescriptionStatus.DISPENSED, null, 2, "bottles",
+                        "100 ml", null));
+
+        assertThat(given.quantityDispensed()).isEqualTo(2);
+        assertThat(given.dispenseUnit()).isEqualTo("bottles");
+        assertThat(given.packSize()).isEqualTo("100 ml");
+    }
+
+    /** Tablets are their own measure, so there is nothing to put inside them. */
+    @Test
+    void somethingThatIsItsOwnMeasureCarriesNoPackSize() {
+        PrescriptionResponse given = pharmacy.update(TENANT, "P. Harmacist",
+                prescribe("Paracetamol 1g").id(),
+                new DispenseRequest(PrescriptionStatus.DISPENSED, null, 15, "tablets", null));
+
+        assertThat(given.packSize()).isNull();
+    }
+
+    /** A pack size with nothing to count describes nothing, so it travels with a count. */
+    @Test
+    void aPackSizeWithoutACountIsDropped() {
+        PrescriptionResponse given = pharmacy.update(TENANT, "P. Harmacist",
+                prescribe("Cough linctus").id(),
+                new DispenseRequest(PrescriptionStatus.DISPENSED, null, null, "bottles",
+                        "200 ml", null));
+
+        assertThat(given.quantityDispensed()).isNull();
+        assertThat(given.dispenseUnit()).isNull();
+        assertThat(given.packSize()).isNull();
+    }
+
     /** One prescription, freshly written by a clinician finalizing a visit. */
     private PrescriptionResponse prescribe(String medication) {
         Patient patient = new Patient();

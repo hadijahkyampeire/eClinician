@@ -24,10 +24,22 @@ public record DispenseRequest(
 
         @Size(max = 30) String dispenseUnit,
 
+        /**
+         * What is in each container — "100 ml" for a bottle of syrup. Left empty for a
+         * unit that is already a measure, like tablets.
+         */
+        @Size(max = 40) String packSize,
+
         @Size(max = 500) String notes) {
 
     /** Marking something unavailable needs only a reason. */
     public DispenseRequest(PrescriptionStatus status, String notes) {
-        this(status, null, null, null, notes);
+        this(status, null, null, null, null, notes);
+    }
+
+    /** Dispensing something that is its own measure — tablets, capsules, loose ml. */
+    public DispenseRequest(PrescriptionStatus status, String dispensedMedication,
+            Integer quantityDispensed, String dispenseUnit, String notes) {
+        this(status, dispensedMedication, quantityDispensed, dispenseUnit, null, notes);
     }
 }

@@ -77,6 +77,9 @@ public class PharmacyService {
             value.setQuantityDispensed(request.quantityDispensed());
             value.setDispenseUnit(request.quantityDispensed() == null
                     ? null : unitOrDefault(request.dispenseUnit()));
+            // A pack size without a count describes nothing, so it travels with one.
+            value.setPackSize(request.quantityDispensed() == null
+                    ? null : trimToNull(request.packSize()));
             value.setDispensedBy(pharmacistName);
             value.setDispensedAt(Instant.now());
         }
@@ -116,7 +119,7 @@ public class PharmacyService {
         return new PrescriptionResponse(value.getId(), value.getPatientId(), patientName,
                 value.getEncounterId(), value.getMedication(), value.getStatus(),
                 handedOver, value.getQuantityDispensed(), value.getDispenseUnit(),
-                substituted, value.getDispensedBy(), value.getDispensedAt(),
+                value.getPackSize(), substituted, value.getDispensedBy(), value.getDispensedAt(),
                 value.getNotes(), value.getCreatedAt());
     }
 

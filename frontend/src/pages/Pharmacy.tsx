@@ -8,6 +8,7 @@ import DispenseDialog from '../components/pharmacy/DispenseDialog'
 import RowActions from '../components/RowActions'
 import BlockOutlinedIcon from '@mui/icons-material/BlockOutlined'
 import SwapHorizOutlinedIcon from '@mui/icons-material/SwapHorizOutlined'
+import { describeAmount } from '../types/pharmacy'
 import type { DispenseForm, Prescription, PrescriptionStatus } from '../types/pharmacy'
 
 const FILTERS: { label: string; value: PrescriptionStatus | 'ALL' }[] = [
@@ -138,7 +139,9 @@ function PrescriptionRow({ order, busy, onDispense, onUnavailable }: {
       {order.status === 'DISPENSED'
         ? <>
             {order.quantityDispensed != null && (
-              <small>{order.quantityDispensed} {order.dispenseUnit}</small>
+              <small>
+                {describeAmount(order.quantityDispensed, order.dispenseUnit, order.packSize)}
+              </small>
             )}
             <time>{order.dispensedBy} · {formatDateTime(order.dispensedAt!)}</time>
           </>

@@ -60,9 +60,19 @@ public class PrescriptionOrder {
     /** How much went out, for the day the pharmacy asks what it is running low on. */
     private Integer quantityDispensed;
 
-    /** What that quantity counts — tablets, ml, sachets. */
+    /** What that quantity counts — tablets, bottles, sachets. */
     @Column(length = 30)
     private String dispenseUnit;
+
+    /**
+     * What is inside each one, when the unit is a container rather than a dose: a bottle
+     * of syrup is "1 bottle" and also "100 ml", and neither number is the whole fact.
+     * The count is what the shelf loses; this is what the patient actually gets.
+     *
+     * <p>Empty for things that are their own measure — 15 tablets need no pack size.
+     */
+    @Column(length = 40)
+    private String packSize;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)

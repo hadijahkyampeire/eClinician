@@ -16,6 +16,8 @@ public record PrescriptionResponse(
         String dispensedMedication,
         Integer quantityDispensed,
         String dispenseUnit,
+        /** What is in each container — "100 ml" for a bottle. Null when not a container. */
+        String packSize,
         /** True when the two medicines differ — the record's headline fact. */
         boolean substituted,
         String dispensedBy,
