@@ -12,10 +12,15 @@ import Pharmacy from './pages/Pharmacy'
 import Laboratory from './pages/Laboratory'
 import Staff from './pages/Staff'
 import ClinicSettings from './pages/ClinicSettings'
-import PlatformAdmin from './pages/PlatformAdmin'
+import PlatformLayout from './components/platform/PlatformLayout'
+import Overview from './pages/platform/Overview'
+import Hospitals from './pages/platform/Hospitals'
+import Subscriptions from './pages/platform/Subscriptions'
+import StaffDirectory from './pages/platform/StaffDirectory'
+import PatientCensus from './pages/platform/PatientCensus'
 import Availability from './pages/Availability'
 import Profile from './pages/Profile'
-import type { Role } from './auth/AuthContext'
+import { useAuth, type Role } from './auth/AuthContext'
 
 // Mirrors the @PreAuthorize rules on the API. The server is the one that enforces
 // them; these keep a typed URL from landing on a screen that would only 403.
@@ -33,15 +38,23 @@ export default function App() {
       <Routes>
       <Route path="/login" element={<Login />} />
 
-      {/* Platform super-admin console: no tenant, and no clinical data. */}
+      {/* Platform super-admin console: no tenant, and no clinical data. Its two
+          directories are read-only — the platform runs hospitals, not their records. */}
       <Route
         path="/admin"
         element={
           <ProtectedRoute platformOnly>
-            <PlatformAdmin />
+            <PlatformLayout />
           </ProtectedRoute>
         }
-      />
+      >
+        <Route index element={<Overview />} />
+        <Route path="hospitals" element={<Hospitals />} />
+        <Route path="subscriptions" element={<Subscriptions />} />
+        <Route path="staff" element={<StaffDirectory />} />
+        <Route path="patients" element={<PatientCensus />} />
+        <Route path="profile" element={<Profile />} />
+      </Route>
 
       {/* Clinical app (tenant-scoped) */}
       <Route
@@ -51,7 +64,7 @@ export default function App() {
           </ProtectedRoute>
         }
       >
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/" element={<Home />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/patients" element={
           <ProtectedRoute roles={PATIENT_DIRECTORY}><Patients /></ProtectedRoute>} />
@@ -72,8 +85,14 @@ export default function App() {
           <ProtectedRoute roles={ADMIN}><ClinicSettings /></ProtectedRoute>} />
       </Route>
 
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      <Route path="*" element={<Home />} />
       </Routes>
     </>
   )
+}
+
+/** Whatever you typed, you belong either in a clinic or above all of them. */
+function Home() {
+  const { session } = useAuth()
+  return <Navigate to={session?.isPlatformAdmin ? '/admin' : '/dashboard'} replace />
 }

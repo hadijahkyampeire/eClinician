@@ -1,16 +1,24 @@
-import { MODULES, type Hospital } from '../../types/tenant'
+import { Button, Chip, Stack, Tooltip } from '@mui/material'
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
+import PauseCircleOutlineIcon from '@mui/icons-material/PauseCircleOutlined'
+import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutlined'
+import ModuleChips from './ModuleChips'
+import type { Hospital } from '../../types/tenant'
 
 interface Props {
   hospitals: Hospital[]
   busy: boolean
+  isLoading: boolean
   onEdit: (hospital: Hospital) => void
   onToggleActive: (hospital: Hospital) => void
 }
 
-export default function HospitalTable({ hospitals, busy, onEdit, onToggleActive }: Props) {
-  if (!hospitals.length) {
-    return <p className="appointment-empty">No hospitals onboarded yet.</p>
-  }
+export default function HospitalTable({
+  hospitals, busy, isLoading, onEdit, onToggleActive,
+}: Props) {
+  if (isLoading) return <p className="appointment-empty">Loading hospitals…</p>
+  if (!hospitals.length) return <p className="appointment-empty">No hospitals onboarded yet.</p>
+
   return (
     <div className="table-wrap">
       <table className="patient-table">
@@ -26,22 +34,32 @@ export default function HospitalTable({ hospitals, busy, onEdit, onToggleActive 
                 {hospital.name}
               </td>
               <td><code>{hospital.id}</code></td>
-              <td>{hospital.enabledModules.length === MODULES.length
-                ? 'All modules'
-                : hospital.enabledModules.map((key) =>
-                    MODULES.find((module) => module.key === key)?.label).join(', ') || 'None'}</td>
+              <td><ModuleChips hospital={hospital} /></td>
               <td>
-                <span className={`appointment-status ${hospital.active ? 'completed' : 'cancelled'}`}>
-                  {hospital.active ? 'active' : 'suspended'}
-                </span>
+                <Chip size="small" label={hospital.active ? 'Active' : 'Suspended'}
+                  color={hospital.active ? 'success' : 'default'}
+                  variant={hospital.active ? 'filled' : 'outlined'} />
               </td>
               <td className="table-actions">
-                <button className="link-button" disabled={busy}
-                  onClick={() => onEdit(hospital)}>Edit</button>
-                <button className={`link-button ${hospital.active ? 'danger' : ''}`} disabled={busy}
-                  onClick={() => onToggleActive(hospital)}>
-                  {hospital.active ? 'Suspend' : 'Restore'}
-                </button>
+                <Stack direction="row" spacing={1}>
+                  <Button size="small" variant="outlined" disabled={busy}
+                    startIcon={<EditOutlinedIcon />} onClick={() => onEdit(hospital)}>
+                    Edit
+                  </Button>
+                  <Tooltip title={hospital.active
+                    ? 'Keeps the data, stops its staff signing in'
+                    : 'Lets its staff sign in again'}>
+                    <span>
+                      <Button size="small" variant="outlined" disabled={busy}
+                        color={hospital.active ? 'error' : 'success'}
+                        startIcon={hospital.active
+                          ? <PauseCircleOutlineIcon /> : <PlayCircleOutlineIcon />}
+                        onClick={() => onToggleActive(hospital)}>
+                        {hospital.active ? 'Suspend' : 'Restore'}
+                      </Button>
+                    </span>
+                  </Tooltip>
+                </Stack>
               </td>
             </tr>
           ))}

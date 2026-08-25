@@ -1,0 +1,38 @@
+/* ---------- Platform console ---------- */
+
+/* The overview's hospital rows: identity, size, plan and state, one line each. */
+.rollup-list { display: grid; gap: 10px; }
+
+.rollup {
+  display: grid;
+  grid-template-columns: 12px minmax(11rem, 1.4fr) auto minmax(8rem, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.rollup:hover { border-color: var(--dept-light); }
+.rollup > * { justify-self: start; }
+.rollup-name { display: grid; gap: 2px; min-width: 0; }
+.rollup-name code { font-size: 12px; color: var(--text-muted); }
+
+/* Each count is the way into the directory behind it, filtered to this hospital. */
+.rollup-counts { display: flex; gap: 18px; font-size: 13px; color: var(--text-muted); }
+.rollup-counts a { display: flex; gap: 5px; align-items: baseline; }
+.rollup-counts a:hover { color: var(--dept); }
+.rollup-counts b { font-size: 15px; color: var(--heading); font-variant-numeric: tabular-nums; }
+
+.census-counts { display: flex; gap: 8px; }
+
+.subscription-table th:not(:first-child):not(:last-child),
+.subscription-table td:not(:first-child):not(:last-child) { text-align: center; }
+
+.row-note { display: block; color: var(--text-muted); font-size: 12px; }
+
+@media (max-width: 900px) {
+  .rollup { grid-template-columns: 12px 1fr; row-gap: 10px; }
+  .rollup-counts, .rollup .MuiChip-root { grid-column: 2; }
+}

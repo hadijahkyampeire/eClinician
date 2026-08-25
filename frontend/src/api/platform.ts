@@ -1,10 +1,11 @@
 import { request as send } from './http'
+import type {
+  Hospital, HospitalForm, PlatformPatient, PlatformStaff, PlatformStats,
+} from '../types/tenant'
 
 /** Every call in this module, through the one place that handles expiry. */
 const request = <T>(path: string, options?: RequestInit) =>
   send<T>(path, options, 'Platform request failed')
-import type { Hospital, HospitalForm, PlatformStats } from '../types/tenant'
-
 
 export function getPlatformStats() {
   return request<PlatformStats>('/api/platform/stats')
@@ -38,4 +39,12 @@ export function setHospitalActive(id: string, active: boolean) {
     method: 'POST',
     body: JSON.stringify({ active }),
   })
+}
+
+export function getPlatformStaff() {
+  return request<PlatformStaff[]>('/api/platform/staff')
+}
+
+export function getPlatformPatients() {
+  return request<PlatformPatient[]>('/api/platform/patients')
 }

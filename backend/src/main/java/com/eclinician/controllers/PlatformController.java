@@ -1,8 +1,11 @@
 package com.eclinician.controllers;
 
+import com.eclinician.domains.dtos.PlatformPatientRow;
+import com.eclinician.domains.dtos.PlatformStaffRow;
 import com.eclinician.domains.dtos.PlatformStats;
 import com.eclinician.domains.dtos.TenantRequest;
 import com.eclinician.domains.dtos.TenantResponse;
+import com.eclinician.services.PlatformDirectoryService;
 import com.eclinician.services.TenantService;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -27,9 +30,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class PlatformController {
 
     private final TenantService tenantService;
+    private final PlatformDirectoryService directory;
 
-    public PlatformController(TenantService tenantService) {
+    public PlatformController(TenantService tenantService, PlatformDirectoryService directory) {
         this.tenantService = tenantService;
+        this.directory = directory;
     }
 
     @GetMapping("/stats")
@@ -40,6 +45,18 @@ public class PlatformController {
     @GetMapping("/hospitals")
     public List<TenantResponse> list() {
         return tenantService.list();
+    }
+
+    /** Read-only: who works at each hospital. The platform never edits these accounts. */
+    @GetMapping("/staff")
+    public List<PlatformStaffRow> staff() {
+        return directory.staff();
+    }
+
+    /** Read-only and de-identified: how many patients each hospital carries, not who. */
+    @GetMapping("/patients")
+    public List<PlatformPatientRow> patients() {
+        return directory.patients();
     }
 
     @PostMapping("/hospitals")
