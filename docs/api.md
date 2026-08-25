@@ -109,19 +109,20 @@ Audit fields are never accepted from the client: `dispensedBy`, `resultedBy` and
 `clinicianName` are stamped from the caller's token, so no request can record work under
 someone else's name.
 
-## Roles and dashboards
+## Dashboard counts
 
-One dashboard route renders a different view per role from a lookup table. Navigation is
-filtered twice: by role, and by the modules the tenant subscribes to.
-
-| Role | Sees | Dashboard tiles |
-|---|---|---|
-| Administrator | Everything | Total patients · Appointments today · Open encounters · Clinicians documenting |
-| Clinician | Patients, appointments, records | Waiting now · In session · Open encounters · Finalized today |
-| Receptionist | Patients, appointments | Checked in · Waiting · Appointments today · Registered today |
-| Pharmacist | Pharmacy | Pending · Dispensed today · Unavailable · Finalized today |
-| Lab Technician | Laboratory | Pending tests · Resulted today · Cancelled · Finalized today |
+`GET /api/stats/dashboard` is the one endpoint with no role rule: every role reads its own
+dashboard from it, and it decides what to count from the *token's* role rather than
+anything the caller sends. It is still authenticated and still tenant-scoped.
 
 Every tile counts the same table its screen reads — pharmacy tiles from
 `prescription_orders`, laboratory tiles from `lab_orders` — so a tile and the queue below it
 cannot disagree.
+
+The look-back under each dashboard adds no endpoint of its own. `GET /api/appointments`,
+`/api/encounters`, `/api/lab/orders` and `/api/pharmacy/prescriptions` each already answer
+with the whole history that role is allowed to see, so the date window is applied to what
+came back. At clinic scale that is the cheaper trade — one request serves every period the
+user picks, with no round trip when they change it. A chain of hospitals would push the
+window into the query and page it, which is a `from`/`to` parameter on those four
+endpoints and a repository finder to match.

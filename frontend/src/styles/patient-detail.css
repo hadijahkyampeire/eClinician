@@ -2,7 +2,7 @@
 .detail-back-link {
   display: inline-block;
   margin-bottom: 18px;
-  color: var(--brand);
+  color: var(--dept);
   font-weight: 600;
 }
 .patient-profile-header {
@@ -28,8 +28,8 @@
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background: var(--brand-bg);
-  color: var(--brand);
+  background: var(--dept-bg);
+  color: var(--dept);
   font-size: 20px;
   font-weight: 700;
 }
@@ -41,7 +41,7 @@
 }
 .patient-record-label {
   margin: 0 0 2px;
-  color: var(--brand);
+  color: var(--dept);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -136,7 +136,7 @@
   font-size: 12px;
 }
 .patient-detail-state { padding: 32px; text-align: center; color: var(--text-muted); }
-.patient-detail-state a { color: var(--brand); font-weight: 600; }
+.patient-detail-state a { color: var(--dept); font-weight: 600; }
 .appointment-context {
   display: flex;
   align-items: center;
@@ -146,7 +146,7 @@
   padding: 20px;
 }
 .appointment-context-label {
-  color: var(--brand);
+  color: var(--dept);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -177,8 +177,8 @@
 .appointment-section-heading > span {
   padding: 4px 9px;
   border-radius: 999px;
-  background: var(--brand-bg);
-  color: var(--brand);
+  background: var(--dept-bg);
+  color: var(--dept);
   font-size: 11px;
   font-weight: 700;
 }

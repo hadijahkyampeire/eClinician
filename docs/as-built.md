@@ -1,78 +1,29 @@
-# Requirements — SRS and Use-Case Model
+# The SRS, as built
 
-The authoritative requirements document is the use-case-based SRS written during the
-analysis phase:
+The requirements themselves are the analysis-phase SRS, written before any code:
+**[eClinician-SRS.pdf](srs/eClinician-SRS.pdf)** (also as
+[.docx](srs/eClinician-SRS.docx), with the
+[requirements presentation](srs/eClinician-Requirements-Presentation.pptx) beside it).
+That document is not repeated here.
 
-| Document | File |
-|---|---|
-| **SRS (use-case model + use-case descriptions)** | [srs/eClinician-SRS.pdf](srs/eClinician-SRS.pdf) · [.docx](srs/eClinician-SRS.docx) |
-| Requirements presentation | [srs/eClinician-Requirements-Presentation.pptx](srs/eClinician-Requirements-Presentation.pptx) |
-| Use-case diagram (source) | [diagrams/eclinician-use-case.drawio](diagrams/eclinician-use-case.drawio) |
-
-This page summarizes that model and records **where the built system differs from what was
-specified**, and why.
+This page is the part the PDF cannot contain, because it was written first: what the build
+actually did with each use case, the non-functional requirements the code answers, and the
+places the implementation ended up **stricter** than the specification.
 
 ---
 
-## 1. Actors
+## The use-case model
 
-| Actor | Responsibility (from the SRS) |
-|---|---|
-| **Receptionist** | Registers patients and manages appointments |
-| **Doctor / Clinician** | Records consultations, prescribes, requests labs |
-| **Pharmacist** | Views prescriptions and dispenses medication |
-| **Lab Technician** | Records and reports laboratory results |
-| **Administrator** | Manages system users and their roles |
+The diagram from the SRS, exported from
+[eclinician-use-case.drawio](diagrams/use-case/eclinician-use-case.drawio). The actors'
+responsibilities and the full step-by-step flows, preconditions and postconditions are in
+the [SRS PDF](srs/eClinician-SRS.pdf).
 
-## 2. Use-case model
-
-The diagram below mirrors [eclinician-use-case.drawio](diagrams/eclinician-use-case.drawio)
-so it renders inline on GitHub; the drawio file remains the source.
-
-```mermaid
-graph LR
-    R["Receptionist"]
-    D["Doctor / Clinician"]
-    P["Pharmacist"]
-    L["Lab Technician"]
-    A["Administrator"]
-
-    subgraph eClinician["eClinician System"]
-        UC1(("1. Patient<br/>Management"))
-        UC2(("2. Appointment<br/>Management"))
-        UC3(("3. Medical Record<br/>Management"))
-        UC4(("4. Prescription<br/>Management"))
-        UC5(("5. Laboratory<br/>Management"))
-        UC6(("6. User<br/>Management"))
-    end
-
-    R --- UC1
-    R --- UC2
-    D --- UC3
-    D --- UC4
-    D --- UC5
-    P --- UC4
-    L --- UC5
-    A --- UC6
-```
-
-## 3. Use cases and business rules
-
-| # | Use case | Actors | Basic flows | Key business rules |
-|---|---|---|---|---|
-| 1 | Patient Management | Receptionist | Create · view · update · delete profile | No duplicate patients — identified by patient ID, phone, or national ID/passport. A profile linked to appointments, records or prescriptions cannot be deleted. The national ID field is not editable after creation. |
-| 2 | Appointment Management | Receptionist | Schedule · view · update · cancel | A doctor cannot hold two appointments at the same date and time; no duplicate patient appointments. An appointment that already took place cannot be cancelled. |
-| 3 | Medical Record Management | Doctor / Clinician | Create consultation record · view patient history · update record | Only clinicians create or update records; every record links to an existing patient. |
-| 4 | Prescription Management | Doctor, Pharmacist | Create prescription · view · dispense medication | Only doctors issue prescriptions; only pharmacists dispense. A prescription links to a patient and a consultation. |
-| 5 | Laboratory Management | Doctor, Lab Technician | Create request · view request · record results · view results | Results must link to a request; only lab technicians record results; doctors view their patients' results. |
-| 6 | User Management | Administrator | Create · view · update · delete/deactivate user | No duplicate accounts; email must be unique; users access only role-permitted features. |
-
-Full step-by-step flows, preconditions and postconditions for every basic flow are in the
-[SRS PDF](srs/eClinician-SRS.pdf).
+![Use-case diagram](diagrams/use-case/eclinician-use-case.png)
 
 ---
 
-## 4. As-built: specification against implementation
+## As-built: specification against implementation
 
 Analysis came before any code; the implementation then made its own decisions. Both are
 shown here rather than quietly reconciled.
@@ -91,14 +42,14 @@ shown here rather than quietly reconciled.
 ### Requirement added during implementation
 
 **Multi-tenancy.** The SRS describes one clinic. Every row and every query carries a
-tenant, so one deployment serves many — the argument in [vision.md](vision.md), proven by
+tenant, so one deployment serves many — the argument in the [vision document](vision/eClinician-Vision.pdf), proven by
 `AuthTests`.
 
 **A platform administrator above the six actors.** Selling to many hospitals needs somebody
 who onboards them, sets what each bought, and can suspend one — without reading anyone's
 clinical data. That account holds no tenant, which is what makes the second half true.
 
-## 5. Non-functional requirements
+## Non-functional requirements
 
 Not itemized in the SRS, but the implementation answers them explicitly.
 
