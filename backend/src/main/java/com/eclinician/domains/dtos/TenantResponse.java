@@ -18,7 +18,9 @@ public record TenantResponse(
         String postalCode,
         String country,
         String phone,
-        String email) {
+        String email,
+        /** IANA zone the clinic's rota and dashboards are read in. */
+        String timeZone) {
 
     public static TenantResponse from(Tenant tenant) {
         return new TenantResponse(tenant.getId(), tenant.getName(), tenant.getPrimaryColor(),
@@ -26,6 +28,6 @@ public record TenantResponse(
                 tenant.isActive(), tenant.getCreatedAt(),
                 tenant.getAddressLine(), tenant.getCity(), tenant.getSubdivision(),
                 tenant.getPostalCode(), tenant.getCountry(), tenant.getPhone(),
-                tenant.getEmail());
+                tenant.getEmail(), tenant.getTimeZone());
     }
 }

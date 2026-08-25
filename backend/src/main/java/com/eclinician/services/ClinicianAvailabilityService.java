@@ -47,7 +47,10 @@ public class ClinicianAvailabilityService {
             value.setClinicianId(clinician.getId());
             value.setDayOfWeek(shift.dayOfWeek());
             value.setStartTime(shift.startTime());
-            value.setEndTime(shift.endTime());
+            // A time input offers minutes, so "to midnight" arrives as 23:59 and would
+            // leave that minute uncovered. Closing the day means closing all of it.
+            value.setEndTime(shift.endTime().equals(java.time.LocalTime.of(23, 59))
+                    ? DefaultRota.END_OF_DAY : shift.endTime());
             value.setRoom(shift.room().trim());
             return value;
         }).map(availability::save).toList();

@@ -69,6 +69,15 @@ public class Tenant {
     @Column(length = 254)
     private String email;
 
+    /**
+     * The clinic's own clock. A rota is written in wall-clock time — "the morning shift
+     * is 08:00" — and that means 08:00 *there*. Matching it against the server's timezone
+     * worked only while every hospital shared it; a clinic in Boston would otherwise find
+     * its morning shift running at one in the morning.
+     */
+    @Column(nullable = false, length = 60)
+    private String timeZone = "Africa/Kampala";
+
     /** A suspended hospital keeps its data; nobody there can sign in. */
     @Column(nullable = false)
     private boolean active = true;
@@ -78,6 +87,15 @@ public class Tenant {
     @PrePersist
     void onCreate() {
         createdAt = Instant.now();
+    }
+
+    /** Falls back rather than throwing: a bad zone must not take a hospital offline. */
+    public java.time.ZoneId zone() {
+        try {
+            return java.time.ZoneId.of(timeZone);
+        } catch (RuntimeException invalid) {
+            return java.time.ZoneId.of("Africa/Kampala");
+        }
     }
 
     public List<ClinicModule> moduleList() {

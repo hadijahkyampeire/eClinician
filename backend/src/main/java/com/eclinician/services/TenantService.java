@@ -144,6 +144,15 @@ public class TenantService {
         tenant.setCountry(upperOrNull(request.country()));
         tenant.setPhone(trimToNull(request.phone()));
         tenant.setEmail(trimToNull(request.email()));
+        // An unknown zone would silently send the whole clinic back to the default, so a
+        // blank is "leave it" and anything the JVM does not recognise is refused outright.
+        String zone = trimToNull(request.timeZone());
+        if (zone != null) {
+            if (!java.time.ZoneId.getAvailableZoneIds().contains(zone)) {
+                throw new ConflictException("Unknown time zone: " + zone);
+            }
+            tenant.setTimeZone(zone);
+        }
     }
 
     /** A filter nobody set. Never null — see the note on {@link TenantRepository#search}. */

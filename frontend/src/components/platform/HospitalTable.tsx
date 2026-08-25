@@ -39,7 +39,7 @@ export default function HospitalTable({
                 {hospital.name}
               </td>
               <td><code>{hospital.id}</code></td>
-              <td><HospitalLocation hospital={hospital} /></td>
+              <td><HospitalLocation hospital={hospital} clock={hospital.timeZone} /></td>
               <td><ModuleChips hospital={hospital} /></td>
               <td>
                 <Chip size="small" label={hospital.active ? 'Active' : 'Suspended'}

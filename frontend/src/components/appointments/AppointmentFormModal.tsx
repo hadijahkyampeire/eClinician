@@ -2,7 +2,10 @@ import { useState, type FormEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { MenuItem, TextField } from '@mui/material'
 import { getPatients } from '../../api/patients'
+import dayjs from 'dayjs'
+import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker'
 import { getClinicians } from '../../api/staff'
+import NoClinicianNotice from './NoClinicianNotice'
 import type { Appointment, AppointmentForm } from '../../types/appointment'
 
 interface Props {
@@ -30,6 +33,11 @@ export default function AppointmentFormModal({
     queryFn: () => getClinicians(availableAt),
     enabled: Boolean(availableAt),
   })
+  // The whole roster, so an empty list above can say *why* it is empty: nobody works
+  // here yet, or everybody has taken this hour off.
+  const roster = useQuery({ queryKey: ['clinicians', 'all'], queryFn: () => getClinicians() })
+  const noneAvailable = Boolean(availableAt) && !clinicians.isLoading
+    && clinicians.data?.length === 0
   const set = (field: keyof AppointmentForm, value: string) =>
     setForm((current) => ({ ...current, [field]: value }))
 
@@ -51,17 +59,17 @@ export default function AppointmentFormModal({
         </div>
 
         <form className="appointment-form" onSubmit={handleSubmit}>
-          <label>Patient
-            <select required value={form.patientId} disabled={Boolean(appointment)}
-              onChange={(event) => set('patientId', event.target.value)}>
-              <option value="">Select a patient</option>
-              {patients.data?.map((patient) => (
-                <option key={patient.id} value={patient.id}>
-                  {patient.firstName} {patient.lastName}
-                </option>
-              ))}
-            </select>
-          </label>
+          <TextField select required size="small" fullWidth label="Patient"
+            value={form.patientId} disabled={Boolean(appointment)}
+            slotProps={{ select: { displayEmpty: true }, inputLabel: { shrink: true } }}
+            onChange={(event) => set('patientId', event.target.value)}>
+            <MenuItem value="" disabled>Select a patient</MenuItem>
+            {patients.data?.map((patient) => (
+              <MenuItem key={patient.id} value={patient.id}>
+                {patient.firstName} {patient.lastName}
+              </MenuItem>
+            ))}
+          </TextField>
           <TextField select required size="small" fullWidth label="Doctor"
             value={form.doctorId} onChange={(event) => set('doctorId', event.target.value)}
             helperText={form.scheduledAt
@@ -75,14 +83,20 @@ export default function AppointmentFormModal({
                 </MenuItem>
               ))}
           </TextField>
-          <label>Date and time
-            <input type="datetime-local" required value={form.scheduledAt}
-              onChange={(event) => set('scheduledAt', event.target.value)} />
-          </label>
-          <label>Reason for visit
-            <input value={form.reason} maxLength={500}
-              onChange={(event) => set('reason', event.target.value)} />
-          </label>
+          {noneAvailable && (
+            <NoClinicianNotice roster={roster.data}
+              when={new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' })
+                .format(new Date(form.scheduledAt))} />
+          )}
+          {/* Which clinicians are offered above depends on this, so it is the field the
+              whole form turns on — worth a real calendar rather than the browser's. */}
+          <DateTimePicker label="Date and time" value={dayjs(form.scheduledAt)}
+            slotProps={{ textField: { size: 'small', fullWidth: true, required: true } }}
+            onChange={(value) => set('scheduledAt',
+              value && value.isValid() ? value.format('YYYY-MM-DDTHH:mm') : '')} />
+          <TextField size="small" fullWidth label="Reason for visit" value={form.reason}
+            slotProps={{ htmlInput: { maxLength: 500 } }}
+            onChange={(event) => set('reason', event.target.value)} />
 
           {error && <p className="patient-error">{error}</p>}
           <div className="modal-actions">

@@ -4,9 +4,12 @@ import { Button, TextField } from '@mui/material'
 import { getPrescriptions, updatePrescription } from '../api/pharmacy'
 import { useAuth } from '../auth/AuthContext'
 import ConfirmDialog from '../components/ConfirmDialog'
+import DispenseDialog from '../components/pharmacy/DispenseDialog'
 import RowActions from '../components/RowActions'
 import BlockOutlinedIcon from '@mui/icons-material/BlockOutlined'
-import type { Prescription, PrescriptionStatus } from '../types/pharmacy'
+import SwapHorizOutlinedIcon from '@mui/icons-material/SwapHorizOutlined'
+import { describeAmount } from '../types/pharmacy'
+import type { DispenseForm, Prescription, PrescriptionStatus } from '../types/pharmacy'
 
 const FILTERS: { label: string; value: PrescriptionStatus | 'ALL' }[] = [
   { label: 'Pending', value: 'PENDING' },
@@ -25,6 +28,8 @@ export default function Pharmacy() {
   // so it asks why, and it asks before rather than through a browser prompt.
   const [unavailable, setUnavailable] = useState<Prescription | null>(null)
   const [reason, setReason] = useState('')
+  // Dispensing now records what actually went over the counter, not just that it did.
+  const [dispensing, setDispensing] = useState<Prescription | null>(null)
 
   const { data = [], isLoading } = useQuery({
     queryKey: ['prescriptions', tenantId, filter],
@@ -34,11 +39,12 @@ export default function Pharmacy() {
 
 
   const mutation = useMutation({
-    mutationFn: (input: { id: string; status: 'DISPENSED' | 'UNAVAILABLE'; notes: string }) =>
-      updatePrescription(input.id, { status: input.status, notes: input.notes }),
+    mutationFn: (input: { id: string; form: DispenseForm }) =>
+      updatePrescription(input.id, input.form),
     onSuccess: () => {
       setError('')
       setUnavailable(null)
+      setDispensing(null)
       void queryClient.invalidateQueries({ queryKey: ['prescriptions'] })
       void queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
       void queryClient.invalidateQueries({ queryKey: ['patients'] })
@@ -72,11 +78,17 @@ export default function Pharmacy() {
       {isLoading ? <p className="record-empty">Loading prescriptions...</p>
         : data.length ? <div className="record-list">
             {data.map(order => <PrescriptionRow key={order.id} order={order} busy={mutation.isPending}
-              onDispense={() => mutation.mutate({ id: order.id, status: 'DISPENSED', notes: '' })}
+              onDispense={() => setDispensing(order)}
               onUnavailable={() => askWhy(order)} />)}
           </div>
         : <p className="record-empty">Nothing here. Prescriptions appear when a clinician finalizes an encounter.</p>}
     </section>
+
+    {dispensing && (
+      <DispenseDialog order={dispensing} busy={mutation.isPending} error={error || undefined}
+        onClose={() => setDispensing(null)}
+        onConfirm={form => mutation.mutate({ id: dispensing.id, form })} />
+    )}
 
     {unavailable && (
       <ConfirmDialog
@@ -89,7 +101,8 @@ export default function Pharmacy() {
         busy={mutation.isPending} disabled={!reason.trim()}
         onClose={() => setUnavailable(null)}
         onConfirm={() => mutation.mutate({
-          id: unavailable.id, status: 'UNAVAILABLE', notes: reason.trim() })}>
+          id: unavailable.id,
+          form: { status: 'UNAVAILABLE', notes: reason.trim() } })}>
         <TextField autoFocus fullWidth size="small" label="Why?" value={reason}
           placeholder="Out of stock" required
           onChange={(event) => setReason(event.target.value)} />
@@ -109,12 +122,29 @@ function PrescriptionRow({ order, busy, onDispense, onUnavailable }: {
   return <div className="record-row">
     <div>
       <b>{order.medication}</b>
-      <small>{order.patientName}{order.notes ? ` · ${order.notes}` : ''}</small>
+      <small>{order.patientName}</small>
+      {/* What actually went over the counter, when it is not what was ordered. */}
+      {order.substituted && (
+        <small className="dispensed-instead">
+          <SwapHorizOutlinedIcon fontSize="inherit" /> Dispensed instead:{' '}
+          <b>{order.dispensedMedication}</b>
+        </small>
+      )}
+      {order.notes && <small className="dispense-note">{order.notes}</small>}
     </div>
     <div>
-      <span className={`record-status ${order.status.toLowerCase()}`}>{order.status.toLowerCase()}</span>
+      <span className={`record-status ${order.status.toLowerCase()}`}>
+        {order.status.toLowerCase()}
+      </span>
       {order.status === 'DISPENSED'
-        ? <time>{order.dispensedBy} · {formatDateTime(order.dispensedAt!)}</time>
+        ? <>
+            {order.quantityDispensed != null && (
+              <small>
+                {describeAmount(order.quantityDispensed, order.dispenseUnit, order.packSize)}
+              </small>
+            )}
+            <time>{order.dispensedBy} · {formatDateTime(order.dispensedAt!)}</time>
+          </>
         : <div className="pharmacy-actions">
             {/* Dispensing is the job; refusing it is the exception, so it goes in the menu. */}
             <Button variant="contained" size="small" disabled={busy}

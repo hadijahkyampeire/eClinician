@@ -11,7 +11,7 @@ import com.eclinician.web.NotFoundException;
 import java.util.List;
 import java.util.UUID;
 import java.time.Instant;
-import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -25,12 +25,14 @@ public class StaffService {
     private final UserRepository users;
     private final PasswordEncoder passwords;
     private final ClinicianAvailabilityRepository availability;
+    private final ClinicClock clock;
 
     public StaffService(UserRepository users, PasswordEncoder passwords,
-            ClinicianAvailabilityRepository availability) {
+            ClinicianAvailabilityRepository availability, ClinicClock clock) {
         this.users = users;
         this.passwords = passwords;
         this.availability = availability;
+        this.clock = clock;
     }
 
     public List<StaffResponse> list(String tenantId) {
@@ -45,10 +47,13 @@ public class StaffService {
 
     /** At a booking time, reception sees only clinicians whose published shift covers it. */
     public List<StaffResponse> clinicians(String tenantId, Instant at) {
-        Map<UUID, String> availableRooms = at == null ? null
+        // The shift says 08:00 meaning 08:00 *at that hospital*, so the instant is read
+        // in the clinic's own zone. Reading it in the server's was invisible while every
+        // hospital shared one and wrong the moment they did not.
+        ZonedDateTime local = at == null ? null : at.atZone(clock.zoneOf(tenantId));
+        Map<UUID, String> availableRooms = local == null ? null
                 : availability.findAvailableShifts(tenantId,
-                        at.atZone(ZoneId.systemDefault()).getDayOfWeek(),
-                        at.atZone(ZoneId.systemDefault()).toLocalTime()).stream()
+                        local.getDayOfWeek(), local.toLocalTime()).stream()
                         .collect(Collectors.toMap(
                                 shift -> shift.getClinicianId(), shift -> shift.getRoom(),
                                 (first, ignored) -> first));

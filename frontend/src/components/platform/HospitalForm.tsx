@@ -5,6 +5,7 @@ import {
 import CloseIcon from '@mui/icons-material/Close'
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined'
 import AddBusinessOutlinedIcon from '@mui/icons-material/AddBusinessOutlined'
+import { BROWSER_ZONE } from '../../lib/timeZones'
 import ModulePicker from './ModulePicker'
 import FirstAdminFields from './FirstAdminFields'
 import HospitalAddressFields from './HospitalAddressFields'
@@ -32,6 +33,8 @@ export default function HospitalForm({ hospital, isSaving, error, onClose, onSav
     country: hospital?.country || '',
     phone: hospital?.phone || '',
     email: hospital?.email || '',
+    // A new hospital is usually where the person onboarding it is.
+    timeZone: hospital?.timeZone || BROWSER_ZONE,
     adminName: '', adminEmail: '', adminPassword: '',
   })
   const onboarding = !hospital

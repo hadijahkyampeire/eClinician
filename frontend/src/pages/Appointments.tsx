@@ -18,6 +18,7 @@ import { useAuth } from '../auth/AuthContext'
 import AppointmentFormModal from '../components/appointments/AppointmentFormModal'
 import AppointmentTable from '../components/appointments/AppointmentTable'
 import ConfirmDialog from '../components/ConfirmDialog'
+import DateRangeFields from '../components/DateRangeFields'
 import { PRESETS, covers, describe, type Range } from '../components/dashboard/range'
 import type { Appointment, AppointmentForm, AppointmentStatus } from '../types/appointment'
 
@@ -228,18 +229,8 @@ export default function Appointments() {
               </button>
             ))}
           </div>
-          <div className="lookback-dates">
-            <label>
-              <span>From</span>
-              <input type="date" value={range.from ?? ''} max={range.to || undefined}
-                onChange={e => setRange({ key: 'custom', from: e.target.value || undefined, to: range.to })} />
-            </label>
-            <label>
-              <span>To</span>
-              <input type="date" value={range.to ?? ''} min={range.from || undefined}
-                onChange={e => setRange({ key: 'custom', from: range.from, to: e.target.value || undefined })} />
-            </label>
-          </div>
+          <DateRangeFields from={range.from} to={range.to}
+            onChange={(from, to) => setRange({ key: 'custom', from, to })} />
         </div>
         <AppointmentTable appointments={history} role={role} busy={cancel.isPending}
           onTransition={() => undefined} {...tableActions} />

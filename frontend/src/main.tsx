@@ -1,6 +1,8 @@
 import { StrictMode } from 'react'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { ThemeProvider } from '@mui/material/styles'
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { AuthProvider } from './auth/AuthContext.tsx'
@@ -21,13 +23,16 @@ import App from './App.tsx'
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ThemeProvider theme={theme}>
-      <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <AuthProvider>
-            <App />
-          </AuthProvider>
-        </BrowserRouter>
-      </QueryClientProvider>
+      {/* One date library for every picker in the app; dayjs is the smallest adapter. */}
+      <LocalizationProvider dateAdapter={AdapterDayjs}>
+        <QueryClientProvider client={queryClient}>
+          <BrowserRouter>
+            <AuthProvider>
+              <App />
+            </AuthProvider>
+          </BrowserRouter>
+        </QueryClientProvider>
+      </LocalizationProvider>
     </ThemeProvider>
   </StrictMode>,
 )

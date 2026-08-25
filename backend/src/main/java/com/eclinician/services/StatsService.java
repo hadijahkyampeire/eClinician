@@ -28,10 +28,11 @@ public class StatsService {
     private final LabOrderRepository labOrders;
     private final CheckInExpiry expiry;
     private final UserRepository users;
+    private final ClinicClock clock;
 
     public StatsService(PatientRepository patients, AppointmentRepository appointments,
             EncounterRepository encounters, PrescriptionOrderRepository orders,
-            LabOrderRepository labOrders, CheckInExpiry expiry, UserRepository users) {
+            LabOrderRepository labOrders, CheckInExpiry expiry, UserRepository users, ClinicClock clock) {
         this.patients = patients;
         this.appointments = appointments;
         this.encounters = encounters;
@@ -39,6 +40,7 @@ public class StatsService {
         this.labOrders = labOrders;
         this.expiry = expiry;
         this.users = users;
+        this.clock = clock;
     }
 
     public DashboardStats dashboard(String tenantId) {
@@ -49,8 +51,8 @@ public class StatsService {
         // Clears yesterday's leftovers so the waiting-room tiles count today only.
         expiry.sweep(tenantId);
 
-        // "Today" follows the server clock; set TZ on the host to match the clinic.
-        Instant dayStart = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant();
+        // "Today" starts at midnight where the clinic is, not where the server is.
+        Instant dayStart = clock.startOfToday(tenantId);
         Instant dayEnd = dayStart.plus(1, ChronoUnit.DAYS);
         AppUser clinician = clinicianEmail == null ? null
                 : users.findByEmailIgnoreCase(clinicianEmail)
