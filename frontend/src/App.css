@@ -13,25 +13,49 @@
 }
 
 .availability-card { display: grid; gap: 1.25rem; }
-.availability-list { display: grid; gap: .75rem; }
-.availability-row {
+.availability-list { display: grid; gap: 4px; }
+
+/* A day owns its shifts, so the grouping is visible before you read the times. */
+.availability-day {
   display: grid;
-  grid-template-columns: minmax(9rem, 1fr) 8rem auto 8rem minmax(10rem, 1fr);
-  gap: .75rem;
+  gap: 8px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.availability-day:last-child { border-bottom: 0; }
+
+.availability-day-head {
+  display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
-.availability-row label { font-weight: 600; }
-.availability-row input[type='time'], .availability-row input[type='text'],
-.availability-row input:not([type]) {
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: .65rem .75rem;
+
+.availability-shift {
+  display: grid;
+  grid-template-columns: 8.5rem 8.5rem minmax(10rem, 18rem) auto;
+  justify-content: start;
+  gap: 10px;
+  align-items: center;
+  padding-left: 30px;
 }
+
+.availability-off {
+  margin: 0;
+  padding-left: 30px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
 .availability-message { margin: 0; color: var(--dept-dark); }
+
+/* The card is a grid, so a button in it would otherwise stretch the full width. */
+.availability-card > .MuiButton-root { justify-self: start; }
+
 @media (max-width: 760px) {
-  .availability-row { grid-template-columns: 1fr 1fr; }
-  .availability-row label, .availability-row input:last-child { grid-column: 1 / -1; }
-  .availability-row span { display: none; }
+  .availability-shift { grid-template-columns: 1fr 1fr; padding-left: 0; }
+  .availability-shift > :nth-child(3) { grid-column: 1 / -1; }
+  .availability-off { padding-left: 0; }
 }
 
 /* The illustration behind this card is almost white, so the default grey hairline
