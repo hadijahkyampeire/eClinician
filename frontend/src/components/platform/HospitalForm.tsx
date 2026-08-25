@@ -1,7 +1,13 @@
 import { useState, type FormEvent } from 'react'
-import type { ModuleKey } from '../../auth/AuthContext'
-import { MODULES, type Hospital, type HospitalForm as Form } from '../../types/tenant'
-import PasswordInput from '../PasswordInput'
+import {
+  Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, TextField,
+} from '@mui/material'
+import CloseIcon from '@mui/icons-material/Close'
+import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined'
+import AddBusinessOutlinedIcon from '@mui/icons-material/AddBusinessOutlined'
+import ModulePicker from './ModulePicker'
+import FirstAdminFields from './FirstAdminFields'
+import type { Hospital, HospitalForm as Form } from '../../types/tenant'
 
 interface Props {
   hospital: Hospital | null
@@ -18,19 +24,13 @@ export default function HospitalForm({ hospital, isSaving, error, onClose, onSav
     name: hospital?.name || '',
     primaryColor: hospital?.primaryColor || '#0f766e',
     modules: hospital?.enabledModules || ['patients', 'appointments', 'records'],
-    adminName: '',
-    adminEmail: '',
-    adminPassword: '',
+    adminName: '', adminEmail: '', adminPassword: '',
   })
   const onboarding = !hospital
-  const set = <K extends keyof Form>(field: K, value: Form[K]) =>
-    setForm((current) => ({ ...current, [field]: value }))
+  const update = (patch: Partial<Form>) => setForm((current) => ({ ...current, ...patch }))
 
-  function toggle(module: ModuleKey) {
-    set('modules', form.modules.includes(module)
-      ? form.modules.filter((value) => value !== module)
-      : [...form.modules, module])
-  }
+  const incomplete = !form.name.trim() || !form.id.trim()
+    || (onboarding && !form.adminEmail?.trim())
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault()
@@ -38,72 +38,45 @@ export default function HospitalForm({ hospital, isSaving, error, onClose, onSav
   }
 
   return (
-    <div className="modal-backdrop" role="presentation">
-      <div className="modal-card" role="dialog" aria-modal="true" aria-labelledby="hospital-title">
-        <div className="modal-header">
-          <h3 id="hospital-title">{hospital ? 'Edit hospital' : 'Onboard a hospital'}</h3>
-          <button type="button" className="close-button" onClick={onClose} aria-label="Close">×</button>
-        </div>
+    <Dialog open fullWidth maxWidth="sm" onClose={onClose}
+      slotProps={{ paper: { component: 'form', onSubmit: handleSubmit, sx: { borderRadius: 3 } } }}>
+      <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, pr: 1 }}>
+        {hospital ? 'Edit hospital' : 'Onboard a hospital'}
+        <IconButton aria-label="Close" onClick={onClose} sx={{ ml: 'auto' }}>
+          <CloseIcon />
+        </IconButton>
+      </DialogTitle>
 
-        <form className="appointment-form" onSubmit={handleSubmit}>
-          <label>Hospital name
-            <input required maxLength={150} value={form.name}
-              onChange={(event) => set('name', event.target.value)} />
-          </label>
-          <label>Identifier
-            <input required value={form.id} disabled={Boolean(hospital)}
-              pattern="[a-z0-9]+(-[a-z0-9]+)*"
-              title="Lowercase letters, numbers and hyphens"
-              placeholder="st-marys-hospital"
-              onChange={(event) => set('id', event.target.value)} />
-            <small>{hospital
-              ? 'Fixed: it is written into every row this hospital owns.'
-              : 'Lowercase, hyphenated. It cannot be changed afterwards.'}</small>
-          </label>
-          <label>Brand colour
-            <input type="color" value={form.primaryColor}
-              onChange={(event) => set('primaryColor', event.target.value)} />
-          </label>
+      <DialogContent dividers sx={{ display: 'grid', gap: 2.5 }}>
+        <TextField required autoFocus label="Hospital name" value={form.name}
+          slotProps={{ htmlInput: { maxLength: 150 } }}
+          onChange={(event) => update({ name: event.target.value })} />
+        <TextField required label="Identifier" value={form.id} disabled={Boolean(hospital)}
+          placeholder="st-marys-hospital"
+          slotProps={{ htmlInput: { pattern: '[a-z0-9]+(-[a-z0-9]+)*' } }}
+          helperText={hospital
+            ? 'Fixed: it is written into every row this hospital owns.'
+            : 'Lowercase letters, numbers and hyphens. It cannot be changed afterwards.'}
+          onChange={(event) => update({ id: event.target.value })} />
+        <TextField type="color" label="Brand colour" value={form.primaryColor}
+          slotProps={{ inputLabel: { shrink: true } }}
+          helperText="Every screen at this hospital is drawn from it."
+          onChange={(event) => update({ primaryColor: event.target.value })} />
 
-          <fieldset className="module-toggles">
-            <legend>Subscription</legend>
-            {MODULES.map((module) => (
-              <label key={module.key}>
-                <input type="checkbox" checked={form.modules.includes(module.key)}
-                  onChange={() => toggle(module.key)} />
-                {module.label}
-              </label>
-            ))}
-          </fieldset>
+        <ModulePicker selected={form.modules}
+          onChange={(modules) => update({ modules })} />
+        {onboarding && <FirstAdminFields form={form} onChange={update} />}
 
-          {onboarding && (
-            <fieldset className="module-toggles">
-              <legend>First administrator</legend>
-              <small>
-                They sign in immediately and add the rest of the clinic's staff themselves.
-              </small>
-              <input required maxLength={150} placeholder="Full name" value={form.adminName}
-                onChange={(event) => set('adminName', event.target.value)} />
-              <input required type="email" maxLength={200} placeholder="Email"
-                value={form.adminEmail}
-                onChange={(event) => set('adminEmail', event.target.value)} />
-              <PasswordInput required minLength={8} placeholder="Password (8+ characters)"
-                value={form.adminPassword}
-                onChange={(event) => set('adminPassword', event.target.value)} />
-            </fieldset>
-          )}
+        {error && <p className="patient-error">{error}</p>}
+      </DialogContent>
 
-          {error && <p className="patient-error">{error}</p>}
-          <div className="modal-actions">
-            <button type="button" className="btn ghost" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn"
-              disabled={isSaving || !form.name.trim() || !form.id.trim()
-                || (onboarding && !form.adminEmail?.trim())}>
-              {isSaving ? 'Saving...' : hospital ? 'Save changes' : 'Onboard hospital'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+      <DialogActions sx={{ px: 3, py: 2 }}>
+        <Button onClick={onClose}>Cancel</Button>
+        <Button type="submit" variant="contained" disabled={isSaving || incomplete}
+          startIcon={hospital ? <SaveOutlinedIcon /> : <AddBusinessOutlinedIcon />}>
+          {isSaving ? 'Saving…' : hospital ? 'Save changes' : 'Onboard hospital'}
+        </Button>
+      </DialogActions>
+    </Dialog>
   )
 }

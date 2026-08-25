@@ -94,12 +94,7 @@
   align-items: center;
   gap: 4px;
 }
-.table-actions .MuiButton-root {
-  border-color: rgba(15, 118, 110, 0.35);
-  color: var(--dept);
-  font-weight: 600;
-  text-transform: none;
-}
+
 .danger-menu-item { color: var(--danger) !important; }
 /* Table actions read as icons; the words live in the tooltip. */
 .table-icon { color: var(--dept); }

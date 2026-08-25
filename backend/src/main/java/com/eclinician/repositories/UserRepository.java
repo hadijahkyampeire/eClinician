@@ -19,6 +19,9 @@ public interface UserRepository extends JpaRepository<AppUser, UUID> {
 
     List<AppUser> findByTenantIdOrderByNameAsc(String tenantId);
 
+    /** Every clinical account on the platform, for the platform console's directory. */
+    List<AppUser> findByPlatformAdminFalseOrderByNameAsc();
+
     List<AppUser> findByTenantIdAndRoleAndActiveTrueOrderByNameAsc(String tenantId, UserRole role);
 
     Optional<AppUser> findByIdAndTenantId(UUID id, String tenantId);
