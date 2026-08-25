@@ -43,3 +43,11 @@
 .staff-you { font-weight: 500; color: #64748b; }
 
 .record-row .btn.ghost { padding: 6px 12px; font-size: 12px; }
+
+/* The status and the actions menu share one line, so a row is the same height whether or
+   not it has actions — your own account has none, and used to sit shorter than the rest. */
+.record-row > div.record-row-trailing {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}

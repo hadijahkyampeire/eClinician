@@ -17,6 +17,7 @@ import { getClinicians } from '../api/staff'
 import { useAuth } from '../auth/AuthContext'
 import AppointmentFormModal from '../components/appointments/AppointmentFormModal'
 import AppointmentTable from '../components/appointments/AppointmentTable'
+import ConfirmDialog from '../components/ConfirmDialog'
 import { PRESETS, covers, describe, type Range } from '../components/dashboard/range'
 import type { Appointment, AppointmentForm, AppointmentStatus } from '../types/appointment'
 
@@ -107,9 +108,11 @@ export default function Appointments() {
       await refresh()
     },
   })
+  const [cancelling, setCancelling] = useState<Appointment | null>(null)
+
   const cancel = useMutation({
     mutationFn: (appointment: Appointment) => cancelAppointment(appointment.id),
-    onSuccess: refresh,
+    onSuccess: () => { setCancelling(null); return refresh() },
   })
 
   useEffect(() => {
@@ -126,7 +129,7 @@ export default function Appointments() {
     .filter((appointment) => covers(range, appointment.scheduledAt))
   const error = workflow.error || transition.error || cancel.error || appointmentsQuery.error
   const tableActions = canBook
-    ? { onEdit: setBooking, onCancel: (a: Appointment) => cancel.mutate(a) }
+    ? { onEdit: setBooking, onCancel: setCancelling }
     : {}
 
   return (
@@ -242,6 +245,20 @@ export default function Appointments() {
           onTransition={() => undefined} {...tableActions} />
       </section>
 
+      {cancelling && (
+        <ConfirmDialog
+          title="Cancel this appointment?"
+          message={<>
+            {cancelling.patientName}'s appointment on {describeWhen(cancelling.scheduledAt)}{' '}
+            will be marked cancelled. It stays in the history, and the slot frees up.
+            Rebooking means creating a new appointment.
+          </>}
+          confirmLabel="Cancel appointment" danger
+          busy={cancel.isPending} error={cancel.error?.message}
+          onClose={() => { cancel.reset(); setCancelling(null) }}
+          onConfirm={() => cancel.mutate(cancelling)} />
+      )}
+
       {booking !== undefined && (
         <AppointmentFormModal
           appointment={booking}
@@ -253,4 +270,10 @@ export default function Appointments() {
       )}
     </>
   )
+}
+
+/** The when, in the words the confirmation needs — not the table's compact form. */
+function describeWhen(value: string) {
+  return new Intl.DateTimeFormat('en', { dateStyle: 'full', timeStyle: 'short' })
+    .format(new Date(value))
 }

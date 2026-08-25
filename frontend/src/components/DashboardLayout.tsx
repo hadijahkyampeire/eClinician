@@ -1,4 +1,5 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { Tooltip } from '@mui/material'
 import { useAuth } from '../auth/AuthContext'
 import { navItems } from '../nav'
 import { DEPARTMENTS } from './dashboard/departments'
@@ -40,7 +41,11 @@ export default function DashboardLayout() {
           <Logo />
           <div className="brand-names">
             <span className="brand-product">HK CLINIC</span>
-            {tenant?.name && <span className="brand-tenant">{tenant.name}</span>}
+            {tenant?.name && (
+              <Tooltip title={tenant.name} placement="right">
+                <span className="brand-tenant">{tenant.name}</span>
+              </Tooltip>
+            )}
           </div>
         </div>
 
