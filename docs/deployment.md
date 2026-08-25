@@ -18,7 +18,7 @@
 docker compose up -d   # Postgres on port 5433
 make install           # npm install + mvn install
 make run               # backend on :8080, frontend on :5173
-make test              # backend test suite
+make test              # 60 backend tests
 ```
 
 Open http://localhost:5173 and sign in — the six staff accounts are seeded on first start

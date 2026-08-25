@@ -52,7 +52,7 @@
   text-align: left;
   transition: color 0.15s ease;
 }
-.form-step:hover { color: var(--brand); }
+.form-step:hover { color: var(--dept); }
 .form-step > span {
   flex: 0 0 auto;
   display: grid;
@@ -69,10 +69,10 @@
 .form-step small { display: block; }
 .form-step b { font-size: 13px; }
 .form-step small { font-size: 11px; }
-.form-step.active { color: var(--brand); }
+.form-step.active { color: var(--dept); }
 .form-step.active > span {
-  border-color: var(--brand);
-  background: var(--brand);
+  border-color: var(--dept);
+  background: var(--dept);
   color: #fff;
 }
 .step-arrow { color: var(--text-muted); }
@@ -126,14 +126,14 @@
 }
 .mui-form-grid .MuiInputBase-root.Mui-focused .MuiOutlinedInput-notchedOutline {
   border-width: 1px;
-  border-color: var(--brand-light);
+  border-color: var(--dept-light);
   box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.12);
 }
 .mui-form-grid .MuiInputLabel-root {
   color: var(--text-muted);
   font: inherit;
 }
-.mui-form-grid .MuiInputLabel-root.Mui-focused { color: var(--brand); }
+.mui-form-grid .MuiInputLabel-root.Mui-focused { color: var(--dept); }
 .mui-form-grid .MuiFormHelperText-root {
   min-height: 18px;
   margin: 5px 2px 0;
@@ -205,7 +205,7 @@
 }
 .mui-phone-field .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
   border-width: 1px;
-  border-color: var(--brand-light);
+  border-color: var(--dept-light);
   box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.15);
 }
 .mui-phone-field .MuiInputBase-input {
@@ -247,7 +247,7 @@
 .field > input:focus,
 .field > select:focus,
 .field > textarea:focus {
-  border-color: var(--brand-light);
+  border-color: var(--dept-light);
   box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.15);
 }
 .field.has-error > input,
@@ -268,7 +268,7 @@
   opacity: 0.5;
 }
 .btn:disabled:hover {
-  background: var(--brand);
+  background: var(--dept);
 }
 .modal-actions {
   margin-top: 20px;

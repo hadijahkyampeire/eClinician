@@ -1,4 +1,27 @@
 :root {
+  /* The product's own palette — three cool clinical hues, plus one bridging shade and an
+     ink. The teal is the house colour and the default brand; navy and forest were added so
+     each department can have a colour of its own without leaving the family. These five
+     belong to eClinician and never change; --brand below belongs to the tenant. */
+  --navy: #1e3a8a;
+  --sea: #0369a1;
+  --teal: #0f766e;
+  --forest: #166534;
+  --ink: #1e293b;
+
+  /* The accent the app actually draws with: the signed-in user's department, pulled a
+     quarter of the way towards their hospital's own colour. One accent means the sidebar,
+     the topbar and the page under them can never disagree — and because the tenant's
+     colour is mixed into it, onboarding a hospital still repaints every screen rather
+     than only the buttons. DashboardLayout recomputes this ramp on sign-in; the defaults
+     here are what the login page and anything outside the layout resolve to. */
+  --dept: color-mix(in srgb, var(--teal) 78%, #0f766e);
+  --dept-dark: color-mix(in srgb, var(--dept) 80%, black);
+  --dept-light: color-mix(in srgb, var(--dept) 62%, white);
+  --dept-bg: color-mix(in srgb, var(--dept) 12%, white);
+
+  /* The tenant's own colour. Nothing is drawn straight from it any more except the mark —
+     everywhere else it reaches the screen through --dept above. */
   --brand: #0f766e;
   --brand-dark: #0b5852;
   --brand-light: #14b8a6;
