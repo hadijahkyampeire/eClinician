@@ -42,3 +42,27 @@ export const MODULES: { key: ModuleKey; label: string }[] = [
   { key: 'pharmacy', label: 'Pharmacy' },
   { key: 'laboratory', label: 'Laboratory' },
 ]
+
+/** Mirrors PlatformStaffRow: an account the console can see but never edit. */
+export interface PlatformStaff {
+  id: string
+  name: string
+  email: string
+  roleLabel: string
+  specialty: string | null
+  active: boolean
+  createdAt: string
+  hospitalId: string
+  hospitalName: string
+}
+
+/** Mirrors PlatformPatientRow. De-identified on purpose — a census, not a chart. */
+export interface PlatformPatient {
+  reference: string
+  sex: string | null
+  age: number | null
+  careStatus: string | null
+  registeredAt: string
+  hospitalId: string
+  hospitalName: string
+}

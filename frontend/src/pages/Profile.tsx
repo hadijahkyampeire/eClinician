@@ -57,7 +57,9 @@ export default function Profile() {
     <section className="profile-page">
       <div className="page-header">
         <h2>Your profile</h2>
-        <p>Manage how your account appears to colleagues at {session?.tenant?.name}.</p>
+        <p>{session?.tenant?.name
+          ? `Manage how your account appears to colleagues at ${session.tenant.name}.`
+          : 'Manage how your account appears across the platform.'}</p>
       </div>
 
       {profile.isError && <div className="notice error">Could not load your latest profile.</div>}
@@ -90,7 +92,8 @@ export default function Profile() {
             <small>Your email is your secured login identity. An administrator can change it.</small>
           </label>
           <label>Role
-            <input value={profile.data?.role ?? session?.user.role ?? ''} disabled />
+            <input disabled value={session?.isPlatformAdmin ? 'Platform Super Admin'
+              : profile.data?.role ?? session?.user.role ?? ''} />
           </label>
           <div className="profile-actions">
             <button type="button" className="btn secondary" onClick={() => setChangingPassword(true)}>
