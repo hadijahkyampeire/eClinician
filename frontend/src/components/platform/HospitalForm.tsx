@@ -7,6 +7,7 @@ import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined'
 import AddBusinessOutlinedIcon from '@mui/icons-material/AddBusinessOutlined'
 import ModulePicker from './ModulePicker'
 import FirstAdminFields from './FirstAdminFields'
+import HospitalAddressFields from './HospitalAddressFields'
 import type { Hospital, HospitalForm as Form } from '../../types/tenant'
 
 interface Props {
@@ -24,6 +25,13 @@ export default function HospitalForm({ hospital, isSaving, error, onClose, onSav
     name: hospital?.name || '',
     primaryColor: hospital?.primaryColor || '#0f766e',
     modules: hospital?.enabledModules || ['patients', 'appointments', 'records'],
+    addressLine: hospital?.addressLine || '',
+    city: hospital?.city || '',
+    subdivision: hospital?.subdivision || '',
+    postalCode: hospital?.postalCode || '',
+    country: hospital?.country || '',
+    phone: hospital?.phone || '',
+    email: hospital?.email || '',
     adminName: '', adminEmail: '', adminPassword: '',
   })
   const onboarding = !hospital
@@ -38,7 +46,7 @@ export default function HospitalForm({ hospital, isSaving, error, onClose, onSav
   }
 
   return (
-    <Dialog open fullWidth maxWidth="sm" onClose={onClose}
+    <Dialog open fullWidth maxWidth="md" onClose={onClose}
       slotProps={{ paper: { component: 'form', onSubmit: handleSubmit, sx: { borderRadius: 3 } } }}>
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, pr: 1 }}>
         {hospital ? 'Edit hospital' : 'Onboard a hospital'}
@@ -63,6 +71,7 @@ export default function HospitalForm({ hospital, isSaving, error, onClose, onSav
           helperText="Every screen at this hospital is drawn from it."
           onChange={(event) => update({ primaryColor: event.target.value })} />
 
+        <HospitalAddressFields form={form} onChange={update} />
         <ModulePicker selected={form.modules}
           onChange={(modules) => update({ modules })} />
         {onboarding && <FirstAdminFields form={form} onChange={update} />}

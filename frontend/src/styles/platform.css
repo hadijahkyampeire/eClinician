@@ -17,7 +17,6 @@
 .rollup:hover { border-color: var(--dept-light); }
 .rollup > * { justify-self: start; }
 .rollup-name { display: grid; gap: 2px; min-width: 0; }
-.rollup-name code { font-size: 12px; color: var(--text-muted); }
 
 /* Each count is the way into the directory behind it, filtered to this hospital. */
 .rollup-counts { display: flex; gap: 18px; font-size: 13px; color: var(--text-muted); }
@@ -35,4 +34,50 @@
 @media (max-width: 900px) {
   .rollup { grid-template-columns: 12px 1fr; row-gap: 10px; }
   .rollup-counts, .rollup .MuiChip-root { grid-column: 2; }
+}
+
+/* ---------- Finding a hospital ---------- */
+
+/* The toolbar is the wide half of the section heading; the count chip keeps the other. */
+.hospital-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.hospital-search { min-width: 15rem; }
+.hospital-toolbar .MuiAutocomplete-root { min-width: 14rem; }
+.hospital-toolbar .MuiTextField-root:not(.hospital-search) { min-width: 14rem; }
+
+/* An address that was never recorded says so, rather than leaving the cell blank. */
+.not-recorded { color: var(--text-muted); font-style: italic; font-size: 13px; }
+
+.hospital-location { display: grid; gap: 1px; }
+.hospital-location small { color: var(--text-muted); font-size: 12px; }
+
+/* ---------- Onboarding: where the hospital is ---------- */
+.hospital-address { display: grid; gap: 12px; }
+
+.hospital-address-note {
+  display: block;
+  margin-top: 2px;
+  font-weight: 400;
+  font-size: 12px;
+}
+
+/* Two columns, because the street line is the only field that wants the full width. */
+.hospital-address-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 14px;
+}
+
+.hospital-address-grid > :first-child { grid-column: 1 / -1; }
+
+@media (max-width: 720px) {
+  .hospital-address-grid { grid-template-columns: 1fr; }
+  .hospital-address-grid > :first-child { grid-column: auto; }
 }

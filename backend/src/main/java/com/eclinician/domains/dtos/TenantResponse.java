@@ -11,11 +11,21 @@ public record TenantResponse(
         String primaryColor,
         List<String> enabledModules,
         boolean active,
-        Instant createdAt) {
+        Instant createdAt,
+        String addressLine,
+        String city,
+        String subdivision,
+        String postalCode,
+        String country,
+        String phone,
+        String email) {
 
     public static TenantResponse from(Tenant tenant) {
         return new TenantResponse(tenant.getId(), tenant.getName(), tenant.getPrimaryColor(),
                 tenant.moduleList().stream().map(module -> module.key()).toList(),
-                tenant.isActive(), tenant.getCreatedAt());
+                tenant.isActive(), tenant.getCreatedAt(),
+                tenant.getAddressLine(), tenant.getCity(), tenant.getSubdivision(),
+                tenant.getPostalCode(), tenant.getCountry(), tenant.getPhone(),
+                tenant.getEmail());
     }
 }

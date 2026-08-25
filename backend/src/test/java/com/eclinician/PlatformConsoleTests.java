@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.eclinician.domains.dtos.LoginRequest;
 import com.eclinician.domains.dtos.TenantRequest;
+import com.eclinician.domains.dtos.TenantResponse;
 import com.eclinician.domains.entities.AppUser;
 import com.eclinician.domains.enums.ClinicModule;
 import com.eclinician.domains.enums.UserRole;
@@ -111,6 +112,64 @@ class PlatformConsoleTests {
         assertThatThrownBy(() -> auth.login(new LoginRequest(email, TestAccounts.PASSWORD)))
                 .isInstanceOf(BadCredentialsException.class)
                 .hasMessageContaining("suspended");
+    }
+
+    /**
+     * The address is recorded at onboarding, and the console's three filters read it back
+     * out of the database rather than the browser. Country is matched exactly, subdivision
+     * case-insensitively, and the search covers the slug as well as the name.
+     */
+    @Test
+    void hospitalsAreFoundByNameCountryAndSubdivision() {
+        tenants.create(kampala("mulago-hospital", "Mulago Hospital"));
+        tenants.create(kampala("nsambya-clinic", "Nsambya Clinic"));
+        tenants.create(new TenantRequest("lagos-general", "Lagos General", "#123456",
+                List.of(ClinicModule.PATIENTS), "1 Marina Road", "Lagos", "Lagos", "101001",
+                "ng", "+2348000000000", "front@lagosgeneral.test", null, null, null));
+
+        assertThat(names(tenants.list("mulago", null, null))).containsExactly("Mulago Hospital");
+        // The slug is what every other table carries, so it is searchable too.
+        assertThat(names(tenants.list("nsambya-clinic", null, null)))
+                .containsExactly("Nsambya Clinic");
+        assertThat(names(tenants.list(null, "NG", null))).containsExactly("Lagos General");
+        // Case-insensitive, and it finds the seeded clinic in Kampala alongside these two.
+        assertThat(names(tenants.list(null, null, "kampala")))
+                .contains("Mulago Hospital", "Nsambya Clinic")
+                .doesNotContain("Lagos General");
+        // Filters narrow together: Mulago is in UG/Kampala but does not match the search,
+        // and Lagos General matches neither the country nor the subdivision.
+        assertThat(names(tenants.list("nsambya", "UG", "Kampala")))
+                .containsExactly("Nsambya Clinic");
+        // A blank filter is the same as no filter at all.
+        assertThat(names(tenants.list("   ", null, null))).contains("Mulago Hospital");
+    }
+
+    /** A filter may only offer values a hospital actually has, or it selects nothing. */
+    @Test
+    void theFilterOptionsOnlyOfferPlacesAHospitalIsIn() {
+        tenants.create(kampala("gulu-clinic", "Gulu Clinic"));
+
+        assertThat(tenants.filterOptions(null).countries()).contains("UG").doesNotContain("NG");
+        assertThat(tenants.filterOptions("UG").subdivisions()).contains("Kampala");
+        // Subdivisions follow the country already chosen, so the two cannot contradict.
+        assertThat(tenants.filterOptions("NG").subdivisions()).doesNotContain("Kampala");
+    }
+
+    /** The country is stored upper case, so the filter is a plain equality match. */
+    @Test
+    void theCountryIsNormalisedOnTheWayIn() {
+        assertThat(tenants.create(kampala("jinja-clinic", "Jinja Clinic")).country())
+                .isEqualTo("UG");
+    }
+
+    private static TenantRequest kampala(String id, String name) {
+        return new TenantRequest(id, name, "#0f766e", List.of(ClinicModule.PATIENTS),
+                "Plot 1, Some Road", "Kampala", "Kampala", "P.O. Box 1", "ug",
+                "+256700000001", null, null, null, null);
+    }
+
+    private static List<String> names(List<TenantResponse> hospitals) {
+        return hospitals.stream().map(TenantResponse::name).toList();
     }
 
     /** The seeded platform administrator has no tenant, so it is built here directly. */

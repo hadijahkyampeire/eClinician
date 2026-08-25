@@ -1,6 +1,7 @@
 import { request as send } from './http'
 import type {
-  Hospital, HospitalForm, PlatformPatient, PlatformStaff, PlatformStats,
+  Hospital, HospitalFilterOptions, HospitalFilters, HospitalForm,
+  PlatformPatient, PlatformStaff, PlatformStats,
 } from '../types/tenant'
 
 /** Every call in this module, through the one place that handles expiry. */
@@ -11,8 +12,21 @@ export function getPlatformStats() {
   return request<PlatformStats>('/api/platform/stats')
 }
 
-export function getHospitals() {
-  return request<Hospital[]>('/api/platform/hospitals')
+/** Blank filters are left off the URL entirely — absent and empty mean the same thing. */
+function query(params: Record<string, string | undefined>) {
+  const search = new URLSearchParams()
+  Object.entries(params).forEach(([key, value]) => value?.trim() && search.set(key, value.trim()))
+  return search.toString() ? `?${search}` : ''
+}
+
+/** The narrowing happens in the database; the browser only says what it wants. */
+export function getHospitals(filters?: Partial<HospitalFilters>) {
+  return request<Hospital[]>(`/api/platform/hospitals${query({ ...filters })}`)
+}
+
+export function getHospitalFilterOptions(country?: string) {
+  return request<HospitalFilterOptions>(
+    `/api/platform/hospitals/locations${query({ country })}`)
 }
 
 /** The API takes the module enum names; the UI works in the lowercase keys. */
