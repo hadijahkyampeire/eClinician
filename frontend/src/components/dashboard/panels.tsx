@@ -7,7 +7,7 @@ import { getPrescriptions } from '../../api/pharmacy'
 import { useAuth } from '../../auth/AuthContext'
 import type { Appointment } from '../../types/appointment'
 import { Panel, Row } from './Panel'
-import { atTime, since } from './time'
+import { since } from './time'
 
 // The tiles say how many. These say who — and put the next action on the row.
 
@@ -24,10 +24,6 @@ function byArrival(a: Appointment, b: Appointment) {
     ? value.waitingAt ?? value.checkedInAt ?? value.scheduledAt
     : value.checkedInAt ?? value.scheduledAt
   return queueTime(a).localeCompare(queueTime(b))
-}
-
-function isToday(iso: string) {
-  return new Date(iso).toDateString() === new Date().toDateString()
 }
 
 /** Who is in the clinic right now, longest wait first. */
@@ -74,26 +70,6 @@ export function InTheClinic({ act, first }: {
             ) : null
           }
         />
-      ))}
-    </Panel>
-  )
-}
-
-/** Booked for today and not yet arrived — the front desk's other half. */
-export function BookedToday() {
-  const { data = [] } = useAppointments()
-  const booked = data
-    .filter(a => a.status === 'SCHEDULED' && isToday(a.scheduledAt))
-    .sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt))
-
-  return (
-    <Panel title="Booked for today" count={booked.length} to="/appointments"
-      first={{ label: 'Book an appointment', to: '/appointments' }}
-      empty="Nothing booked for today. Walk-ins do not need one.">
-      {booked.map(visit => (
-        <Row key={visit.id} primary={visit.patientName}
-          secondary={visit.doctorName ?? 'No doctor assigned'}
-          meta={atTime(visit.scheduledAt)} />
       ))}
     </Panel>
   )

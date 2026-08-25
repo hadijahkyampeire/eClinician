@@ -18,7 +18,7 @@
   border-radius: 8px;
 }
 .patient-search .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
-  border-color: var(--brand-light);
+  border-color: var(--dept-light);
   box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.15);
 }
 .search-icon {
@@ -46,7 +46,7 @@
   padding: 0;
   border: 0;
   background: transparent;
-  color: var(--brand);
+  color: var(--dept);
   font: inherit;
   font-weight: 600;
 }
@@ -81,11 +81,11 @@
 }
 .clickable-row:hover,
 .clickable-row:focus-visible {
-  background: var(--brand-bg);
+  background: var(--dept-bg);
   outline: none;
 }
 .patient-name-link {
-  color: var(--brand);
+  color: var(--dept);
   font-weight: 600;
 }
 .patient-name-link:hover { text-decoration: underline; }
@@ -96,13 +96,13 @@
 }
 .table-actions .MuiButton-root {
   border-color: rgba(15, 118, 110, 0.35);
-  color: var(--brand);
+  color: var(--dept);
   font-weight: 600;
   text-transform: none;
 }
 .danger-menu-item { color: var(--danger) !important; }
 /* Table actions read as icons; the words live in the tooltip. */
-.table-icon { color: var(--brand); }
+.table-icon { color: var(--dept); }
 .table-icon.danger { color: var(--danger); }
 .care-status {
   display: inline-flex;
@@ -138,7 +138,7 @@
   padding: 0;
   border: 0;
   background: transparent;
-  color: var(--brand);
+  color: var(--dept);
 }
 .link-button.danger,
 .patient-error { color: var(--danger); }

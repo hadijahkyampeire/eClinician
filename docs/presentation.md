@@ -1,25 +1,8 @@
 # Presentation guide
 
 **Time budget:** 12 minutes of slides, 10–12 minutes of demo, 5–10 minutes of questions.
-The demo itself is [demo.md](demo.md); this page is the frame around it.
-
-## Where each rubric criterion is evidenced
-
-| # | Criterion | Point to |
-|---|---|---|
-| 1 | Vision document | [vision.md](vision.md) |
-| 2 | SRS and use-case model | [srs.md](srs.md) and the [SRS PDF](srs/eClinician-SRS.pdf); §4 compares specification against implementation |
-| 3 | Architecture and UML | [architecture.md](architecture.md) — architecture, ERD, VOPC, sequence, state, collaboration |
-| 4 | Controller layer | `controllers/` — read the tenant, delegate, return a DTO. No rules, no queries |
-| 5 | Service layer | `services/` — open `EncounterService.finalizeEncounter`: the whole visit closes in one transaction |
-| 6 | Repository layer | `repositories/` — Spring Data JPA, every finder tenant-scoped |
-| 7 | Entity and database design | `domains/entities/` and `db/migration/` — Flyway owns the schema, the database holds the foreign keys |
-| 8 | Functional demonstration | [demo.md](demo.md), run live |
-| 9 | Testing | [testing.md](testing.md) — 43 JUnit tests; show `AuthTests` and `RoleAuthorizationTests` |
-| 10 | GitHub and code quality | Branch per feature, reviewed pull requests, package by layer |
-| 11 | Presentation | This page |
-| 12 | Security (extra) | JWT signed server-side, BCrypt hashes, `@PreAuthorize` per endpoint, no key in the source |
-| 13 | Cloud deployment (extra) | [deployment.md](deployment.md) — live on Render |
+The demo itself, and where each artefact lives, are both in the
+[README](../README.md#project-walkthrough); this page is the frame around them.
 
 ## Slide plan — 12 slides
 
@@ -30,13 +13,13 @@ The demo itself is [demo.md](demo.md); this page is the frame around it.
 | 3 | Vision and scope | One role-based platform; five roles, five modules, one tenant per clinic |
 | 4 | Use-case model | Six use cases, five actors — the diagram from the SRS |
 | 5 | Architecture | React SPA → REST API → PostgreSQL, tenant carried in a signed token |
-| 6 | Domain model | The ERD: six tables and the foreign keys the database enforces |
+| 6 | The data tier | The tables the architecture's data tier names, and the foreign keys the database enforces — written out in the Flyway migrations |
 | 7 | The clinical workflow | Check in → waiting → in session → finalize, and what finalize raises |
 | 8 | Design decision: one transaction | Finalization closes the visit and raises both queues, or does none of it |
 | 9 | Design decision: multi-tenancy | The tenant is a token claim, not a header — the caller cannot edit it |
 | 10 | Security | BCrypt, JWT, `@PreAuthorize`, no key in the source |
 | 11 | Testing | What the tests prove, not how many there are |
-| 12 | Specification vs implementation | Where the build differs from the SRS, and why — [srs.md §4](srs.md) |
+| 12 | Specification vs implementation | Where the build differs from the SRS, and why — [as-built.md](as-built.md#as-built-specification-against-implementation) |
 
 Leave slide 12 on screen during questions, so the "what differs and why" table is in front
 of the examiner.
@@ -109,8 +92,9 @@ dispensed. `RoleAuthorizationTests` asserts both halves.
 
 **"What is the weakest part?"**
 Account recovery. A forgotten password still needs the administrator, because a reset link
-means email delivery this system does not have. No lockout after repeated failures, no
-refresh token. All named in [roadmap.md](roadmap.md) rather than hidden.
+means email delivery this system does not have, and there is no lockout after repeated
+failures. Both named in [roadmap.md](roadmap.md) rather than hidden. Session *renewal* is
+built — a rotating refresh token, stored only as a hash — but recovery is not.
 
 **"What would you do next?"**
 Billing — hospitals are onboarded and subscribed, but nothing is priced or metered — then

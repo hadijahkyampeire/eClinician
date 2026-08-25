@@ -17,6 +17,7 @@ import { getClinicians } from '../api/staff'
 import { useAuth } from '../auth/AuthContext'
 import AppointmentFormModal from '../components/appointments/AppointmentFormModal'
 import AppointmentTable from '../components/appointments/AppointmentTable'
+import { PRESETS, covers, describe, type Range } from '../components/dashboard/range'
 import type { Appointment, AppointmentForm, AppointmentStatus } from '../types/appointment'
 
 const activeStatuses: AppointmentStatus[] = ['CHECKED_IN', 'WAITING', 'IN_SESSION']
@@ -29,6 +30,9 @@ export default function Appointments() {
   const [booking, setBooking] = useState<Appointment | null | undefined>(undefined)
   const [confirmation, setConfirmation] = useState('')
   const [checkInDoctorId, setCheckInDoctorId] = useState('')
+  // History opens on the last week rather than today: the reason to be on this table at
+  // all is usually a visit that has already happened.
+  const [range, setRange] = useState<Range>({ key: 'last7' })
   const patientId = params.get('patientId')
   const action = params.get('action')
   const tenantId = session?.tenant?.id
@@ -117,8 +121,9 @@ export default function Appointments() {
   const appointments = appointmentsQuery.data ?? []
   const active = appointments.filter((appointment) =>
     activeStatuses.includes(appointment.status))
-  const history = appointments.filter((appointment) =>
-    !activeStatuses.includes(appointment.status))
+  const history = appointments
+    .filter((appointment) => !activeStatuses.includes(appointment.status))
+    .filter((appointment) => covers(range, appointment.scheduledAt))
   const error = workflow.error || transition.error || cancel.error || appointmentsQuery.error
   const tableActions = canBook
     ? { onEdit: setBooking, onCancel: (a: Appointment) => cancel.mutate(a) }
@@ -205,6 +210,32 @@ export default function Appointments() {
           <div>
             <h3>Appointment history</h3>
             <p>Booked, completed and cancelled appointments remain available.</p>
+          </div>
+          <span>{history.length} in {describe(range)}</span>
+        </div>
+
+        <div className="lookback-filter">
+          <div className="lookback-presets" role="group" aria-label="Period">
+            {PRESETS.map(preset => (
+              <button key={preset.key} type="button"
+                className={`chip${range.key === preset.key ? ' on' : ''}`}
+                aria-pressed={range.key === preset.key}
+                onClick={() => setRange({ key: preset.key })}>
+                {preset.label}
+              </button>
+            ))}
+          </div>
+          <div className="lookback-dates">
+            <label>
+              <span>From</span>
+              <input type="date" value={range.from ?? ''} max={range.to || undefined}
+                onChange={e => setRange({ key: 'custom', from: e.target.value || undefined, to: range.to })} />
+            </label>
+            <label>
+              <span>To</span>
+              <input type="date" value={range.to ?? ''} min={range.from || undefined}
+                onChange={e => setRange({ key: 'custom', from: range.from, to: e.target.value || undefined })} />
+            </label>
           </div>
         </div>
         <AppointmentTable appointments={history} role={role} busy={cancel.isPending}

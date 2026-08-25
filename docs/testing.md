@@ -4,7 +4,7 @@
 make test        # or: cd backend && ./mvnw test
 ```
 
-**51 tests, all green.** They run against in-memory H2, so CI needs no database, and they
+**60 tests, all green.** They run against in-memory H2, so CI needs no database, and they
 point at the service layer where every rule lives.
 
 ## What each test proves
@@ -15,14 +15,16 @@ point at the service layer where every rule lives.
 | `PatientRuleTests` | 6 | The SRS patient rules: no shared phone or national ID inside one clinic, the same number is fine in another clinic, an update does not collide with itself, a patient with visits cannot be deleted, and the national ID cannot be changed after registration |
 | `PlatformConsoleTests` | 6 | The console is closed to a hospital administrator, the platform administrator cannot read a patient, onboarding decides what a hospital's staff see, an identifier cannot be reused, and suspending a hospital stops its staff signing in |
 | `RefreshTokenTests` | 8 | A session can be continued without the password: signing in hands back both tokens, a refresh token buys a fresh pair and is spent doing so, a replayed token ends every session the account holds, signing out stops renewal, and a deactivated account cannot renew its way past being closed |
-| `AuthTests` | 4 | Login, credential rejection, a closed API, and tenant isolation |
+| `AuthTests` | 7 | Login, credential rejection, a closed API, tenant isolation, a clinician having no patient directory, and a user editing only their own profile — with a non-image rejected |
 | `StaffManagementTests` | 4 | An administrator adds an account that can then sign in, deactivating it stops the login, an email is unique, and an administrator cannot deactivate themselves |
 | `AppointmentSchedulingTests` | 3 | The SRS scheduling rules: one doctor cannot hold two appointments at a time, cancelling frees the slot, and a visit that has taken place cannot be cancelled |
 | `PasswordChangeTests` | 3 | The owner changes their own password and signs in with it, the current password is required, and the new one must differ |
 | `SummaryDraftingTests` | 3 | Without a key the summarizer reports itself off rather than failing, and an empty encounter is refused before anything would be sent — no test calls a model API |
 | `EncounterServiceTests` | 2 | A draft finalizes and completes its visit; finalization is refused without a diagnosis and plan, and a finalized record is locked |
 | `ClinicalEncounterFlowTests` | 1 | The whole loop over HTTP: log in → check in → start session → document → finalize → result the lab order |
-| `AppointmentServiceTests` | 1 | Completing a visit clears the patient's care status while the appointment history survives |
+| `AppointmentServiceTests` | 2 | Completing a visit clears the patient's care status while the appointment history survives |
+| `StaleCheckInTests` | 3 | A check-in left open overnight is settled as a no-show rather than blocking the patient forever: it frees them, it stops blocking today's booking, and arriving again today starts a fresh visit |
+| `ClinicianAvailabilityTests` | 2 | Published weekly hours drive the receptionist's dropdown for that hospital only, and a shift cannot end before it starts |
 | `BackendApplicationTests` | 1 | The Spring context loads — every bean wires |
 
 ## The three worth showing

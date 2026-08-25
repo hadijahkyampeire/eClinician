@@ -48,11 +48,16 @@ export default function Login() {
   return (
     <div className="login-wrap">
       <form className="login-card" onSubmit={handleSubmit}>
+        {/* The same mark, wordmark and second line as the sidebar, so signing in does not
+            hand you a differently-branded product than the one behind it. */}
         <div className="brand">
-          <Logo size={40} />
-          <h1>HK CLINIC</h1>
+          <Logo size={44} />
+          <div className="brand-names">
+            <span className="brand-product">HK CLINIC</span>
+            <span className="brand-tenant">Clinical Management System</span>
+          </div>
         </div>
-        <p className="subtitle">Sign in to your clinical workspace</p>
+        <p className="subtitle">Sign in to continue</p>
 
         {expiredNotice && !error && (
           <p className="form-error" role="status">
