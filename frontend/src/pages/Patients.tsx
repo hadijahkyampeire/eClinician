@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import { useAuth } from '../auth/AuthContext'
+import ConfirmDialog from '../components/ConfirmDialog'
 import PatientFormModal from '../components/patients/PatientFormModal'
 import PatientPageControls from '../components/patients/PatientPageControls'
 import PatientTable from '../components/patients/PatientTable'
@@ -39,9 +41,20 @@ export default function Patients() {
     closeForm()
   }
 
-  async function removePatient(patient: Patient) {
-    const confirmed = window.confirm(`Delete ${patient.firstName} ${patient.lastName}?`)
-    if (confirmed) await deletePatient(patient.id)
+  // window.confirm cannot say what deleting a patient actually costs, and it cannot be
+  // styled, focused or tested like the rest of the app. This can.
+  const [deleting, setDeleting] = useState<Patient | null>(null)
+  const [deleteError, setDeleteError] = useState('')
+
+  async function confirmDelete() {
+    if (!deleting) return
+    try {
+      setDeleteError('')
+      await deletePatient(deleting.id)
+      setDeleting(null)
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : 'Could not delete this patient')
+    }
   }
 
   return (
@@ -50,8 +63,21 @@ export default function Patients() {
         onSearch={setSearch} onFilters={setFilters} onAdd={openNewForm}>
         {error && <p className="patient-error">{error.message}</p>}
         <PatientTable patients={patients} isLoading={isLoading}
-          onEdit={openEditForm} onDelete={removePatient} />
+          onEdit={openEditForm} onDelete={setDeleting} />
       </PatientPageControls>
+
+      {deleting && (
+        <ConfirmDialog
+          title={`Delete ${deleting.firstName} ${deleting.lastName}?`}
+          message={<>
+            Their record and everything filed under it — visits, prescriptions, lab
+            results — go with them. This cannot be undone.
+          </>}
+          confirmLabel="Delete patient" danger
+          busy={isSaving} error={deleteError}
+          onClose={() => { setDeleteError(''); setDeleting(null) }}
+          onConfirm={confirmDelete} />
+      )}
 
       {formOpen && (
         <PatientFormModal

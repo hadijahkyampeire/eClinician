@@ -1,11 +1,12 @@
 import type { Patient } from '../../types/patient'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthContext'
-import { useState, type MouseEvent } from 'react'
-import { Button, IconButton, Menu, MenuItem, Tooltip } from '@mui/material'
-import MoreVertIcon from '@mui/icons-material/MoreVert'
+import { Button } from '@mui/material'
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlined'
 import LoginOutlinedIcon from '@mui/icons-material/LoginOutlined'
 import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutlined'
+import RowActions from '../RowActions'
 
 interface PatientTableProps {
   patients: Patient[]
@@ -119,12 +120,7 @@ function PatientActions({
   onDelete: (patient: Patient) => void
   onWorkflow: (action: 'check-in' | 'start-session') => void
 }) {
-  const [anchor, setAnchor] = useState<HTMLElement | null>(null)
-
-  function openMenu(event: MouseEvent<HTMLButtonElement>) {
-    event.stopPropagation()
-    setAnchor(event.currentTarget)
-  }
+  const name = `${patient.firstName} ${patient.lastName}`
 
   return (
     <>
@@ -137,23 +133,12 @@ function PatientActions({
             onWorkflow('start-session')
           }}>Start session</Button>
       )}
-      <Tooltip title="Patient actions">
-        <IconButton size="small" aria-label={`Actions for ${patient.firstName} ${patient.lastName}`}
-          onClick={openMenu}>
-          <MoreVertIcon fontSize="small" />
-        </IconButton>
-      </Tooltip>
-      <Menu anchorEl={anchor} open={Boolean(anchor)} onClose={() => setAnchor(null)}
-        onClick={(event) => event.stopPropagation()}>
-        <MenuItem onClick={() => {
-          setAnchor(null)
-          onEdit(patient)
-        }}>Edit patient</MenuItem>
-        <MenuItem className="danger-menu-item" onClick={() => {
-          setAnchor(null)
-          onDelete(patient)
-        }}>Delete patient</MenuItem>
-      </Menu>
+      <RowActions label={`Actions for ${name}`} actions={[
+        { label: 'Edit patient', icon: <EditOutlinedIcon fontSize="small" />,
+          onClick: () => onEdit(patient) },
+        { label: 'Delete patient', danger: true, icon: <DeleteOutlineIcon fontSize="small" />,
+          onClick: () => onDelete(patient) },
+      ]} />
     </>
   )
 }

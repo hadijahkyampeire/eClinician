@@ -1,7 +1,10 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { TextField } from '@mui/material'
 import { getLabOrders, updateLabOrder } from '../api/lab'
 import { useAuth } from '../auth/AuthContext'
+import ConfirmDialog from '../components/ConfirmDialog'
+import LabRow from '../components/lab/LabRow'
 import type { LabOrder, LabStatus } from '../types/lab'
 
 const FILTERS: { label: string; value: LabStatus | 'ALL' }[] = [
@@ -17,6 +20,11 @@ export default function Laboratory() {
   const tenantId = session?.tenant?.id
   const [filter, setFilter] = useState<LabStatus | 'ALL'>('PENDING')
   const [error, setError] = useState('')
+  // Both of these used to be window.prompt. A clinical result typed into a browser prompt
+  // cannot be validated, laid out, or read back before it is saved.
+  const [resulting, setResulting] = useState<LabOrder | null>(null)
+  const [cancelling, setCancelling] = useState<LabOrder | null>(null)
+  const [text, setText] = useState('')
 
   const { data = [], isLoading } = useQuery({
     queryKey: ['lab-orders', tenantId, filter],
@@ -29,6 +37,8 @@ export default function Laboratory() {
       updateLabOrder(input.id, { status: input.status, result: input.result, notes: input.notes }),
     onSuccess: () => {
       setError('')
+      setResulting(null)
+      setCancelling(null)
       void queryClient.invalidateQueries({ queryKey: ['lab-orders'] })
       void queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
     },
@@ -37,16 +47,14 @@ export default function Laboratory() {
     },
   })
 
-  function recordResult(order: LabOrder) {
-    const result = window.prompt(`Result for ${order.testName}`, order.result || '')
-    if (result === null || !result.trim()) return
-    mutation.mutate({ id: order.id, status: 'COMPLETED', result, notes: '' })
+  function openResult(order: LabOrder) {
+    setText(order.result || '')
+    setResulting(order)
   }
 
-  function cancel(order: LabOrder) {
-    const notes = window.prompt('Why can this test not be run?', order.notes || 'No reagent')
-    if (notes === null) return
-    mutation.mutate({ id: order.id, status: 'CANCELLED', result: '', notes })
+  function openCancel(order: LabOrder) {
+    setText(order.notes || '')
+    setCancelling(order)
   }
 
   return (
@@ -67,34 +75,42 @@ export default function Laboratory() {
         {isLoading ? <p className="record-empty">Loading lab orders...</p>
           : data.length ? <div className="record-list">
               {data.map(order => <LabRow key={order.id} order={order} busy={mutation.isPending}
-                onResult={() => recordResult(order)} onCancel={() => cancel(order)} />)}
+                onResult={() => openResult(order)} onCancel={() => openCancel(order)} />)}
             </div>
           : <p className="record-empty">Nothing here. Lab orders appear when a clinician finalizes an encounter.</p>}
       </section>
+
+      {resulting && (
+        <ConfirmDialog
+          title={`Result for ${resulting.testName}`}
+          message={<>Recorded against {resulting.patientName}, under your name.</>}
+          confirmLabel="Save result"
+          busy={mutation.isPending} disabled={!text.trim()}
+          onClose={() => setResulting(null)}
+          onConfirm={() => mutation.mutate({
+            id: resulting.id, status: 'COMPLETED', result: text.trim(), notes: '' })}>
+          <TextField autoFocus fullWidth multiline minRows={2} size="small" required
+            label="Result" value={text} onChange={(event) => setText(event.target.value)} />
+        </ConfirmDialog>
+      )}
+
+      {cancelling && (
+        <ConfirmDialog
+          title="Cancel this test?"
+          message={<>
+            <b>{cancelling.testName}</b> for {cancelling.patientName} will not be run. The
+            clinician who ordered it sees your reason instead of a result.
+          </>}
+          confirmLabel="Cancel test" danger
+          busy={mutation.isPending} disabled={!text.trim()}
+          onClose={() => setCancelling(null)}
+          onConfirm={() => mutation.mutate({
+            id: cancelling.id, status: 'CANCELLED', result: '', notes: text.trim() })}>
+          <TextField autoFocus fullWidth size="small" required label="Why?"
+            placeholder="No reagent" value={text}
+            onChange={(event) => setText(event.target.value)} />
+        </ConfirmDialog>
+      )}
     </>
   )
-}
-
-function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
-}
-
-function LabRow({ order, busy, onResult, onCancel }: {
-  order: LabOrder; busy: boolean; onResult: () => void; onCancel: () => void
-}) {
-  return <div className="record-row">
-    <div>
-      <b>{order.testName}</b>
-      <small>{order.patientName}{order.result ? ` · ${order.result}` : order.notes ? ` · ${order.notes}` : ''}</small>
-    </div>
-    <div>
-      <span className={`record-status ${order.status.toLowerCase()}`}>{order.status.toLowerCase()}</span>
-      {order.status === 'COMPLETED'
-        ? <time>{order.resultedBy} · {formatDateTime(order.resultedAt!)}</time>
-        : <div className="pharmacy-actions">
-            <button className="btn" disabled={busy} onClick={onResult}>Record result</button>
-            <button className="btn ghost" disabled={busy} onClick={onCancel}>Cancel</button>
-          </div>}
-    </div>
-  </div>
 }

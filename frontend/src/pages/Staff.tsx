@@ -1,7 +1,10 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Button } from '@mui/material'
 import { createStaff, getStaff, setStaffActive } from '../api/staff'
+import ConfirmDialog from '../components/ConfirmDialog'
 import StaffForm from '../components/staff/StaffForm'
+import StaffRow from '../components/staff/StaffRow'
 import { useAuth } from '../auth/AuthContext'
 import type { Staff as StaffMember, StaffForm as Form } from '../types/staff'
 
@@ -9,6 +12,7 @@ export default function Staff() {
   const { session } = useAuth()
   const queryClient = useQueryClient()
   const [adding, setAdding] = useState(false)
+  const [deactivating, setDeactivating] = useState<StaffMember | null>(null)
   const [error, setError] = useState('')
 
   const { data = [], isLoading } = useQuery({
@@ -28,7 +32,7 @@ export default function Staff() {
 
   const activeMutation = useMutation({
     mutationFn: (input: { id: string; active: boolean }) => setStaffActive(input.id, input.active),
-    onSuccess: () => { setError(''); void refresh() },
+    onSuccess: () => { setError(''); setDeactivating(null); void refresh() },
     onError: fail,
   })
 
@@ -36,7 +40,9 @@ export default function Staff() {
     <>
       <div className="page-header appointment-page-header">
         <div><h2>Staff</h2><p>Accounts for this facility</p></div>
-        {!adding && <button className="btn" onClick={() => setAdding(true)}>Add staff member</button>}
+        {!adding && <Button variant="contained" onClick={() => setAdding(true)}>
+          Add staff member
+        </Button>}
       </div>
 
       {adding && <StaffForm busy={addMutation.isPending}
@@ -51,29 +57,24 @@ export default function Staff() {
               {data.map(member => <StaffRow key={member.id} member={member}
                 busy={activeMutation.isPending}
                 isSelf={member.email === session?.user.email}
-                onToggle={() => activeMutation.mutate({ id: member.id, active: !member.active })} />)}
+                onDeactivate={() => setDeactivating(member)}
+                onRestore={() => activeMutation.mutate({ id: member.id, active: true })} />)}
             </div>
           : <p className="record-empty">No accounts yet.</p>}
       </section>
+
+      {deactivating && (
+        <ConfirmDialog
+          title={`Deactivate ${deactivating.name}?`}
+          message={<>
+            They will not be able to sign in. Everything they have already recorded stays
+            in the patient's history, under their name. You can restore the account later.
+          </>}
+          confirmLabel="Deactivate" danger
+          busy={activeMutation.isPending}
+          onClose={() => setDeactivating(null)}
+          onConfirm={() => activeMutation.mutate({ id: deactivating.id, active: false })} />
+      )}
     </>
   )
-}
-
-function StaffRow({ member, busy, isSelf, onToggle }: {
-  member: StaffMember; busy: boolean; isSelf: boolean; onToggle: () => void
-}) {
-  return <div className="record-row">
-    <div>
-      <b>{member.name}{isSelf && <span className="staff-you"> · you</span>}</b>
-      <small>{member.email} · {member.specialty || member.roleLabel}</small>
-    </div>
-    <div>
-      <span className={`record-status ${member.active ? 'dispensed' : 'unavailable'}`}>
-        {member.active ? 'active' : 'deactivated'}
-      </span>
-      {!isSelf && <button className="btn ghost" disabled={busy} onClick={onToggle}>
-        {member.active ? 'Deactivate' : 'Restore'}
-      </button>}
-    </div>
-  </div>
 }

@@ -1,7 +1,8 @@
-import { Button, Chip, Stack, Tooltip } from '@mui/material'
+import { Button, Chip, Stack } from '@mui/material'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import PauseCircleOutlineIcon from '@mui/icons-material/PauseCircleOutlined'
 import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutlined'
+import RowActions from '../RowActions'
 import ModuleChips from './ModuleChips'
 import HospitalLocation from './HospitalLocation'
 import type { Hospital } from '../../types/tenant'
@@ -46,24 +47,22 @@ export default function HospitalTable({
                   variant={hospital.active ? 'filled' : 'outlined'} />
               </td>
               <td className="table-actions">
-                <Stack direction="row" spacing={1}>
+                {/* Editing is safe and common, so it stays on the row. Suspending locks
+                    a whole hospital's staff out, so it goes behind the menu. */}
+                <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
                   <Button size="small" variant="outlined" disabled={busy}
                     startIcon={<EditOutlinedIcon />} onClick={() => onEdit(hospital)}>
                     Edit
                   </Button>
-                  <Tooltip title={hospital.active
-                    ? 'Keeps the data, stops its staff signing in'
-                    : 'Lets its staff sign in again'}>
-                    <span>
-                      <Button size="small" variant="outlined" disabled={busy}
-                        color={hospital.active ? 'error' : 'success'}
-                        startIcon={hospital.active
-                          ? <PauseCircleOutlineIcon /> : <PlayCircleOutlineIcon />}
-                        onClick={() => onToggleActive(hospital)}>
-                        {hospital.active ? 'Suspend' : 'Restore'}
-                      </Button>
-                    </span>
-                  </Tooltip>
+                  <RowActions label={`Actions for ${hospital.name}`} actions={[{
+                    label: hospital.active ? 'Suspend hospital' : 'Restore hospital',
+                    danger: hospital.active,
+                    disabled: busy,
+                    icon: hospital.active
+                      ? <PauseCircleOutlineIcon fontSize="small" />
+                      : <PlayCircleOutlineIcon fontSize="small" />,
+                    onClick: () => onToggleActive(hospital),
+                  }]} />
                 </Stack>
               </td>
             </tr>

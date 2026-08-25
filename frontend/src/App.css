@@ -181,13 +181,23 @@
   letter-spacing: 0.02em;
 }
 
+/* A clinic can be called "Kigezi Community Health Centre" and one line will not hold it.
+   Two lines usually will — and where they do not, the tooltip carries the rest, so the
+   name is always reachable without the sidebar growing to fit the longest tenant. */
 .brand-tenant {
   color: var(--text-muted);
   font-size: 12.5px;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
+
+/* The login card shows the product's own strapline here, which always fits on one. */
+.login-card .brand-tenant { -webkit-line-clamp: 1; line-clamp: 1; }
 
 .nav {
   display: flex;

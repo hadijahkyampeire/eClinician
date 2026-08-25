@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { IconButton, Tooltip } from '@mui/material'
+import RowActions from '../RowActions'
 import HourglassEmptyOutlinedIcon from '@mui/icons-material/HourglassEmptyOutlined'
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
@@ -70,11 +71,14 @@ export default function AppointmentTable({
                     <EditOutlinedIcon fontSize="small" />
                   </IconAction>
                 )}
+                {/* Cancelling is the one action here that undoes a booking, so it sits
+                    behind the menu rather than a click away from Edit. */}
                 {desk && onCancel && editable.includes(appointment.status) && (
-                  <IconAction title="Cancel appointment" danger disabled={busy}
-                    onClick={() => onCancel(appointment)}>
-                    <EventBusyOutlinedIcon fontSize="small" />
-                  </IconAction>
+                  <RowActions label={`Actions for ${appointment.patientName}`} actions={[{
+                    label: 'Cancel appointment', danger: true, disabled: busy,
+                    icon: <EventBusyOutlinedIcon fontSize="small" />,
+                    onClick: () => onCancel(appointment),
+                  }]} />
                 )}
               </td>
             </tr>
