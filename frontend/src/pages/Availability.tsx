@@ -1,33 +1,30 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Button } from '@mui/material'
 import { getMyAvailability, saveMyAvailability } from '../api/availability'
 import { useAuth } from '../auth/AuthContext'
+import AvailabilityDay from '../components/availability/AvailabilityDay'
+import { DAYS } from '../components/availability/days'
 import type { AvailabilityShift, Weekday } from '../types/availability'
 
-const DAYS: { value: Weekday; label: string }[] = [
-  { value: 'MONDAY', label: 'Monday' }, { value: 'TUESDAY', label: 'Tuesday' },
-  { value: 'WEDNESDAY', label: 'Wednesday' }, { value: 'THURSDAY', label: 'Thursday' },
-  { value: 'FRIDAY', label: 'Friday' }, { value: 'SATURDAY', label: 'Saturday' },
-  { value: 'SUNDAY', label: 'Sunday' },
-]
-
-const defaultShift = (dayOfWeek: Weekday): AvailabilityShift => ({
-  dayOfWeek, startTime: '08:00', endTime: '17:00', room: '',
-})
-
+/**
+ * A clinician's own rota. Reception can only book a doctor whose shift covers the time,
+ * so this page is what makes them bookable — and everyone starts published, which means
+ * the job here is usually taking hours *away* rather than adding them.
+ */
 export default function Availability() {
   const { session } = useAuth()
   const tenantId = session?.tenant?.id
   const queryClient = useQueryClient()
   const [shifts, setShifts] = useState<AvailabilityShift[]>([])
   const [message, setMessage] = useState('')
+
   const query = useQuery({
     queryKey: ['availability', tenantId], queryFn: getMyAvailability,
     enabled: Boolean(tenantId),
   })
 
   useEffect(() => {
-    // Copy the server rota into the editable local form once it arrives.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (query.data) setShifts(query.data.map(value => ({ ...value })))
   }, [query.data])
@@ -35,48 +32,48 @@ export default function Availability() {
   const mutation = useMutation({
     mutationFn: saveMyAvailability,
     onSuccess: async data => {
-      setShifts(data); setMessage('Weekly availability published.')
+      setShifts(data)
+      setMessage('Weekly availability published.')
       await queryClient.invalidateQueries({ queryKey: ['clinicians'] })
     },
     onError: () => setMessage('Could not save availability.'),
   })
 
-  function toggle(day: Weekday, enabled: boolean) {
-    setShifts(current => enabled
-      ? [...current, defaultShift(day)]
-      : current.filter(value => value.dayOfWeek !== day))
-  }
+  const forDay = (day: Weekday) => shifts.filter(shift => shift.dayOfWeek === day)
+  const replaceDay = (day: Weekday, next: AvailabilityShift[]) =>
+    setShifts(current => [...current.filter(shift => shift.dayOfWeek !== day), ...next])
 
-  function change(day: Weekday, field: 'startTime' | 'endTime' | 'room', value: string) {
-    setShifts(current => current.map(shift =>
-      shift.dayOfWeek === day ? { ...shift, [field]: value } : shift))
-  }
+  // The server sends HH:mm:ss and a time input gives HH:mm, so both are cut to HH:mm
+  // before they are compared — otherwise "14:00" reads as earlier than "14:00:00".
+  const incomplete = shifts.some(shift =>
+    !shift.room.trim() || shift.endTime.slice(0, 5) <= shift.startTime.slice(0, 5))
 
-  return <>
-    <div className="page-header"><h2>Weekly availability</h2>
-      <p>Publish the hours and consultation room reception may book.</p></div>
-    <section className="card availability-card">
-      {query.isLoading ? <p>Loading availability…</p> : <div className="availability-list">
-        {DAYS.map(day => {
-          const shift = shifts.find(value => value.dayOfWeek === day.value)
-          return <div className="availability-row" key={day.value}>
-            <label><input type="checkbox" checked={Boolean(shift)}
-              onChange={event => toggle(day.value, event.target.checked)} /> {day.label}</label>
-            <input type="time" disabled={!shift} value={shift?.startTime?.slice(0, 5) || '08:00'}
-              onChange={event => change(day.value, 'startTime', event.target.value)} />
-            <span>to</span>
-            <input type="time" disabled={!shift} value={shift?.endTime?.slice(0, 5) || '17:00'}
-              onChange={event => change(day.value, 'endTime', event.target.value)} />
-            <input disabled={!shift} placeholder="Consultation room" value={shift?.room || ''}
-              onChange={event => change(day.value, 'room', event.target.value)} />
+  return (
+    <>
+      <div className="page-header">
+        <h2>Weekly availability</h2>
+        <p>
+          The hours and consultation room reception may book. Remove a shift to make
+          yourself unavailable for it; clear a whole day to take it off.
+        </p>
+      </div>
+
+      <section className="card availability-card">
+        {query.isLoading ? <p>Loading availability…</p> : (
+          <div className="availability-list">
+            {DAYS.map(day => (
+              <AvailabilityDay key={day.value} day={day} shifts={forDay(day.value)}
+                onChange={next => replaceDay(day.value, next)} />
+            ))}
           </div>
-        })}
-      </div>}
-      {message && <p className="availability-message" role="status">{message}</p>}
-      <button className="btn" disabled={mutation.isPending || shifts.some(s => !s.room.trim())}
-        onClick={() => mutation.mutate(shifts)}>
-        {mutation.isPending ? 'Publishing…' : 'Publish availability'}
-      </button>
-    </section>
-  </>
+        )}
+
+        {message && <p className="availability-message" role="status">{message}</p>}
+        <Button variant="contained" disabled={mutation.isPending || incomplete}
+          onClick={() => mutation.mutate(shifts)}>
+          {mutation.isPending ? 'Publishing…' : 'Publish availability'}
+        </Button>
+      </section>
+    </>
+  )
 }

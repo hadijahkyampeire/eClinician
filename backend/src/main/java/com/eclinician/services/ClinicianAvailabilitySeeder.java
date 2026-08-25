@@ -1,17 +1,14 @@
 package com.eclinician.services;
 
 import com.eclinician.domains.entities.AppUser;
-import com.eclinician.domains.entities.ClinicianAvailability;
 import com.eclinician.repositories.ClinicianAvailabilityRepository;
 import com.eclinician.repositories.UserRepository;
-import java.time.DayOfWeek;
-import java.time.LocalTime;
 import java.util.Map;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
-/** Gives the demo specialists a published Monday-Friday rota. */
+/** Gives the demo specialists the clinic's standard rota, each in their own room. */
 @Component
 @Order(3)
 public class ClinicianAvailabilitySeeder implements CommandLineRunner {
@@ -39,18 +36,9 @@ public class ClinicianAvailabilitySeeder implements CommandLineRunner {
                 .ifPresent(user -> seedWeek(user, room)));
     }
 
+    /** The same three shifts every other clinician gets — only the room differs. */
     private void seedWeek(AppUser clinician, String room) {
         if (availability.existsByTenantIdAndClinicianId(TENANT, clinician.getId())) return;
-        for (DayOfWeek day : new DayOfWeek[] {DayOfWeek.MONDAY, DayOfWeek.TUESDAY,
-                DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY}) {
-            ClinicianAvailability shift = new ClinicianAvailability();
-            shift.setTenantId(TENANT);
-            shift.setClinicianId(clinician.getId());
-            shift.setDayOfWeek(day);
-            shift.setStartTime(LocalTime.of(8, 0));
-            shift.setEndTime(LocalTime.of(17, 0));
-            shift.setRoom(room);
-            availability.save(shift);
-        }
+        availability.saveAll(DefaultRota.forClinician(TENANT, clinician.getId(), room));
     }
 }

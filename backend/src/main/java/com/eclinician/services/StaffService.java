@@ -74,7 +74,14 @@ public class StaffService {
         user.setEmail(email);
         user.setPasswordHash(passwords.encode(request.password()));
         apply(request, user);
-        return StaffResponse.from(users.save(user));
+        AppUser saved = users.save(user);
+        // A doctor nobody can book is not on the rota yet. Give them the clinic's hours
+        // now rather than waiting for them to sign in and publish their own.
+        if (saved.getRole() == UserRole.CLINICIAN
+                && !availability.existsByTenantIdAndClinicianId(tenantId, saved.getId())) {
+            availability.saveAll(DefaultRota.forClinician(tenantId, saved.getId(), null));
+        }
+        return StaffResponse.from(saved);
     }
 
     @Transactional
