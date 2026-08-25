@@ -67,8 +67,16 @@ public class PharmacyService {
             throw new ConflictException("A prescription cannot be moved back to pending");
         }
         value.setStatus(request.status());
-        value.setNotes(request.notes());
+        value.setNotes(trimToNull(request.notes()));
         if (request.status() == PrescriptionStatus.DISPENSED) {
+            // An empty box means "the medicine as prescribed". Recording that explicitly
+            // beats leaving it null, so nobody later has to guess whether a blank meant
+            // "same" or "nobody filled it in".
+            String handedOver = trimToNull(request.dispensedMedication());
+            value.setDispensedMedication(handedOver == null ? value.getMedication() : handedOver);
+            value.setQuantityDispensed(request.quantityDispensed());
+            value.setDispenseUnit(request.quantityDispensed() == null
+                    ? null : unitOrDefault(request.dispenseUnit()));
             value.setDispensedBy(pharmacistName);
             value.setDispensedAt(Instant.now());
         }
@@ -102,9 +110,23 @@ public class PharmacyService {
         String patientName = patients.findByIdAndTenantId(value.getPatientId(), tenantId)
                 .map(patient -> patient.getFirstName() + " " + patient.getLastName())
                 .orElse("Unknown patient");
+        String handedOver = value.getDispensedMedication();
+        boolean substituted = handedOver != null
+                && !handedOver.equalsIgnoreCase(value.getMedication());
         return new PrescriptionResponse(value.getId(), value.getPatientId(), patientName,
                 value.getEncounterId(), value.getMedication(), value.getStatus(),
-                value.getDispensedBy(), value.getDispensedAt(), value.getNotes(),
-                value.getCreatedAt());
+                handedOver, value.getQuantityDispensed(), value.getDispenseUnit(),
+                substituted, value.getDispensedBy(), value.getDispensedAt(),
+                value.getNotes(), value.getCreatedAt());
+    }
+
+    private static String trimToNull(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    /** A count with no unit is half a fact, so one is assumed rather than left blank. */
+    private static String unitOrDefault(String unit) {
+        String trimmed = trimToNull(unit);
+        return trimmed == null ? "tablets" : trimmed;
     }
 }

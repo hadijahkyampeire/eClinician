@@ -21,3 +21,16 @@
 .record-status.pending { background: #fffbeb; color: #b45309; }
 .record-status.dispensed { background: #ecfdf5; color: #047857; }
 .record-status.unavailable { background: #fef2f2; color: #b91c1c; }
+
+/* The amount and the unit sit together; neither means much alone. */
+.dispense-amount { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+/* A substitution is the one thing on this row you must not miss. */
+.dispensed-instead {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #b45309 !important;
+}
+.dispensed-instead b { color: inherit; }
+.dispense-note { font-style: italic; }

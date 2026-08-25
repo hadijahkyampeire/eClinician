@@ -113,9 +113,14 @@ class ClinicalEncounterFlowTests {
                         mapper.readTree(prescriptionBody).get(0).get("id").asText())
                         .header("Authorization", pharmacist)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"status\":\"DISPENSED\",\"notes\":\"\"}"))
+                        .content("{\"status\":\"DISPENSED\",\"quantityDispensed\":24,"
+                                + "\"dispenseUnit\":\"tablets\",\"notes\":\"\"}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("DISPENSED"));
+                .andExpect(jsonPath("$.status").value("DISPENSED"))
+                // Dispensed as prescribed, and the amount that left the shelf.
+                .andExpect(jsonPath("$.dispensedMedication").value("Artemether/lumefantrine"))
+                .andExpect(jsonPath("$.substituted").value(false))
+                .andExpect(jsonPath("$.quantityDispensed").value(24));
 
         org.assertj.core.api.Assertions.assertThat(
                 patients.findById(patient.getId()).orElseThrow().getActiveCareStatus())

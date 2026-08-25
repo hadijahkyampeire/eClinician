@@ -51,17 +51,17 @@ export default function AppointmentFormModal({
         </div>
 
         <form className="appointment-form" onSubmit={handleSubmit}>
-          <label>Patient
-            <select required value={form.patientId} disabled={Boolean(appointment)}
-              onChange={(event) => set('patientId', event.target.value)}>
-              <option value="">Select a patient</option>
-              {patients.data?.map((patient) => (
-                <option key={patient.id} value={patient.id}>
-                  {patient.firstName} {patient.lastName}
-                </option>
-              ))}
-            </select>
-          </label>
+          <TextField select required size="small" fullWidth label="Patient"
+            value={form.patientId} disabled={Boolean(appointment)}
+            slotProps={{ select: { displayEmpty: true }, inputLabel: { shrink: true } }}
+            onChange={(event) => set('patientId', event.target.value)}>
+            <MenuItem value="" disabled>Select a patient</MenuItem>
+            {patients.data?.map((patient) => (
+              <MenuItem key={patient.id} value={patient.id}>
+                {patient.firstName} {patient.lastName}
+              </MenuItem>
+            ))}
+          </TextField>
           <TextField select required size="small" fullWidth label="Doctor"
             value={form.doctorId} onChange={(event) => set('doctorId', event.target.value)}
             helperText={form.scheduledAt
@@ -75,14 +75,15 @@ export default function AppointmentFormModal({
                 </MenuItem>
               ))}
           </TextField>
-          <label>Date and time
-            <input type="datetime-local" required value={form.scheduledAt}
-              onChange={(event) => set('scheduledAt', event.target.value)} />
-          </label>
-          <label>Reason for visit
-            <input value={form.reason} maxLength={500}
-              onChange={(event) => set('reason', event.target.value)} />
-          </label>
+          {/* A date input is never visually empty — the browser draws its own
+              placeholder — so the label is pinned open rather than overlapping it. */}
+          <TextField type="datetime-local" required size="small" fullWidth
+            label="Date and time" value={form.scheduledAt}
+            slotProps={{ inputLabel: { shrink: true } }}
+            onChange={(event) => set('scheduledAt', event.target.value)} />
+          <TextField size="small" fullWidth label="Reason for visit" value={form.reason}
+            slotProps={{ htmlInput: { maxLength: 500 } }}
+            onChange={(event) => set('reason', event.target.value)} />
 
           {error && <p className="patient-error">{error}</p>}
           <div className="modal-actions">

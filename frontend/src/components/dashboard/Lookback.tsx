@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import DateRangeFields from '../DateRangeFields'
 import { PRESETS, describe, type Range } from './range'
 
 /**
@@ -44,18 +45,7 @@ export function Lookback({ title, blurb, range, onRange, count, empty, head, chi
           ))}
         </div>
         {/* Leave one side empty for an open-ended window; set both the same for one day. */}
-        <div className="lookback-dates">
-          <label>
-            <span>From</span>
-            <input type="date" value={range.from ?? ''} max={range.to || undefined}
-              onChange={event => custom(event.target.value || undefined, range.to)} />
-          </label>
-          <label>
-            <span>To</span>
-            <input type="date" value={range.to ?? ''} min={range.from || undefined}
-              onChange={event => custom(range.from, event.target.value || undefined)} />
-          </label>
-        </div>
+        <DateRangeFields from={range.from} to={range.to} onChange={custom} />
       </div>
 
       {count === 0 ? (

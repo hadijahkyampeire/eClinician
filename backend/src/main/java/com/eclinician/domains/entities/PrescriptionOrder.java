@@ -42,8 +42,27 @@ public class PrescriptionOrder {
     @Column(nullable = false)
     private UUID encounterId;
 
+    /** What the clinician prescribed, as they wrote it. Never overwritten. */
     @Column(nullable = false, length = 500)
     private String medication;
+
+    /**
+     * What the pharmacist actually handed over. Usually the same medicine; sometimes an
+     * equivalent, when the prescribed one is out of stock and the clinician has agreed to
+     * the swap over the phone. Kept apart from {@link #medication} so the record shows
+     * both — what was ordered and what the patient walked out with.
+     *
+     * <p>Null until the medicine is dispensed.
+     */
+    @Column(length = 500)
+    private String dispensedMedication;
+
+    /** How much went out, for the day the pharmacy asks what it is running low on. */
+    private Integer quantityDispensed;
+
+    /** What that quantity counts — tablets, ml, sachets. */
+    @Column(length = 30)
+    private String dispenseUnit;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -54,7 +73,10 @@ public class PrescriptionOrder {
 
     private Instant dispensedAt;
 
-    /** Why it was unavailable, or what was substituted. */
+    /**
+     * The pharmacist's note: why it was unavailable, why a substitute was given, or that
+     * the patient must get the rest of the course from another pharmacy.
+     */
     @Column(length = 500)
     private String notes;
 
