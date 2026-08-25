@@ -17,6 +17,8 @@ export interface HospitalAddress {
   country: string | null
   phone: string | null
   email: string | null
+  /** IANA zone. Rota hours and every "today" at this clinic are read in it. */
+  timeZone: string
 }
 
 /** Mirrors TenantResponse: a hospital as the platform console sees it. */
@@ -42,6 +44,7 @@ export interface HospitalForm {
   country: string
   phone: string
   email: string
+  timeZone: string
   /** Only sent when onboarding: the hospital's first administrator. */
   adminName?: string
   adminEmail?: string

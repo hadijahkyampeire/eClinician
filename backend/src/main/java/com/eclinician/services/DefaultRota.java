@@ -21,11 +21,21 @@ import java.util.UUID;
  */
 final class DefaultRota {
 
-    /** The clinic day, in three. */
+    /**
+     * The last minute of the day, as an end time.
+     *
+     * <p>A shift matches on {@code start <= t < end}, so an end of 00:00 sorts before its
+     * own start and matches nothing, and an end of 23:59 leaves the 23:59 minute itself
+     * uncovered. 23:59:59 closes the day with no gap a booking can fall into.
+     */
+    static final LocalTime END_OF_DAY = LocalTime.of(23, 59, 59);
+
+    /** The clinic day, in four — round the clock, until a clinician takes hours off. */
     static final List<LocalTime[]> SHIFTS = List.of(
+            new LocalTime[] {LocalTime.MIDNIGHT, LocalTime.of(8, 0)},
             new LocalTime[] {LocalTime.of(8, 0), LocalTime.of(14, 0)},
             new LocalTime[] {LocalTime.of(14, 0), LocalTime.of(20, 0)},
-            new LocalTime[] {LocalTime.of(20, 0), LocalTime.of(23, 59)});
+            new LocalTime[] {LocalTime.of(20, 0), END_OF_DAY});
 
     /** Until someone says otherwise, every clinician is a consulting room. */
     static final String DEFAULT_ROOM = "Consulting room";

@@ -37,6 +37,12 @@ public record TenantRequest(
         @Size(max = 30) String phone,
         @Email @Size(max = 254) String email,
 
+        /**
+         * The clinic's own clock, as an IANA zone — "Africa/Kampala", "America/New_York".
+         * Rota hours and every "today" are read in it. Blank keeps the current value.
+         */
+        @Size(max = 60) String timeZone,
+
         // Onboarding a hospital that nobody can sign in to is onboarding nothing, so the
         // console creates its first administrator in the same step. Ignored on update.
         @Size(max = 150) String adminName,
@@ -47,7 +53,7 @@ public record TenantRequest(
     public TenantRequest(String id, String name, String primaryColor,
             List<ClinicModule> modules) {
         this(id, name, primaryColor, modules, null, null, null, null, null, null, null,
-                null, null, null);
+                null, null, null, null);
     }
 
     /** Onboarding, before anyone thought to record where the hospital is. */
@@ -55,6 +61,6 @@ public record TenantRequest(
             List<ClinicModule> modules, String adminName, String adminEmail,
             String adminPassword) {
         this(id, name, primaryColor, modules, null, null, null, null, null, null, null,
-                adminName, adminEmail, adminPassword);
+                null, adminName, adminEmail, adminPassword);
     }
 }

@@ -30,12 +30,14 @@ public class CheckInExpiry {
 
     private final AppointmentRepository appointments;
     private final PatientRepository patients;
+    private final ClinicClock clock;
     private final TransactionTemplate cleanupTransaction;
 
     public CheckInExpiry(AppointmentRepository appointments, PatientRepository patients,
-            PlatformTransactionManager transactionManager) {
+            ClinicClock clock, PlatformTransactionManager transactionManager) {
         this.appointments = appointments;
         this.patients = patients;
+        this.clock = clock;
         this.cleanupTransaction = new TransactionTemplate(transactionManager);
         this.cleanupTransaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
     }
@@ -56,8 +58,8 @@ public class CheckInExpiry {
     }
 
     private void expireStaleCheckIns(String tenantId) {
-        // "Today" follows the server clock; set TZ on the host to match the clinic.
-        Instant dayStart = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant();
+        // "Today" starts at midnight where the clinic is, not where the server is.
+        Instant dayStart = clock.startOfToday(tenantId);
         List<Appointment> stale = appointments
                 .findByTenantIdAndStatusInAndCheckedInAtBefore(tenantId, ARRIVED, dayStart);
 

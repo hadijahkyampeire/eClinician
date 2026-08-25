@@ -125,7 +125,8 @@ class PlatformConsoleTests {
         tenants.create(kampala("nsambya-clinic", "Nsambya Clinic"));
         tenants.create(new TenantRequest("lagos-general", "Lagos General", "#123456",
                 List.of(ClinicModule.PATIENTS), "1 Marina Road", "Lagos", "Lagos", "101001",
-                "ng", "+2348000000000", "front@lagosgeneral.test", null, null, null));
+                "ng", "+2348000000000", "front@lagosgeneral.test", "Africa/Lagos",
+                null, null, null));
 
         assertThat(names(tenants.list("mulago", null, null))).containsExactly("Mulago Hospital");
         // The slug is what every other table carries, so it is searchable too.
@@ -162,10 +163,37 @@ class PlatformConsoleTests {
                 .isEqualTo("UG");
     }
 
+    /**
+     * The clinic's clock is what its rota hours mean, so a typo in it would quietly move
+     * every shift. Better to refuse the onboarding than to accept a zone and ignore it.
+     */
+    @Test
+    void aHospitalCarriesItsOwnTimeZoneAndAnUnknownOneIsRefused() {
+        assertThat(tenants.create(kampala("kla-clinic", "Kampala Clinic")).timeZone())
+                .isEqualTo("Africa/Kampala");
+
+        assertThatThrownBy(() -> tenants.create(new TenantRequest(
+                "nowhere-clinic", "Nowhere", "#123456", List.of(ClinicModule.PATIENTS),
+                null, null, null, null, null, null, null, "Mars/Olympus_Mons",
+                null, null, null)))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("Unknown time zone");
+    }
+
+    /** Left blank, a hospital keeps the zone it already had. */
+    @Test
+    void aBlankTimeZoneLeavesItAlone() {
+        tenants.create(kampala("keep-zone-clinic", "Keep Zone"));
+
+        assertThat(tenants.update("keep-zone-clinic", new TenantRequest(
+                "keep-zone-clinic", "Renamed", "#123456", List.of(ClinicModule.PATIENTS)))
+                .timeZone()).isEqualTo("Africa/Kampala");
+    }
+
     private static TenantRequest kampala(String id, String name) {
         return new TenantRequest(id, name, "#0f766e", List.of(ClinicModule.PATIENTS),
                 "Plot 1, Some Road", "Kampala", "Kampala", "P.O. Box 1", "ug",
-                "+256700000001", null, null, null, null);
+                "+256700000001", null, "Africa/Kampala", null, null, null);
     }
 
     private static List<String> names(List<TenantResponse> hospitals) {

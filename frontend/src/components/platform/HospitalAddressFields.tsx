@@ -1,5 +1,7 @@
 import { FormLabel, TextField } from '@mui/material'
+import { Autocomplete, TextField as MuiTextField } from '@mui/material'
 import CountrySelect from '../CountrySelect'
+import { TIME_ZONES, timeIn, zoneLabel } from '../../lib/timeZones'
 import type { HospitalForm as Form } from '../../types/tenant'
 
 /**
@@ -35,6 +37,15 @@ export default function HospitalAddressFields({ form, onChange }: {
         {field('postalCode', 'Postal code', 20)}
         <CountrySelect size="small" value={form.country}
           onChange={(code) => onChange({ country: code })} />
+        {/* Not cosmetic: the rota says 08:00 meaning 08:00 here, and the dashboards'
+            "today" starts at midnight here. */}
+        <Autocomplete size="small" options={TIME_ZONES} value={form.timeZone || null}
+          getOptionLabel={zoneLabel}
+          onChange={(_, zone) => onChange({ timeZone: zone ?? '' })}
+          renderInput={(params) => <MuiTextField {...params} label="Time zone"
+            helperText={form.timeZone
+              ? `It is ${timeIn(form.timeZone)} there now`
+              : 'Sets the clinic\'s rota hours and what "today" means'} />} />
         {field('phone', 'Phone', 30)}
         {field('email', 'Contact email', 254)}
       </div>

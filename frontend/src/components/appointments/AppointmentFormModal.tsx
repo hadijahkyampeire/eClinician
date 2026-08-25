@@ -2,7 +2,10 @@ import { useState, type FormEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { MenuItem, TextField } from '@mui/material'
 import { getPatients } from '../../api/patients'
+import dayjs from 'dayjs'
+import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker'
 import { getClinicians } from '../../api/staff'
+import NoClinicianNotice from './NoClinicianNotice'
 import type { Appointment, AppointmentForm } from '../../types/appointment'
 
 interface Props {
@@ -30,6 +33,11 @@ export default function AppointmentFormModal({
     queryFn: () => getClinicians(availableAt),
     enabled: Boolean(availableAt),
   })
+  // The whole roster, so an empty list above can say *why* it is empty: nobody works
+  // here yet, or everybody has taken this hour off.
+  const roster = useQuery({ queryKey: ['clinicians', 'all'], queryFn: () => getClinicians() })
+  const noneAvailable = Boolean(availableAt) && !clinicians.isLoading
+    && clinicians.data?.length === 0
   const set = (field: keyof AppointmentForm, value: string) =>
     setForm((current) => ({ ...current, [field]: value }))
 
@@ -75,12 +83,17 @@ export default function AppointmentFormModal({
                 </MenuItem>
               ))}
           </TextField>
-          {/* A date input is never visually empty — the browser draws its own
-              placeholder — so the label is pinned open rather than overlapping it. */}
-          <TextField type="datetime-local" required size="small" fullWidth
-            label="Date and time" value={form.scheduledAt}
-            slotProps={{ inputLabel: { shrink: true } }}
-            onChange={(event) => set('scheduledAt', event.target.value)} />
+          {noneAvailable && (
+            <NoClinicianNotice roster={roster.data}
+              when={new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' })
+                .format(new Date(form.scheduledAt))} />
+          )}
+          {/* Which clinicians are offered above depends on this, so it is the field the
+              whole form turns on — worth a real calendar rather than the browser's. */}
+          <DateTimePicker label="Date and time" value={dayjs(form.scheduledAt)}
+            slotProps={{ textField: { size: 'small', fullWidth: true, required: true } }}
+            onChange={(value) => set('scheduledAt',
+              value && value.isValid() ? value.format('YYYY-MM-DDTHH:mm') : '')} />
           <TextField size="small" fullWidth label="Reason for visit" value={form.reason}
             slotProps={{ htmlInput: { maxLength: 500 } }}
             onChange={(event) => set('reason', event.target.value)} />

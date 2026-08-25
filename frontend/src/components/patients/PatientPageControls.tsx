@@ -1,5 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react'
+import dayjs from 'dayjs'
 import { Autocomplete, Button, MenuItem, TextField } from '@mui/material'
+import { DatePicker } from '@mui/x-date-pickers/DatePicker'
 import TuneOutlinedIcon from '@mui/icons-material/TuneOutlined'
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined'
 import { getCountries, type CountryCode } from 'libphonenumber-js'
@@ -98,20 +100,22 @@ export default function PatientPageControls({
             <TextField size="small" label="Government ID" value={filters.nationalId}
               placeholder="Search ID or passport number"
               onChange={(event) => change('nationalId', event.target.value)} />
-            <TextField size="small" type="date" label="Born from"
-              value={filters.dobFrom} onChange={(event) => change('dobFrom', event.target.value)}
-              slotProps={{ inputLabel: { shrink: true } }} />
-            <TextField size="small" type="date" label="Born to"
-              value={filters.dobTo} onChange={(event) => change('dobTo', event.target.value)}
-              slotProps={{ inputLabel: { shrink: true } }} />
-            <TextField size="small" type="date" label="Enrolled from"
-              value={filters.enrolledFrom}
-              onChange={(event) => change('enrolledFrom', event.target.value)}
-              slotProps={{ inputLabel: { shrink: true } }} />
-            <TextField size="small" type="date" label="Enrolled to"
-              value={filters.enrolledTo}
-              onChange={(event) => change('enrolledTo', event.target.value)}
-              slotProps={{ inputLabel: { shrink: true } }} />
+            <DatePicker label="Born from" value={filters.dobFrom ? dayjs(filters.dobFrom) : null}
+              slotProps={{ textField: { size: 'small' }, field: { clearable: true } }}
+              onChange={(value) => change('dobFrom',
+                value && value.isValid() ? value.format('YYYY-MM-DD') : '')} />
+            <DatePicker label="Born to" value={filters.dobTo ? dayjs(filters.dobTo) : null}
+              slotProps={{ textField: { size: 'small' }, field: { clearable: true } }}
+              onChange={(value) => change('dobTo',
+                value && value.isValid() ? value.format('YYYY-MM-DD') : '')} />
+            <DatePicker label="Enrolled from" value={filters.enrolledFrom ? dayjs(filters.enrolledFrom) : null}
+              slotProps={{ textField: { size: 'small' }, field: { clearable: true } }}
+              onChange={(value) => change('enrolledFrom',
+                value && value.isValid() ? value.format('YYYY-MM-DD') : '')} />
+            <DatePicker label="Enrolled to" value={filters.enrolledTo ? dayjs(filters.enrolledTo) : null}
+              slotProps={{ textField: { size: 'small' }, field: { clearable: true } }}
+              onChange={(value) => change('enrolledTo',
+                value && value.isValid() ? value.format('YYYY-MM-DD') : '')} />
             <div className="filter-panel-actions">
               <button type="button" className="clear-filters" disabled={!activeCount}
                 onClick={clearFilters}>Clear filters</button>
