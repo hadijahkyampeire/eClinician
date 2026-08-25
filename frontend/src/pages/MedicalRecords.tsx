@@ -7,6 +7,8 @@ import {
 import { getAppointments } from '../api/appointments'
 import { getPatient } from '../api/patients'
 import { useAuth } from '../auth/AuthContext'
+import OrderPicker from '../components/records/OrderPicker'
+import { useLabTests, useMedications } from '../hooks/useCatalog'
 import type { Encounter, EncounterForm } from '../types/encounter'
 
 const emptyForm: EncounterForm = {
@@ -61,6 +63,17 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [form, setForm] = useState(emptyForm)
+
+  // Reference lists, held for the session. Grouped by what a clinician is treating, so
+  // the dropdown is scannable rather than 36 names in alphabetical order.
+  const medications = useMedications()
+  const labTests = useLabTests()
+  const medicationOptions = (medications.data ?? []).map(item => ({
+    label: item.label, group: item.category ?? 'Other',
+  }))
+  const labTestOptions = (labTests.data ?? []).map(item => ({
+    label: item.name, group: item.category ?? 'Other',
+  }))
   const [savedId, setSavedId] = useState(encounterId)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
@@ -164,8 +177,15 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
         <TextField label="Treatment plan" value={form.treatmentPlan} onChange={v => set('treatmentPlan', v)} required disabled={locked} />
       </FormSection>
       <FormSection title="Orders">
-        <TextField label="Prescriptions" hint="One medication per line" value={form.prescriptions} onChange={v => set('prescriptions', v)} disabled={locked} />
-        <TextField label="Lab requests" hint="One test per line" value={form.labRequests} onChange={v => set('labRequests', v)} disabled={locked} />
+        {/* Picked from the catalogue, or typed if the clinic stocks something it has
+            never heard of — the list suggests, it does not fence. */}
+        <OrderPicker label="Prescriptions" addLabel="Add medicine" disabled={locked}
+          value={form.prescriptions} onChange={v => set('prescriptions', v)}
+          options={medicationOptions} loading={medications.isLoading}
+          detailLabel="How to take it" detailHint="1 tablet 3 times daily for 5 days" />
+        <OrderPicker label="Lab requests" addLabel="Add test" disabled={locked}
+          value={form.labRequests} onChange={v => set('labRequests', v)}
+          options={labTestOptions} loading={labTests.isLoading} />
       </FormSection>
       <FormSection title="Visit summary">
         <div className="summary-heading form-field-wide">

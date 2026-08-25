@@ -33,3 +33,37 @@
   .record-row { align-items: flex-start; flex-direction: column; }
   .record-row > div:last-child { align-items: flex-start; }
 }
+
+/* ---------- Ordering by picking ---------- */
+.order-picker { display: grid; gap: 8px; }
+
+.order-picker-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.order-picker-label { color: var(--heading); font-size: 12px; font-weight: 600; }
+
+.order-picker-empty {
+  margin: 0;
+  padding: 6px 0 2px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+/* Medicine, then how to take it, then the way to take the row away. */
+.order-row {
+  display: grid;
+  grid-template-columns: minmax(12rem, 1.2fr) minmax(12rem, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.order-row.no-detail { grid-template-columns: minmax(12rem, 1fr) auto; }
+
+@media (max-width: 760px) {
+  .order-row, .order-row.no-detail { grid-template-columns: 1fr auto; }
+  .order-row > :nth-child(2) { grid-column: 1 / -1; }
+}
