@@ -106,9 +106,11 @@ export function UnfinishedNotes({ readOnly }: { readOnly?: boolean }) {
           secondary={draft.chiefComplaint || 'No complaint recorded yet'}
           // A note left open because its results had not come back is not the same
           // unfinished as one left open at the end of the day.
+          // Not "at the lab": the sample may be taken and the patient already back in
+          // the queue while the test itself is still running.
           meta={readOnly ? draft.clinicianName
             : draft.labResultsReadyAt ? 'Results ready'
-            : draft.sentToLabAt ? 'At the lab' : undefined}
+            : draft.sentToLabAt ? 'Awaiting results' : undefined}
           tone={draft.labResultsReadyAt ? 'ready' : 'waiting'}
           action={readOnly ? null : (
             <Link className="btn small" to={`/records?encounterId=${draft.id}`}>

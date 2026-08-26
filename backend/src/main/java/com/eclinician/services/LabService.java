@@ -90,37 +90,34 @@ public class LabService {
         }
         value.setStatus(request.status());
         value.setNotes(request.notes());
+        // Working notes are savable while the test is still running, and savable again:
+        // a half-read culture is a draft, and the bench should not have to hold it in
+        // their head until it is finished. Only completing it signs the technician's name
+        // to what is written.
+        value.setResult(trimToNull(request.result()));
         if (request.status() == LabStatus.COMPLETED) {
-            value.setResult(request.result().trim());
             value.setResultedBy(technicianName);
             value.setResultedAt(Instant.now());
         }
         LabOrder saved = orders.save(value);
-        sendBackIfDone(tenantId, saved);
+        releaseFromTheBench(tenantId, saved);
+        stampResultsReady(tenantId, saved);
         return response(tenantId, saved);
     }
 
     /**
      * The way back to the waiting room — not to the front of it.
      *
-     * The clinician has been seeing other people while the test ran, so a patient coming
-     * back rejoins the queue on a fresh clock rather than walking straight in over
-     * everyone who has not been seen at all. The open note is stamped on the way past:
-     * that stamp is what puts "Results ready" on the clinician's unfinished work rather
-     * than leaving them to keep checking. Cancelled counts as done — no result is coming.
+     * What frees the patient is the specimen being taken, not the answer being written:
+     * a culture reads in two days and nobody stands at a bench for two days. So once
+     * nothing of theirs is still waiting to be collected they go back, and because the
+     * clinician has been seeing other people meanwhile, they rejoin the queue on a fresh
+     * clock rather than walking in over everyone who has not been seen at all.
      */
-    private void sendBackIfDone(String tenantId, LabOrder resulted) {
-        if (resulted.getEncounterId() == null) return;
-        // Only this visit's tests hold the patient at the bench. A pending order left over
-        // from some earlier visit is not what they are standing there waiting for.
-        boolean stillWaiting = orders
-                .findByTenantIdAndPatientIdOrderByCreatedAtDesc(tenantId, resulted.getPatientId())
-                .stream()
-                .filter(value -> resulted.getEncounterId().equals(value.getEncounterId()))
-                .anyMatch(value -> value.getStatus() == LabStatus.PENDING);
-        if (stillWaiting) return;
+    private void releaseFromTheBench(String tenantId, LabOrder touched) {
+        if (stillOnThisVisit(tenantId, touched, LabStatus.PENDING)) return;
 
-        boolean atTheBench = patients.findByIdAndTenantId(resulted.getPatientId(), tenantId)
+        boolean atTheBench = patients.findByIdAndTenantId(touched.getPatientId(), tenantId)
                 .filter(patient -> patient.getActiveCareStatus() == PatientCareStatus.LAB)
                 .map(patient -> {
                     patient.setActiveCareStatus(PatientCareStatus.WAITING);
@@ -128,14 +125,41 @@ public class LabService {
                     return true;
                 })
                 .orElse(false);
+        if (!atTheBench) return;
 
-        encounters.findByIdAndTenantId(resulted.getEncounterId(), tenantId)
+        encounters.findByIdAndTenantId(touched.getEncounterId(), tenantId)
+                .ifPresent(encounter -> rejoinTheQueue(tenantId, encounter.getAppointmentId()));
+    }
+
+    /**
+     * The separate moment: every test answered, one way or another. That stamp is what
+     * puts "Results ready" on the clinician's unfinished work rather than leaving them to
+     * keep checking. Cancelled counts as answered — no result is coming.
+     */
+    private void stampResultsReady(String tenantId, LabOrder touched) {
+        if (stillOnThisVisit(tenantId, touched, LabStatus.PENDING)
+                || stillOnThisVisit(tenantId, touched, LabStatus.IN_PROGRESS)) {
+            return;
+        }
+        encounters.findByIdAndTenantId(touched.getEncounterId(), tenantId)
                 .filter(encounter -> encounter.getSentToLabAt() != null)
+                .filter(encounter -> encounter.getLabResultsReadyAt() == null)
                 .ifPresent(encounter -> {
                     encounter.setLabResultsReadyAt(Instant.now());
                     encounters.save(encounter);
-                    if (atTheBench) rejoinTheQueue(tenantId, encounter.getAppointmentId());
                 });
+    }
+
+    /**
+     * Only this visit's tests speak for this visit. A pending order left over from some
+     * earlier one is not what the patient is standing there waiting for.
+     */
+    private boolean stillOnThisVisit(String tenantId, LabOrder touched, LabStatus status) {
+        return orders
+                .findByTenantIdAndPatientIdOrderByCreatedAtDesc(tenantId, touched.getPatientId())
+                .stream()
+                .filter(value -> touched.getEncounterId().equals(value.getEncounterId()))
+                .anyMatch(value -> value.getStatus() == status);
     }
 
     /** A new wait, so whoever has been sitting there longest is still next. */
@@ -147,6 +171,10 @@ public class LabService {
                     appointment.setWaitingAt(Instant.now());
                     appointments.save(appointment);
                 });
+    }
+
+    private static String trimToNull(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 
     private LabOrder order(String tenantId, UUID encounterId, UUID patientId, String testName) {

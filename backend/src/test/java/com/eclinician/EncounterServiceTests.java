@@ -121,6 +121,35 @@ class EncounterServiceTests {
     }
 
     @Test
+    void takingTheSampleSendsThePatientBackBeforeTheResultIsWritten() {
+        Patient patient = patient("slow-test-hospital");
+        String tenantId = patient.getTenantId();
+        AppointmentResponse checkedIn = appointments.checkIn(tenantId,
+                new AppointmentRequest(patient.getId(), null, null, "Fever", false));
+        appointments.startSession(tenantId, patient.getId());
+        EncounterResponse draft = encounters.save(tenantId, "Dr Test", null,
+                request(patient, checkedIn, null, null));
+        encounters.sendToLab(tenantId, draft.id());
+
+        // The specimen is taken, but a culture is not read for two days and nobody stands
+        // at a bench for two days.
+        LabOrderResponse order = labs.listForPatient(tenantId, patient.getId()).getFirst();
+        labs.update(tenantId, "Tech", order.id(),
+                new LabResultRequest(LabStatus.IN_PROGRESS, "Plated, reading Thursday", null));
+
+        assertThat(patients.findById(patient.getId()).orElseThrow().getActiveCareStatus())
+                .isEqualTo(PatientCareStatus.WAITING);
+        assertThat(appointments.list(tenantId, patient.getId()).getFirst().status())
+                .isEqualTo(AppointmentStatus.WAITING);
+        // Back in the queue, but the clinician is not told an answer exists yet.
+        assertThat(encounters.get(tenantId, draft.id()).labResultsReadyAt()).isNull();
+
+        labs.update(tenantId, "Tech", order.id(),
+                new LabResultRequest(LabStatus.COMPLETED, "No growth after 48 hours", null));
+        assertThat(encounters.get(tenantId, draft.id()).labResultsReadyAt()).isNotNull();
+    }
+
+    @Test
     void theDeskCanPutAnUrgentPatientAheadOfTheQueue() {
         Patient patient = patient("urgent-hospital");
         String tenantId = patient.getTenantId();

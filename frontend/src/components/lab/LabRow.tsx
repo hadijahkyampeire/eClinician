@@ -9,11 +9,15 @@ const formatDateTime = (value: string) =>
 /**
  * One test in the queue. Recording the result is the job; cancelling it means the
  * clinician never gets an answer, so that one lives behind the menu.
+ *
+ * Taking the specimen is the separate first step, and the one that lets the patient go
+ * back and sit down — a rapid test skips straight past it to the result.
  */
-export default function LabRow({ order, busy, onResult, onCancel }: {
+export default function LabRow({ order, busy, onResult, onStart, onCancel }: {
   order: LabOrder
   busy: boolean
   onResult: () => void
+  onStart: () => void
   onCancel: () => void
 }) {
   return (
@@ -27,11 +31,14 @@ export default function LabRow({ order, busy, onResult, onCancel }: {
       </div>
       <div>
         <span className={`record-status ${order.status.toLowerCase()}`}>
-          {order.status.toLowerCase()}
+          {order.status === 'IN_PROGRESS' ? 'in progress' : order.status.toLowerCase()}
         </span>
         {order.status === 'COMPLETED'
           ? <time>{order.resultedBy} · {formatDateTime(order.resultedAt!)}</time>
           : <div className="pharmacy-actions">
+              {order.status === 'PENDING' && (
+                <Button size="small" disabled={busy} onClick={onStart}>Sample taken</Button>
+              )}
               <Button variant="contained" size="small" disabled={busy}
                 onClick={onResult}>Record result</Button>
               <RowActions label={`Actions for ${order.testName}`} actions={[{

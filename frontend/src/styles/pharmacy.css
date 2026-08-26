@@ -19,6 +19,7 @@
 .pharmacy-actions { display: flex; gap: 8px; }
 .pharmacy-actions .btn { padding: 6px 12px; font-size: 12px; }
 .record-status.pending { background: #fffbeb; color: #b45309; }
+.record-status.in_progress { background: #eff6ff; color: #1d4ed8; }
 .record-status.dispensed { background: #ecfdf5; color: #047857; }
 .record-status.unavailable { background: #fef2f2; color: #b91c1c; }
 
@@ -44,3 +45,13 @@
 }
 .dispensed-instead b { color: inherit; }
 .dispense-note { font-style: italic; }
+
+/* Signing a result off is the default; keeping it open is the deliberate choice. */
+.lab-draft-choice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--text-muted);
+}

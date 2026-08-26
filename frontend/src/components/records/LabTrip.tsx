@@ -27,16 +27,19 @@ export default function LabTrip({ encounter }: { encounter: Encounter }) {
   return (
     <section className={`lab-trip${back ? ' ready' : ''}`}>
       <header>
-        <b>{back ? 'Results are back' : 'At the lab'}</b>
+        <b>{back ? 'Results are back' : 'Awaiting results'}</b>
         <span>{back
           ? `Resulted ${at(encounter.labResultsReadyAt!)} — read them, then finish the visit`
-          : `Sent ${at(encounter.sentToLabAt)} — this note stays open until they return`}</span>
+          : `Sent ${at(encounter.sentToLabAt)} — this note stays open until they land`}</span>
       </header>
       <ul>
         {mine.map(order => (
           <li key={order.id}>
             <b>{order.testName}</b>
-            <span>{order.result || `${order.status.toLowerCase()} — nothing recorded yet`}</span>
+            <span>{order.result
+              || (order.status === 'PENDING'
+                ? 'waiting for the sample to be taken'
+                : `${order.status.toLowerCase().replace('_', ' ')} — nothing recorded yet`)}</span>
             {order.notes && <small>{order.notes}</small>}
           </li>
         ))}
