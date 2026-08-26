@@ -1,4 +1,5 @@
-.pharmacy-filters { display: flex; gap: 8px; margin-bottom: 16px; }
+/* The pills follow the queue card above them, so they need room not to look attached to it. */
+.pharmacy-filters { display: flex; gap: 8px; margin: 24px 0 16px; }
 .pharmacy-tab { 
   padding: 7px 14px; 
   border: 1px solid var(--border); 
