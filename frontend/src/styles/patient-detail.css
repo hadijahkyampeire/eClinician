@@ -203,6 +203,26 @@
 .appointment-status.in_session { background: #eff6ff; color: #1d4ed8; }
 .appointment-status.completed { background: #f1f5f9; color: #475569; }
 .appointment-table .table-actions { min-width: 110px; }
+/* The wait rides beside the clock time without competing with it. */
+.waiting-for { color: #b45309; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* The details sit under their own row, so they read as part of it rather than as a card. */
+.chevron { transition: transform 150ms ease; }
+.chevron.open { transform: rotate(180deg); }
+.appointment-details > td { background: #f8fafc; padding: 14px 16px; }
+.appointment-details dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px 24px;
+  margin: 0 0 12px;
+}
+.appointment-details dt {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+}
+.appointment-details dd { margin: 2px 0 0; }
 @media (max-width: 760px) {
   .patient-summary-grid { grid-template-columns: 1fr; }
   .patient-profile-header { align-items: flex-start; }
