@@ -203,6 +203,8 @@
 .appointment-status.in_session { background: #eff6ff; color: #1d4ed8; }
 .appointment-status.completed { background: #f1f5f9; color: #475569; }
 .appointment-table .table-actions { min-width: 110px; }
+/* The wait rides beside the clock time without competing with it. */
+.waiting-for { color: #b45309; font-variant-numeric: tabular-nums; white-space: nowrap; }
 @media (max-width: 760px) {
   .patient-summary-grid { grid-template-columns: 1fr; }
   .patient-profile-header { align-items: flex-start; }

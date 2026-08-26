@@ -6,6 +6,7 @@ import HourglassEmptyOutlinedIcon from '@mui/icons-material/HourglassEmptyOutlin
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import EventBusyOutlinedIcon from '@mui/icons-material/EventBusyOutlined'
+import { elapsed } from '../dashboard/time'
 import type { Appointment, AppointmentStatus } from '../../types/appointment'
 
 /** The statuses a receptionist may still change: a visit that started is history. */
@@ -54,8 +55,17 @@ export default function AppointmentTable({
               <td>{formatDateTime(appointment.scheduledAt, active)}</td>
               <td>{appointment.checkedInAt
                 ? formatDateTime(appointment.checkedInAt, active) : '—'}</td>
+              {/* The clock time says when; the brackets say how long, which is the number
+                  a doctor picking the next patient actually reads. A finished visit's wait
+                  is over, so only a live row counts. */}
               <td>{appointment.waitingAt
-                ? formatDateTime(appointment.waitingAt, active) : '—'}</td>
+                ? <>
+                    {formatDateTime(appointment.waitingAt, active)}
+                    {active && <span className="waiting-for">
+                      {' '}({elapsed(appointment.waitingAt)})
+                    </span>}
+                  </>
+                : '—'}</td>
               <td className="table-actions">
                 {desk && appointment.status === 'CHECKED_IN' && (
                   <IconAction title="Take to the waiting room" disabled={busy}
