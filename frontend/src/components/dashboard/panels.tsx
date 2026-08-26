@@ -5,7 +5,7 @@ import { getEncounters } from '../../api/encounters'
 import { getLabOrders } from '../../api/lab'
 import { getPrescriptions } from '../../api/pharmacy'
 import { useAuth } from '../../auth/AuthContext'
-import type { Appointment } from '../../types/appointment'
+import { byQueueOrder } from '../../lib/queue'
 import { Panel, Row } from './Panel'
 import { since } from './time'
 
@@ -20,14 +20,7 @@ function useAppointments() {
   return useQuery({ queryKey: ['appointments', tenantId], queryFn: () => getAppointments(), ...LIVE })
 }
 
-function byArrival(a: Appointment, b: Appointment) {
-  const queueTime = (value: Appointment) => value.status === 'WAITING'
-    ? value.waitingAt ?? value.checkedInAt ?? value.scheduledAt
-    : value.checkedInAt ?? value.scheduledAt
-  return queueTime(a).localeCompare(queueTime(b))
-}
-
-/** Who is in the clinic right now, longest wait first. */
+/** Who is in the clinic right now: whoever cannot wait first, then the longest wait. */
 export function InTheClinic({ act, first }: {
   act?: 'to-room' | 'start-session'
   first?: { label: string; to: string }
@@ -35,7 +28,7 @@ export function InTheClinic({ act, first }: {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const { data = [] } = useAppointments()
-  const here = data.filter(a => IN_THE_BUILDING.includes(a.status)).sort(byArrival)
+  const here = data.filter(a => IN_THE_BUILDING.includes(a.status)).sort(byQueueOrder)
 
   const refresh = () => {
     void queryClient.invalidateQueries({ queryKey: ['appointments'] })
@@ -62,6 +55,7 @@ export function InTheClinic({ act, first }: {
           key={visit.id}
           primary={visit.patientName}
           to={`/patients/${visit.patientId}`}
+          flag={visit.urgent ? 'Urgent' : undefined}
           secondary={visit.reason}
           tone={visit.careStatus === 'LAB' ? 'waiting'
             : visit.status === 'IN_SESSION' ? 'session' : 'waiting'}

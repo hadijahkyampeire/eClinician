@@ -18,6 +18,7 @@ public record AppointmentResponse(
         /** Where the patient physically is right now — the queue reads this, not the
          * appointment's lifecycle, to tell a patient at the bench from one in the room. */
         PatientCareStatus careStatus,
+        boolean urgent,
         Instant scheduledAt,
         Instant checkedInAt,
         Instant waitingAt,
@@ -28,7 +29,8 @@ public record AppointmentResponse(
         Instant updatedAt) {
 
     public static AppointmentResponse from(Appointment appointment, String patientName,
-            PatientCareStatus careStatus, String doctorName, String doctorSpecialty, String room) {
+            PatientCareStatus careStatus, String doctorName, String doctorSpecialty,
+            String room) {
         return new AppointmentResponse(
                 appointment.getId(),
                 appointment.getPatientId(),
@@ -39,6 +41,7 @@ public record AppointmentResponse(
                 room,
                 appointment.getStatus(),
                 careStatus,
+                appointment.isUrgent(),
                 appointment.getScheduledAt(),
                 appointment.getCheckedInAt(),
                 appointment.getWaitingAt(),

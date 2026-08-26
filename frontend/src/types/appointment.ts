@@ -20,6 +20,8 @@ export interface Appointment {
   status: AppointmentStatus
   /** Where the patient is right now — a visit in session may be standing at the bench. */
   careStatus: PatientCareStatus | null
+  /** The desk's override on the queue's order: this one cannot wait their turn. */
+  urgent: boolean
   scheduledAt: string
   checkedInAt: string | null
   waitingAt: string | null

@@ -3,8 +3,10 @@ package com.eclinician.services;
 import com.eclinician.domains.dtos.LabOrderResponse;
 import com.eclinician.domains.dtos.LabResultRequest;
 import com.eclinician.domains.entities.LabOrder;
+import com.eclinician.domains.enums.AppointmentStatus;
 import com.eclinician.domains.enums.LabStatus;
 import com.eclinician.domains.enums.PatientCareStatus;
+import com.eclinician.repositories.AppointmentRepository;
 import com.eclinician.repositories.EncounterRepository;
 import com.eclinician.repositories.LabOrderRepository;
 import com.eclinician.repositories.PatientRepository;
@@ -24,12 +26,14 @@ public class LabService {
     private final LabOrderRepository orders;
     private final PatientRepository patients;
     private final EncounterRepository encounters;
+    private final AppointmentRepository appointments;
 
     public LabService(LabOrderRepository orders, PatientRepository patients,
-            EncounterRepository encounters) {
+            EncounterRepository encounters, AppointmentRepository appointments) {
         this.orders = orders;
         this.patients = patients;
         this.encounters = encounters;
+        this.appointments = appointments;
     }
 
     /**
@@ -97,12 +101,13 @@ public class LabService {
     }
 
     /**
-     * The way back to the consulting room.
+     * The way back to the waiting room — not to the front of it.
      *
-     * A patient at the bench is still mid-visit, so once nothing of theirs is pending the
-     * status returns to In session and the open note is stamped — that stamp is what puts
-     * "Results ready" on the clinician's unfinished work rather than leaving them to keep
-     * checking. Cancelled counts as done: there is no result coming.
+     * The clinician has been seeing other people while the test ran, so a patient coming
+     * back rejoins the queue on a fresh clock rather than walking straight in over
+     * everyone who has not been seen at all. The open note is stamped on the way past:
+     * that stamp is what puts "Results ready" on the clinician's unfinished work rather
+     * than leaving them to keep checking. Cancelled counts as done — no result is coming.
      */
     private void sendBackIfDone(String tenantId, LabOrder resulted) {
         if (resulted.getEncounterId() == null) return;
@@ -115,16 +120,32 @@ public class LabService {
                 .anyMatch(value -> value.getStatus() == LabStatus.PENDING);
         if (stillWaiting) return;
 
-        patients.findByIdAndTenantId(resulted.getPatientId(), tenantId).ifPresent(patient -> {
-            if (patient.getActiveCareStatus() != PatientCareStatus.LAB) return;
-            patient.setActiveCareStatus(PatientCareStatus.IN_SESSION);
-            patients.save(patient);
-        });
+        boolean atTheBench = patients.findByIdAndTenantId(resulted.getPatientId(), tenantId)
+                .filter(patient -> patient.getActiveCareStatus() == PatientCareStatus.LAB)
+                .map(patient -> {
+                    patient.setActiveCareStatus(PatientCareStatus.WAITING);
+                    patients.save(patient);
+                    return true;
+                })
+                .orElse(false);
+
         encounters.findByIdAndTenantId(resulted.getEncounterId(), tenantId)
                 .filter(encounter -> encounter.getSentToLabAt() != null)
                 .ifPresent(encounter -> {
                     encounter.setLabResultsReadyAt(Instant.now());
                     encounters.save(encounter);
+                    if (atTheBench) rejoinTheQueue(tenantId, encounter.getAppointmentId());
+                });
+    }
+
+    /** A new wait, so whoever has been sitting there longest is still next. */
+    private void rejoinTheQueue(String tenantId, UUID appointmentId) {
+        appointments.findByIdAndTenantId(appointmentId, tenantId)
+                .filter(appointment -> appointment.getStatus() == AppointmentStatus.IN_SESSION)
+                .ifPresent(appointment -> {
+                    appointment.setStatus(AppointmentStatus.WAITING);
+                    appointment.setWaitingAt(Instant.now());
+                    appointments.save(appointment);
                 });
     }
 

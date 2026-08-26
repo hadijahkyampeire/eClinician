@@ -40,11 +40,19 @@ function toBody(form: AppointmentForm) {
   }
 }
 
-export function checkInPatient(patientId: string, doctorId?: string) {
+export function checkInPatient(patientId: string, doctorId?: string, urgent?: boolean) {
   return request<Appointment>('/api/appointments/check-in', {
     method: 'POST',
-    body: JSON.stringify({ patientId, doctorId: doctorId || null }),
+    body: JSON.stringify({ patientId, doctorId: doctorId || null, urgent: Boolean(urgent) }),
   })
+}
+
+/** The desk moving someone up the queue, or putting them back in line. */
+export function setAppointmentUrgency(appointmentId: string, urgent: boolean) {
+  return request<Appointment>(
+    `/api/appointments/${appointmentId}/urgency?urgent=${urgent}`,
+    { method: 'POST' },
+  )
 }
 
 export function startPatientSession(patientId: string) {

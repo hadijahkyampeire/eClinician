@@ -96,6 +96,22 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
   })
   const activeAppointment = appointmentsQuery.data?.find(value => value.status === 'IN_SESSION')
 
+  /*
+   * A visit can be started more than once — a patient sent to the lab rejoins the queue
+   * and is called back in — and the note they left behind is the one to come back to.
+   * Without this the second start opens a blank form over an existing draft.
+   */
+  const patientEncounters = useQuery({
+    queryKey: ['encounters', tenantId, patientId],
+    queryFn: () => getEncounters(patientId), enabled: Boolean(tenantId && patientId && !encounterId),
+  })
+  const openNote = patientEncounters.data?.find(value =>
+    value.status === 'DRAFT' && value.appointmentId === activeAppointment?.id)
+
+  useEffect(() => {
+    if (openNote) navigate(`/records?encounterId=${openNote.id}`, { replace: true })
+  }, [navigate, openNote])
+
   useEffect(() => {
     // Populate the editable local draft when the requested server record arrives.
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -174,7 +190,9 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
     } finally { setBusy(false) }
   }
 
-  if (encounterQuery.isLoading || patientQuery.isLoading) return <p>Loading clinical record...</p>
+  if (encounterQuery.isLoading || patientQuery.isLoading || patientEncounters.isLoading) {
+    return <p>Loading clinical record...</p>
+  }
   if (!patientId || (!encounterId && !activeAppointment)) return <div className="card record-empty">
     A patient must have an active clinical session before an encounter can be documented.
   </div>

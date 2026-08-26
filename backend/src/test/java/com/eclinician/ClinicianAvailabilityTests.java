@@ -210,7 +210,7 @@ class ClinicianAvailabilityTests {
                         DayOfWeek.MONDAY, LocalTime.of(8, 0), LocalTime.of(17, 0), "Room 4"))));
 
         assertThat(appointments.schedule("queue-hospital", new AppointmentRequest(
-                queuePatient("+256700920001"), doctor.getId(), atLocalHour(10), "Review")))
+                queuePatient("+256700920001"), doctor.getId(), atLocalHour(10), "Review", false)))
                 .satisfies(row -> {
                     assertThat(row.doctorSpecialty()).isEqualTo("Paediatrics");
                     assertThat(row.room()).isEqualTo("Room 4");
@@ -218,7 +218,7 @@ class ClinicianAvailabilityTests {
 
         // Outside the shift there is no room to name, and the row says so rather than guessing.
         assertThat(appointments.schedule("queue-hospital", new AppointmentRequest(
-                queuePatient("+256700920002"), doctor.getId(), atLocalHour(20), "Late review"))
+                queuePatient("+256700920002"), doctor.getId(), atLocalHour(20), "Late review", false))
                 .room()).isNull();
     }
 

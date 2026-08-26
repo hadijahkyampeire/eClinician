@@ -37,7 +37,7 @@ class EncounterServiceTests {
     void draftCanBeFinalizedAndCompletesTheVisit() {
         Patient patient = patient("encounter-hospital");
         AppointmentResponse checkedIn = appointments.checkIn(patient.getTenantId(),
-                new AppointmentRequest(patient.getId(), null, "Fever"));
+                new AppointmentRequest(patient.getId(), null, null, "Fever", false));
         appointments.startSession(patient.getTenantId(), patient.getId());
 
         EncounterRequest request = request(patient, checkedIn, "Malaria", "Begin treatment");
@@ -58,7 +58,7 @@ class EncounterServiceTests {
     void finalizationRequiresDiagnosisAndPlanAndFinalizedRecordsAreLocked() {
         Patient patient = patient("validation-hospital");
         AppointmentResponse checkedIn = appointments.checkIn(patient.getTenantId(),
-                new AppointmentRequest(patient.getId(), null, "Review"));
+                new AppointmentRequest(patient.getId(), null, null, "Review", false));
         appointments.startSession(patient.getTenantId(), patient.getId());
         EncounterRequest incomplete = request(patient, checkedIn, null, null);
         EncounterResponse draft = encounters.save(patient.getTenantId(), "Dr Test", null, incomplete);
@@ -81,7 +81,7 @@ class EncounterServiceTests {
         Patient patient = patient("lab-round-trip-hospital");
         String tenantId = patient.getTenantId();
         AppointmentResponse checkedIn = appointments.checkIn(tenantId,
-                new AppointmentRequest(patient.getId(), null, "Fever"));
+                new AppointmentRequest(patient.getId(), null, null, "Fever", false));
         appointments.startSession(tenantId, patient.getId());
         EncounterResponse draft = encounters.save(tenantId, "Dr Test", null,
                 request(patient, checkedIn, null, null));
@@ -102,16 +102,35 @@ class EncounterServiceTests {
         labs.update(tenantId, "Tech", order.id(),
                 new LabResultRequest(LabStatus.COMPLETED, "Haemoglobin 11.2 g/dl", null));
 
-        // Resulted, so the patient is back with the clinician and the open note says so.
+        // Resulted, so they rejoin the queue on a new clock rather than walking back in
+        // over everyone who has not been seen at all. The open note says why they are back.
         assertThat(patients.findById(patient.getId()).orElseThrow().getActiveCareStatus())
-                .isEqualTo(PatientCareStatus.IN_SESSION);
+                .isEqualTo(PatientCareStatus.WAITING);
+        AppointmentResponse requeued = appointments.list(tenantId, patient.getId()).getFirst();
+        assertThat(requeued.status()).isEqualTo(AppointmentStatus.WAITING);
+        assertThat(requeued.waitingAt()).isAfter(sent.sentToLabAt());
         assertThat(encounters.get(tenantId, draft.id()).labResultsReadyAt()).isNotNull();
 
-        // Finalizing after the trip does not raise the same test a second time.
+        // Their turn comes round again, and it is the same note they come back to.
+        appointments.startSession(tenantId, patient.getId());
         encounters.save(tenantId, "Dr Test", draft.id(),
                 request(patient, checkedIn, "Anaemia", "Iron supplements"));
         encounters.finalizeEncounter(tenantId, draft.id());
+        // Finalizing after the trip does not raise the same test a second time.
         assertThat(labs.listForPatient(tenantId, patient.getId())).hasSize(1);
+    }
+
+    @Test
+    void theDeskCanPutAnUrgentPatientAheadOfTheQueue() {
+        Patient patient = patient("urgent-hospital");
+        String tenantId = patient.getTenantId();
+        AppointmentResponse routine = appointments.checkIn(tenantId,
+                new AppointmentRequest(patient.getId(), null, null, "Cough", false));
+        assertThat(routine.urgent()).isFalse();
+
+        // The desk sees the baby has gone quiet after they have already sat down.
+        assertThat(appointments.setUrgent(tenantId, routine.id(), true).urgent()).isTrue();
+        assertThat(appointments.setUrgent(tenantId, routine.id(), false).urgent()).isFalse();
     }
 
     @Test
@@ -119,7 +138,7 @@ class EncounterServiceTests {
         Patient patient = patient("empty-lab-request-hospital");
         String tenantId = patient.getTenantId();
         AppointmentResponse checkedIn = appointments.checkIn(tenantId,
-                new AppointmentRequest(patient.getId(), null, "Review"));
+                new AppointmentRequest(patient.getId(), null, null, "Review", false));
         appointments.startSession(tenantId, patient.getId());
         EncounterRequest noTests = new EncounterRequest(patient.getId(), checkedIn.id(), "Review",
                 120, 80, 37.0, 72, 65.0, 162.0, null, null, null, null, null, null);

@@ -36,7 +36,7 @@ class StaleCheckInTests {
     void aCheckInLeftOpenOvernightIsSettledAsANoShowAndFreesThePatient() {
         Patient patient = walkIn("+256700000042");
         AppointmentResponse arrival = service.checkIn(
-                TENANT, new AppointmentRequest(patient.getId(), null, "Walk-in"));
+                TENANT, new AppointmentRequest(patient.getId(), null, null, "Walk-in", false));
 
         rewindArrivalToYesterday(arrival.id());
         service.list(TENANT, patient.getId());
@@ -51,11 +51,11 @@ class StaleCheckInTests {
     void yesterdaysCheckInNoLongerBlocksTodaysBooking() {
         Patient patient = walkIn("+256700000043");
         AppointmentResponse arrival = service.checkIn(
-                TENANT, new AppointmentRequest(patient.getId(), null, "Walk-in"));
+                TENANT, new AppointmentRequest(patient.getId(), null, null, "Walk-in", false));
         rewindArrivalToYesterday(arrival.id());
 
         AppointmentResponse booked = service.schedule(
-                TENANT, new AppointmentRequest(patient.getId(), null, "Follow-up"));
+                TENANT, new AppointmentRequest(patient.getId(), null, null, "Follow-up", false));
 
         assertThat(booked.status()).isEqualTo(AppointmentStatus.SCHEDULED);
         assertThat(booked.id()).isNotEqualTo(arrival.id());
@@ -65,11 +65,11 @@ class StaleCheckInTests {
     void arrivingAgainTodayStartsAFreshVisitRatherThanReusingYesterdays() {
         Patient patient = walkIn("+256700000044");
         AppointmentResponse yesterday = service.checkIn(
-                TENANT, new AppointmentRequest(patient.getId(), null, "Walk-in"));
+                TENANT, new AppointmentRequest(patient.getId(), null, null, "Walk-in", false));
         rewindArrivalToYesterday(yesterday.id());
 
         AppointmentResponse today = service.checkIn(
-                TENANT, new AppointmentRequest(patient.getId(), null, "Walk-in"));
+                TENANT, new AppointmentRequest(patient.getId(), null, null, "Walk-in", false));
 
         assertThat(today.id()).isNotEqualTo(yesterday.id());
         assertThat(today.checkedInAt()).isAfter(Instant.now().minus(1, ChronoUnit.HOURS));

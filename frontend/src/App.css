@@ -552,6 +552,32 @@
   color: var(--heading);
 }
 
+/* Out of order, and saying why. Loud enough to find in a list, small enough not to
+   turn every queue into a wall of red. */
+.urgent-flag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
+.row-name {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.urgent-choice {
+  margin-top: 4px;
+}
+
 /* A patient's name is a way into their chart, and reads as one. */
 .row-link {
   color: var(--dept);

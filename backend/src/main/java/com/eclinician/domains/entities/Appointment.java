@@ -48,6 +48,10 @@ public class Appointment {
     private Instant sessionStartedAt;
     private Instant completedAt;
 
+    /** Set by the desk when this patient cannot wait their turn. */
+    @Column(nullable = false)
+    private boolean urgent;
+
     @Column(length = 500)
     private String reason;
 

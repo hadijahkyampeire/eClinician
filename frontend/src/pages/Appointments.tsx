@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { MenuItem, TextField } from '@mui/material'
+import { Checkbox, FormControlLabel, MenuItem, TextField } from '@mui/material'
 import {
   cancelAppointment,
   checkInPatient,
@@ -9,6 +9,7 @@ import {
   getAppointments,
   markAppointmentWaiting,
   scheduleAppointment,
+  setAppointmentUrgency,
   startPatientSession,
   updateAppointment,
 } from '../api/appointments'
@@ -20,13 +21,10 @@ import AppointmentTable from '../components/appointments/AppointmentTable'
 import ConfirmDialog from '../components/ConfirmDialog'
 import DateRangeFields from '../components/DateRangeFields'
 import { PRESETS, covers, describe, type Range } from '../components/dashboard/range'
+import { byQueueOrder } from '../lib/queue'
 import type { Appointment, AppointmentForm, AppointmentStatus } from '../types/appointment'
 
 const activeStatuses: AppointmentStatus[] = ['CHECKED_IN', 'WAITING', 'IN_SESSION']
-
-/** Where a patient stands in the queue: when they arrived, not when the row was made. */
-const queuedAt = (appointment: Appointment) =>
-  appointment.checkedInAt ?? appointment.scheduledAt
 
 /**
  * A booking that has not happened yet is not history, and putting it there hid it: the
@@ -43,6 +41,7 @@ export default function Appointments() {
   const [booking, setBooking] = useState<Appointment | null | undefined>(undefined)
   const [confirmation, setConfirmation] = useState('')
   const [checkInDoctorId, setCheckInDoctorId] = useState('')
+  const [checkInUrgent, setCheckInUrgent] = useState(false)
   // History opens on the last week rather than today: the reason to be on this table at
   // all is usually a visit that has already happened.
   const [range, setRange] = useState<Range>({ key: 'last7' })
@@ -93,7 +92,7 @@ export default function Appointments() {
   }
   const workflow = useMutation({
     mutationFn: () => action === 'check-in'
-      ? checkInPatient(patientId!, checkInDoctorId)
+      ? checkInPatient(patientId!, checkInDoctorId, checkInUrgent)
       : startPatientSession(patientId!),
     onSuccess: async () => {
       const name = patientQuery.data
@@ -109,6 +108,11 @@ export default function Appointments() {
         ? '/appointments'
         : `/records?patientId=${patientId}`, { replace: true })
     },
+  })
+  const urgency = useMutation({
+    mutationFn: ({ id, urgent }: { id: string; urgent: boolean }) =>
+      setAppointmentUrgency(id, urgent),
+    onSuccess: refresh,
   })
   const transition = useMutation({
     mutationFn: ({ id, next }: { id: string; next: 'waiting' | 'complete' }) =>
@@ -140,21 +144,24 @@ export default function Appointments() {
   }, [confirmation])
 
   const appointments = appointmentsQuery.data ?? []
-  // A doctor takes the next patient off the top, so the queue runs in the order people
-  // arrived: whoever checked in first is first. The API sorts newest-created first, which
-  // is right for the history below and exactly backwards here.
+  // A doctor takes the next patient off the top, so the queue runs urgent first and then
+  // longest wait. The API sorts newest-created first, which is right for the history
+  // below and exactly backwards here.
   const active = appointments
     .filter((appointment) => activeStatuses.includes(appointment.status))
-    .sort((a, b) => queuedAt(a).localeCompare(queuedAt(b)))
+    .sort(byQueueOrder)
   const upcoming = appointments.filter(isUpcoming)
     .sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt))
   const history = appointments
     .filter((appointment) =>
       !activeStatuses.includes(appointment.status) && !isUpcoming(appointment))
     .filter((appointment) => covers(range, appointment.scheduledAt))
-  const error = workflow.error || transition.error || cancel.error || appointmentsQuery.error
+  const error = workflow.error || transition.error || urgency.error || cancel.error
+    || appointmentsQuery.error
   const tableActions = canBook
-    ? { onEdit: setBooking, onCancel: setCancelling }
+    ? { onEdit: setBooking, onCancel: setCancelling,
+        onUrgency: (appointment: Appointment) =>
+          urgency.mutate({ id: appointment.id, urgent: !appointment.urgent }) }
     : {}
 
   return (
@@ -194,6 +201,14 @@ export default function Appointments() {
                   {doctor.consultationRoom ? ` — ${doctor.consultationRoom}` : ''}
                 </MenuItem>)}
               </TextField>
+            )}
+            {/* One box, not a triage scale. The desk knows a baby who has gone quiet
+                cannot sit through four people ahead of them. */}
+            {action === 'check-in' && role === 'Receptionist' && (
+              <FormControlLabel className="urgent-choice"
+                control={<Checkbox size="small" checked={checkInUrgent}
+                  onChange={event => setCheckInUrgent(event.target.checked)} />}
+                label="Needs to be seen first" />
             )}
           </div>
           <div className="appointment-context-actions">
