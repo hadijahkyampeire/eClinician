@@ -64,3 +64,12 @@ export function describeAmount(
     ? `${quantity} × ${packSize} ${noun ?? ''}`.trim()
     : `${quantity} ${noun ?? ''}`.trim()
 }
+
+/** One person at the counter, with what they came for. Mirrors CounterPatient. */
+export interface CounterPatient {
+  patientId: string
+  patientName: string
+  medicines: Prescription[]
+  /** Nothing left waiting to be handed over — they are free to go. */
+  ready: boolean
+}

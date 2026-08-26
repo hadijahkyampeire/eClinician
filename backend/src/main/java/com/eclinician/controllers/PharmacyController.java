@@ -1,5 +1,6 @@
 package com.eclinician.controllers;
 
+import com.eclinician.domains.dtos.CounterPatient;
 import com.eclinician.domains.dtos.DispenseRequest;
 import com.eclinician.domains.dtos.PrescriptionResponse;
 import com.eclinician.domains.enums.PrescriptionStatus;
@@ -14,7 +15,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/pharmacy/prescriptions")
+@RequestMapping("/api/pharmacy")
 public class PharmacyController {
 
     private final PharmacyService pharmacyService;
@@ -23,24 +24,38 @@ public class PharmacyController {
     }
 
     @PreAuthorize("hasAnyRole('PHARMACIST', 'ADMINISTRATOR')")
-    @GetMapping
+    @GetMapping("/prescriptions")
     public List<PrescriptionResponse> listPrescriptions(@CurrentTenant String tenantId,
                                                         @RequestParam(required = false) PrescriptionStatus status) {
         return pharmacyService.list(tenantId, status);
     }
 
     @PreAuthorize("hasAnyRole('CLINICIAN', 'PHARMACIST', 'ADMINISTRATOR')")
-    @GetMapping("/patients/{patientId}")
+    @GetMapping("/prescriptions/patients/{patientId}")
     public List<PrescriptionResponse> listForPatient(@CurrentTenant String tenantId,
                                                      @PathVariable UUID patientId) {
         return pharmacyService.listForPatient(tenantId, patientId);
     }
 
     @PreAuthorize("hasRole('PHARMACIST')")
-    @PostMapping("/{id}")
+    @PostMapping("/prescriptions/{id}")
     public PrescriptionResponse update(@CurrentTenant String tenantId,
                                        @CurrentUserName String pharmacistName,
                                        @PathVariable UUID id, @Valid @RequestBody DispenseRequest request) {
         return pharmacyService.update(tenantId, pharmacistName, id, request);
+    }
+
+    /** Who is standing at the counter, and what each of them is waiting for. */
+    @PreAuthorize("hasAnyRole('PHARMACIST', 'ADMINISTRATOR')")
+    @GetMapping("/counter")
+    public List<CounterPatient> atTheCounter(@CurrentTenant String tenantId) {
+        return pharmacyService.atTheCounter(tenantId);
+    }
+
+    /** They have their medicines and gone. The last thing open on them closes here. */
+    @PreAuthorize("hasAnyRole('PHARMACIST', 'ADMINISTRATOR')")
+    @PostMapping("/counter/{patientId}/check-out")
+    public void checkOut(@CurrentTenant String tenantId, @PathVariable UUID patientId) {
+        pharmacyService.checkOut(tenantId, patientId);
     }
 }

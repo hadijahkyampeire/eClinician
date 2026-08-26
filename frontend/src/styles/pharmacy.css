@@ -55,3 +55,7 @@
   font-size: 13px;
   color: var(--text-muted);
 }
+
+/* Who is standing there, above the work itself. */
+.counter-card { margin-bottom: 18px; }
+.counter-card .record-row > div:last-child { display: flex; align-items: center; gap: 10px; }
