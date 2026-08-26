@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { getAppointments, markAppointmentWaiting, startPatientSession } from '../../api/appointments'
 import { getEncounters } from '../../api/encounters'
 import { getLabOrders } from '../../api/lab'
@@ -32,6 +32,7 @@ export function InTheClinic({ act, first }: {
   first?: { label: string; to: string }
 }) {
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
   const { data = [] } = useAppointments()
   const here = data.filter(a => IN_THE_BUILDING.includes(a.status)).sort(byArrival)
 
@@ -41,7 +42,15 @@ export function InTheClinic({ act, first }: {
     void queryClient.invalidateQueries({ queryKey: ['patients'] })
   }
   const toRoom = useMutation({ mutationFn: markAppointmentWaiting, onSuccess: refresh })
-  const start = useMutation({ mutationFn: startPatientSession, onSuccess: refresh })
+  // Starting a session is the doctor saying "I am seeing this patient now", so it opens
+  // the chart. Flipping a status and staying put left them to find the patient again.
+  const start = useMutation({
+    mutationFn: startPatientSession,
+    onSuccess: (appointment) => {
+      refresh()
+      navigate(`/records?patientId=${appointment.patientId}`)
+    },
+  })
   const busy = toRoom.isPending || start.isPending
 
   return (
