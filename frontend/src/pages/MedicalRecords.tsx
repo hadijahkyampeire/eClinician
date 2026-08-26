@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
@@ -79,8 +79,35 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
     label: item.name, group: item.category ?? 'Other',
   }))
   const [savedId, setSavedId] = useState(encounterId)
-  const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
+  /**
+   * Which action is running, so a button says what it is doing rather than every button
+   * greying out together. The ref is the guard: `busy` is state, so it does not take
+   * effect until the next render, and two clicks inside one tick both got past it — both
+   * posting a new note for the same appointment, and the second losing to the unique
+   * index on it.
+   */
+  const [busy, setBusy] = useState<'' | 'draft' | 'lab' | 'finalize' | 'summary'>('')
+  const running = useRef(false)
+  const working = busy !== ''
+
+  /** The note being edited: whichever the URL names, or the one just created. */
+  const noteId = encounterId || savedId
+
+  /** Refuses a second click while the first is still in the air, and always lets go. */
+  async function once(action: typeof busy, work: () => Promise<void>) {
+    if (running.current) return
+    running.current = true
+    setBusy(action); setMessage('')
+    try {
+      await work()
+    } catch (caught) {
+      setMessage(caught instanceof Error ? caught.message : 'Something went wrong')
+    } finally {
+      running.current = false
+      setBusy('')
+    }
+  }
   const encounterQuery = useQuery({
     queryKey: ['encounter', tenantId, encounterId],
     queryFn: () => getEncounter(encounterId), enabled: Boolean(tenantId && encounterId),
@@ -131,11 +158,10 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
   const set = (field: keyof EncounterForm, value: string) =>
     setForm(current => ({ ...current, [field]: value }))
 
-  async function persist(finalize: boolean) {
+  function persist(finalize: boolean) {
     if (!tenantId) return
-    setBusy(true); setMessage('')
-    try {
-      const saved = await saveEncounter(form, savedId || undefined)
+    return once(finalize ? 'finalize' : 'draft', async () => {
+      const saved = await saveEncounter(form, noteId || undefined)
       setSavedId(saved.id)
       if (finalize) {
         await finalizeEncounter(saved.id)
@@ -146,9 +172,7 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
         navigate(`/records?encounterId=${saved.id}`, { replace: true })
         await queryClient.invalidateQueries({ queryKey: ['encounters'] })
       }
-    } catch (caught) {
-      setMessage(caught instanceof Error ? caught.message : 'Unable to save encounter')
-    } finally { setBusy(false) }
+    })
   }
   const submit = (event: FormEvent) => { event.preventDefault(); void persist(false) }
 
@@ -156,38 +180,32 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
    * Walks the patient to the bench without ending the visit. Saved first, because the
    * orders are raised from what the note says, not from what is on screen unsent.
    */
-  async function sendToLab() {
+  function sendToLab() {
     if (!tenantId) return
-    setBusy(true); setMessage('')
-    try {
-      const saved = await saveEncounter(form, savedId || undefined)
+    return once('lab', async () => {
+      const saved = await saveEncounter(form, noteId || undefined)
       setSavedId(saved.id)
       await sendEncounterToLab(saved.id)
       await queryClient.invalidateQueries()
       setMessage('Sent to the lab — this note stays open until the results come back')
       navigate(`/records?encounterId=${saved.id}`, { replace: true })
-    } catch (caught) {
-      setMessage(caught instanceof Error ? caught.message : 'Unable to send to the lab')
-    } finally { setBusy(false) }
+    })
   }
 
   /**
    * Saves first so the summarizer reads what is on screen, then drops its draft into the
    * field. It stays editable: the clinician signs the record, not the model.
    */
-  async function draftSummary() {
+  function draftSummary() {
     if (!tenantId) return
-    setBusy(true); setMessage('')
-    try {
-      const saved = await saveEncounter(form, savedId || undefined)
+    return once('summary', async () => {
+      const saved = await saveEncounter(form, noteId || undefined)
       setSavedId(saved.id)
       const drafted = await draftEncounterSummary(saved.id)
       setForm(current => ({ ...current, visitSummary: drafted.visitSummary || '' }))
       setMessage('Summary drafted — read it before you finalize')
       navigate(`/records?encounterId=${saved.id}`, { replace: true })
-    } catch (caught) {
-      setMessage(caught instanceof Error ? caught.message : 'Unable to draft a summary')
-    } finally { setBusy(false) }
+    })
   }
 
   if (encounterQuery.isLoading || patientQuery.isLoading || patientEncounters.isLoading) {
@@ -239,9 +257,10 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
       <FormSection title="Visit summary">
         <div className="summary-heading form-field-wide">
           <p>Drafted from the notes above, then edited and signed by you.</p>
-          {!locked && <button type="button" className="btn ghost" disabled={busy}
+          {!locked && <button type="button" className="btn ghost" disabled={working}
             onClick={() => void draftSummary()}>
-            {busy ? 'Working...' : form.visitSummary ? 'Redraft with AI' : 'Draft with AI'}
+            {busy === 'summary' ? 'Working...'
+              : form.visitSummary ? 'Redraft with AI' : 'Draft with AI'}
           </button>}
         </div>
         <TextField label="Summary" hint="Yours to correct — the draft is a starting point"
@@ -249,17 +268,25 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
       </FormSection>
       {message && <p className={message.startsWith('Draft saved') || message.startsWith('Summary drafted')
         ? 'record-success' : 'patient-error'}>{message}</p>}
-      {!locked && <div className="encounter-actions"><button className="btn ghost" disabled={busy}>Save draft</button>
+      {/* Every button is disabled while any one of them is working — two saves in flight
+          write two notes for one visit — but only the one that was pressed says so. */}
+      {!locked && <div className="encounter-actions">
+        <button className="btn ghost" disabled={working}>
+          {busy === 'draft' ? 'Saving...' : 'Save draft'}</button>
         {/* The visit pauses here rather than ending: no diagnosis is asked for, because
             the test is what will decide it. */}
-        <button type="button" className="btn ghost" disabled={busy || !form.labRequests.trim() || awaitingLab}
-          onClick={() => void sendToLab()}>{awaitingLab ? 'Waiting on the lab' : 'Send to lab'}</button>
+        <button type="button" className="btn ghost"
+          disabled={working || !form.labRequests.trim() || awaitingLab}
+          onClick={() => void sendToLab()}>{busy === 'lab' ? 'Sending...'
+            : awaitingLab ? 'Waiting on the lab' : 'Send to lab'}</button>
         {/* Signing off does two different things depending on what was prescribed — it
             walks the patient to the counter, or it ends their visit — so the button says
             which one it is about to do rather than leaving it to be found out. */}
-        <button type="button" className="btn" disabled={busy || !form.diagnosis.trim() || !form.treatmentPlan.trim()}
-          onClick={() => void persist(true)}>{busy ? 'Saving...'
-            : form.prescriptions.trim() ? 'Finalize & send to pharmacy' : 'Finalize visit'}</button></div>}
+        <button type="button" className="btn"
+          disabled={working || !form.diagnosis.trim() || !form.treatmentPlan.trim()}
+          onClick={() => void persist(true)}>{busy === 'finalize' ? 'Finalizing...'
+            : form.prescriptions.trim() ? 'Finalize & send to pharmacy' : 'Finalize visit'}</button>
+      </div>}
     </form>
   </div>
 }
