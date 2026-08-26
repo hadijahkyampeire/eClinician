@@ -22,4 +22,10 @@ public interface ClinicianAvailabilityRepository
             + "and a.startTime <= ?3 and a.endTime > ?3")
     List<ClinicianAvailability> findAvailableShifts(
             String tenantId, DayOfWeek dayOfWeek, LocalTime time);
+
+    @Query("select a from ClinicianAvailability a "
+            + "where a.tenantId = ?1 and a.clinicianId = ?2 and a.dayOfWeek = ?3 "
+            + "and a.startTime <= ?4 and a.endTime > ?4")
+    List<ClinicianAvailability> findShiftAt(
+            String tenantId, UUID clinicianId, DayOfWeek dayOfWeek, LocalTime time);
 }

@@ -13,6 +13,8 @@ export interface Appointment {
   patientName: string
   doctorId: string | null
   doctorName: string | null
+  doctorSpecialty: string | null
+  room: string | null
   status: AppointmentStatus
   scheduledAt: string
   checkedInAt: string | null
