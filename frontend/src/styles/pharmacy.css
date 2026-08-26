@@ -59,3 +59,24 @@
 /* Who is standing there, above the work itself. */
 .counter-card { margin-bottom: 18px; }
 .counter-card .record-row > div:last-child { display: flex; align-items: center; gap: 10px; }
+
+/* The bench queue: a patient per row, opening onto their own tests. */
+.bench-row {
+  display: flex; align-items: center; gap: 14px; width: 100%;
+  padding: 14px 4px; border: none; background: none; text-align: left;
+  cursor: pointer; font: inherit; border-top: 1px solid var(--border);
+}
+.record-list > div:first-child .bench-row { border-top: none; }
+.bench-row:hover { background: var(--bg); }
+.bench-who { display: grid; gap: 2px; flex: 1; min-width: 0; }
+.bench-who b { color: var(--heading); }
+.bench-who small { color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bench-waited { font-size: 13px; color: #b45309; background: #fffbeb; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+.bench-caret { color: var(--text-muted); transition: transform 120ms ease; }
+.bench-caret.open { transform: rotate(180deg); }
+.bench-tests { display: grid; gap: 10px; padding: 4px 4px 16px; }
+.bench-test { display: flex; align-items: center; gap: 12px; padding-left: 14px; border-left: 2px solid var(--border); }
+.bench-test > span:first-child { display: grid; gap: 2px; flex: 1; min-width: 0; }
+.bench-test b { font-size: 14px; color: var(--heading); }
+.bench-test small { font-size: 12px; color: var(--text-muted); }
+.bench-actions { display: flex; align-items: center; gap: 6px; }

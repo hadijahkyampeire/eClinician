@@ -1,5 +1,6 @@
 package com.eclinician.controllers;
 
+import com.eclinician.domains.dtos.BenchPatient;
 import com.eclinician.domains.dtos.LabOrderResponse;
 import com.eclinician.domains.dtos.LabResultRequest;
 import com.eclinician.domains.enums.LabStatus;
@@ -14,7 +15,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/lab/orders")
+@RequestMapping("/api/lab")
 public class LabController {
 
     private final LabService labService;
@@ -23,24 +24,31 @@ public class LabController {
     }
 
     @PreAuthorize("hasAnyRole('LAB_TECHNICIAN', 'ADMINISTRATOR')")
-    @GetMapping
+    @GetMapping("/orders")
     public List<LabOrderResponse> listOrders(@CurrentTenant String tenantId,
                                              @RequestParam(required = false) LabStatus status) {
         return labService.list(tenantId, status);
     }
 
     @PreAuthorize("hasAnyRole('CLINICIAN', 'LAB_TECHNICIAN', 'ADMINISTRATOR')")
-    @GetMapping("/patients/{patientId}")
+    @GetMapping("/orders/patients/{patientId}")
     public List<LabOrderResponse> listForPatient(@CurrentTenant String tenantId,
                                                  @PathVariable UUID patientId) {
         return labService.listForPatient(tenantId, patientId);
     }
 
     @PreAuthorize("hasRole('LAB_TECHNICIAN')")
-    @PostMapping("/{id}")
+    @PostMapping("/orders/{id}")
     public LabOrderResponse update(@CurrentTenant String tenantId,
                                    @CurrentUserName String technicianName,
                                    @PathVariable UUID id, @Valid @RequestBody LabResultRequest request) {
         return labService.update(tenantId, technicianName, id, request);
+    }
+
+    /** The queue as people rather than line items, longest wait first. */
+    @PreAuthorize("hasAnyRole('LAB_TECHNICIAN', 'ADMINISTRATOR')")
+    @GetMapping("/bench")
+    public List<BenchPatient> bench(@CurrentTenant String tenantId) {
+        return labService.bench(tenantId);
     }
 }
