@@ -74,6 +74,14 @@ public class EncounterController {
         return service.draftSummary(tenantId, id);
     }
 
+    /** Sends the patient for the tests already listed, without closing the visit. */
+    @PreAuthorize("hasRole('CLINICIAN')")
+    @PostMapping("/{id}/lab")
+    public EncounterResponse sendToLab(@CurrentTenant String tenantId,
+            @PathVariable UUID id) {
+        return service.sendToLab(tenantId, id);
+    }
+
     @PreAuthorize("hasRole('CLINICIAN')")
     @PostMapping("/{id}/finalize")
     public EncounterResponse finalizeEncounter(@CurrentTenant String tenantId,

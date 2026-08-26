@@ -148,11 +148,23 @@ public class AppointmentService {
             throw new ConflictException("Patient is already in session");
         }
         if (requestedDoctor != null) appointment.setDoctorId(requestedDoctor.getId());
+        if (Boolean.TRUE.equals(request.urgent())) appointment.setUrgent(true);
         appointment.setStatus(AppointmentStatus.CHECKED_IN);
         if (appointment.getCheckedInAt() == null) appointment.setCheckedInAt(Instant.now());
         patient.setActiveCareStatus(PatientCareStatus.CHECKED_IN);
         patients.save(patient);
         return response(patient, appointments.save(appointment));
+    }
+
+    /**
+     * The desk's override on the queue's order. Not a triage score: someone at the front
+     * desk looking at a baby who has gone quiet needs one box, not a five-point scale.
+     */
+    @Transactional
+    public AppointmentResponse setUrgent(String tenantId, UUID appointmentId, boolean urgent) {
+        Appointment appointment = appointment(tenantId, appointmentId);
+        appointment.setUrgent(urgent);
+        return response(tenantId, appointments.save(appointment));
     }
 
     @Transactional
@@ -291,6 +303,7 @@ public class AppointmentService {
                         .orElse(null);
         return AppointmentResponse.from(appointment,
                 patient.getFirstName() + " " + patient.getLastName(),
+                patient.getActiveCareStatus(),
                 doctor == null ? null : doctor.getName(),
                 doctor == null ? null : doctor.getSpecialty(),
                 room(appointment));

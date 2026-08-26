@@ -131,10 +131,12 @@ public class DemoHistorySeeder implements CommandLineRunner {
         record.setStatus(EncounterStatus.FINALIZED);
         record.setClinicianName(doctor.getName());
         record.setChiefComplaint(notes.chiefComplaint());
-        record.setBloodPressure("118/76");
+        record.setSystolicBp(118);
+        record.setDiastolicBp(76);
         record.setTemperatureCelsius(notes.temperature());
         record.setPulseBpm(notes.pulse());
         record.setWeightKg(71.0);
+        record.setHeightCm(168.0);
         record.setSymptoms(notes.chiefComplaint());
         record.setExaminationNotes(notes.examination());
         record.setDiagnosis(notes.diagnosis());

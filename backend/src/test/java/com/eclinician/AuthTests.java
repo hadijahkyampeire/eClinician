@@ -119,9 +119,9 @@ class AuthTests {
         arrived = patients.save(arrived);
 
         appointments.schedule(tenant,
-                new AppointmentRequest(booked.getId(), null, "Future review"));
+                new AppointmentRequest(booked.getId(), null, null, "Future review", false));
         appointments.checkIn(tenant,
-                new AppointmentRequest(arrived.getId(), null, "Walk-in"));
+                new AppointmentRequest(arrived.getId(), null, null, "Walk-in", false));
         String clinician = accounts.bearerFor(tenant, UserRole.CLINICIAN);
 
         mvc.perform(get("/api/patients").header("Authorization", clinician))

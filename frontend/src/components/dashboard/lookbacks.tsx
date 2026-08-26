@@ -68,7 +68,8 @@ export function VisitsLookback() {
         <th>Status</th><th /></>}>
       {rows.map(visit => (
         <tr key={visit.id}>
-          <td>{visit.patientName}</td>
+          <td><Link className="patient-name-link" to={`/patients/${visit.patientId}`}>
+            {visit.patientName}</Link></td>
           <td>{visit.chiefComplaint || '—'}</td>
           <td>{visit.diagnosis || '—'}</td>
           <td><When iso={visit.createdAt} /></td>

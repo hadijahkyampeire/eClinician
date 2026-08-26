@@ -4,10 +4,12 @@ export interface EncounterForm {
   patientId: string
   appointmentId: string
   chiefComplaint: string
+  /** Typed as one reading, "120/80"; stored as the two numbers it is made of. */
   bloodPressure: string
   temperatureCelsius: string
   pulseBpm: string
   weightKg: string
+  heightCm: string
   symptoms: string
   examinationNotes: string
   diagnosis: string
@@ -18,15 +20,21 @@ export interface EncounterForm {
 }
 
 export interface Encounter extends Omit<EncounterForm,
-  'temperatureCelsius' | 'pulseBpm' | 'weightKg'> {
+  'bloodPressure' | 'temperatureCelsius' | 'pulseBpm' | 'weightKg' | 'heightCm'> {
   id: string
   patientName: string
   /** Response-only: stamped by the API from the signed-in clinician's token. */
   clinicianName: string
   status: EncounterStatus
+  systolicBp: number | null
+  diastolicBp: number | null
   temperatureCelsius: number | null
   pulseBpm: number | null
   weightKg: number | null
+  heightCm: number | null
+  /** The lab round trip, both response-only: sent, and back with results. */
+  sentToLabAt: string | null
+  labResultsReadyAt: string | null
   finalizedAt: string | null
   createdAt: string
   updatedAt: string

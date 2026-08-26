@@ -60,7 +60,7 @@ class PatientRuleTests {
     @Test
     void aPatientWithVisitsCannotBeDeleted() {
         PatientResponse mary = patients.create(TENANT, request("Mary", "+256700900005", "CF900005"));
-        appointments.checkIn(TENANT, new AppointmentRequest(mary.id(), null, "Fever"));
+        appointments.checkIn(TENANT, new AppointmentRequest(mary.id(), null, null, "Fever", false));
 
         assertThatThrownBy(() -> patients.delete(TENANT, mary.id()))
                 .isInstanceOf(ConflictException.class)

@@ -7,8 +7,10 @@ import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import EventBusyOutlinedIcon from '@mui/icons-material/EventBusyOutlined'
 import ExpandMoreOutlinedIcon from '@mui/icons-material/ExpandMoreOutlined'
+import PriorityHighOutlinedIcon from '@mui/icons-material/PriorityHighOutlined'
 import { elapsed } from '../dashboard/time'
 import type { Appointment, AppointmentStatus } from '../../types/appointment'
+import type { PatientCareStatus } from '../../types/patient'
 
 /**
  * The three things this table is asked to be, which differ in what a row may still do:
@@ -34,10 +36,12 @@ interface Props {
   onTransition: (id: string, next: 'waiting' | 'complete') => void
   onEdit?: (appointment: Appointment) => void
   onCancel?: (appointment: Appointment) => void
+  /** The desk moving someone up the queue, or putting them back in line. */
+  onUrgency?: (appointment: Appointment) => void
 }
 
 export default function AppointmentTable({
-  appointments, variant, role, busy, onTransition, onEdit, onCancel,
+  appointments, variant, role, busy, onTransition, onEdit, onCancel, onUrgency,
 }: Props) {
   // One row open at a time: the details are a glance, not a workspace.
   const [open, setOpen] = useState<string | null>(null)
@@ -63,11 +67,13 @@ export default function AppointmentTable({
             <Fragment key={appointment.id}>
               <tr>
                 <td><Link className="patient-name-link"
-                  to={`/patients/${appointment.patientId}`}>{appointment.patientName}</Link></td>
+                  to={`/patients/${appointment.patientId}`}>{appointment.patientName}</Link>
+                  {appointment.urgent && <span className="urgent-flag">Urgent</span>}</td>
                 <td>{appointment.doctorName || 'Unassigned'}</td>
                 <td>{appointment.doctorSpecialty || '—'}</td>
                 <td>{appointment.room || '—'}</td>
-                <td><AppointmentBadge status={appointment.status} /></td>
+                <td><AppointmentBadge status={appointment.status}
+                  careStatus={appointment.careStatus} /></td>
                 <td>{formatDateTime(appointment.scheduledAt, queue)}</td>
                 <td>{appointment.checkedInAt
                   ? formatDateTime(appointment.checkedInAt, queue) : '—'}</td>
@@ -113,11 +119,22 @@ export default function AppointmentTable({
                     {/* Cancelling is the one action here that undoes a booking, so it sits
                         behind the menu rather than a click away from Edit. */}
                     {desk && onCancel && editable.includes(appointment.status) && (
-                      <RowActions label={`Actions for ${appointment.patientName}`} actions={[{
-                        label: 'Cancel appointment', danger: true, disabled: busy,
-                        icon: <EventBusyOutlinedIcon fontSize="small" />,
-                        onClick: () => onCancel(appointment),
-                      }]} />
+                      <RowActions label={`Actions for ${appointment.patientName}`} actions={[
+                        // Whether someone can wait is often only clear after they have
+                        // sat down, so it is changeable from the row either way.
+                        ...(onUrgency && queue ? [{
+                          label: appointment.urgent
+                            ? 'No longer urgent' : 'Needs to be seen first',
+                          disabled: busy,
+                          icon: <PriorityHighOutlinedIcon fontSize="small" />,
+                          onClick: () => onUrgency(appointment),
+                        }] : []),
+                        {
+                          label: 'Cancel appointment', danger: true, disabled: busy,
+                          icon: <EventBusyOutlinedIcon fontSize="small" />,
+                          onClick: () => onCancel(appointment),
+                        },
+                      ]} />
                     )}
                   </>}
                 </td>
@@ -179,7 +196,14 @@ function IconAction({ title, danger, disabled, to, onClick, expanded, controls, 
   return <Tooltip title={title}><span>{button}</span></Tooltip>
 }
 
-function AppointmentBadge({ status }: { status: AppointmentStatus }) {
+/** The visit's own state, except while the patient is out of the room for tests. */
+function AppointmentBadge({ status, careStatus }: {
+  status: AppointmentStatus
+  careStatus?: PatientCareStatus | null
+}) {
+  if (careStatus === 'LAB') {
+    return <span className="appointment-status lab">at the lab</span>
+  }
   return <span className={`appointment-status ${status.toLowerCase()}`}>
     {status.replaceAll('_', ' ').toLowerCase()}
   </span>

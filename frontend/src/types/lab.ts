@@ -1,4 +1,4 @@
-export type LabStatus = 'PENDING' | 'COMPLETED' | 'CANCELLED'
+export type LabStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED'
 
 /** Mirrors LabOrderResponse on the API. */
 export interface LabOrder {
@@ -17,7 +17,8 @@ export interface LabOrder {
 
 /**
  * Mirrors LabResultRequest. A technician can never set PENDING, and never says who
- * they are — the API stamps that from their token.
+ * they are — the API stamps that from their token. IN_PROGRESS is the draft: the
+ * specimen is taken and whatever has been read so far can be saved without signing it.
  */
 export interface LabResultForm {
   status: Exclude<LabStatus, 'PENDING'>

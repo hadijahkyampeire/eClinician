@@ -74,6 +74,16 @@ public class AppointmentController {
         return service.checkIn(tenantId, request);
     }
 
+    /** The desk decides who cannot wait their turn, before or after they have sat down. */
+    @PreAuthorize("hasAnyRole('RECEPTIONIST', 'ADMINISTRATOR')")
+    @PostMapping("/{id}/urgency")
+    public AppointmentResponse setUrgent(
+            @CurrentTenant String tenantId,
+            @PathVariable UUID id,
+            @RequestParam boolean urgent) {
+        return service.setUrgent(tenantId, id, urgent);
+    }
+
     @PreAuthorize("hasRole('RECEPTIONIST')")
     @PostMapping("/{id}/waiting")
     public AppointmentResponse markWaiting(

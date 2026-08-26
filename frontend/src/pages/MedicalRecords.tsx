@@ -3,18 +3,21 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   draftEncounterSummary, finalizeEncounter, getEncounter, getEncounters, saveEncounter,
+  sendEncounterToLab,
 } from '../api/encounters'
 import { getAppointments } from '../api/appointments'
 import { getPatient } from '../api/patients'
 import { useAuth } from '../auth/AuthContext'
+import LabTrip from '../components/records/LabTrip'
 import OrderPicker from '../components/records/OrderPicker'
 import PatientContext from '../components/records/PatientContext'
 import { useLabTests, useMedications } from '../hooks/useCatalog'
+import { derivedVitals, formatBloodPressure } from '../lib/vitals'
 import type { Encounter, EncounterForm } from '../types/encounter'
 
 const emptyForm: EncounterForm = {
   patientId: '', appointmentId: '', chiefComplaint: '',
-  bloodPressure: '', temperatureCelsius: '', pulseBpm: '', weightKg: '', symptoms: '',
+  bloodPressure: '', temperatureCelsius: '', pulseBpm: '', weightKg: '', heightCm: '', symptoms: '',
   examinationNotes: '', diagnosis: '', treatmentPlan: '', prescriptions: '', labRequests: '',
   visitSummary: '',
 }
@@ -93,6 +96,22 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
   })
   const activeAppointment = appointmentsQuery.data?.find(value => value.status === 'IN_SESSION')
 
+  /*
+   * A visit can be started more than once — a patient sent to the lab rejoins the queue
+   * and is called back in — and the note they left behind is the one to come back to.
+   * Without this the second start opens a blank form over an existing draft.
+   */
+  const patientEncounters = useQuery({
+    queryKey: ['encounters', tenantId, patientId],
+    queryFn: () => getEncounters(patientId), enabled: Boolean(tenantId && patientId && !encounterId),
+  })
+  const openNote = patientEncounters.data?.find(value =>
+    value.status === 'DRAFT' && value.appointmentId === activeAppointment?.id)
+
+  useEffect(() => {
+    if (openNote) navigate(`/records?encounterId=${openNote.id}`, { replace: true })
+  }, [navigate, openNote])
+
   useEffect(() => {
     // Populate the editable local draft when the requested server record arrives.
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -106,6 +125,9 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
   }, [activeAppointment?.id, encounterId, patientId])
 
   const locked = encounterQuery.data?.status === 'FINALIZED'
+  // Sent, and nothing back yet: sending the same tests again would only raise duplicates.
+  const awaitingLab = Boolean(encounterQuery.data?.sentToLabAt)
+    && !encounterQuery.data?.labResultsReadyAt
   const set = (field: keyof EncounterForm, value: string) =>
     setForm(current => ({ ...current, [field]: value }))
 
@@ -131,6 +153,25 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
   const submit = (event: FormEvent) => { event.preventDefault(); void persist(false) }
 
   /**
+   * Walks the patient to the bench without ending the visit. Saved first, because the
+   * orders are raised from what the note says, not from what is on screen unsent.
+   */
+  async function sendToLab() {
+    if (!tenantId) return
+    setBusy(true); setMessage('')
+    try {
+      const saved = await saveEncounter(form, savedId || undefined)
+      setSavedId(saved.id)
+      await sendEncounterToLab(saved.id)
+      await queryClient.invalidateQueries()
+      setMessage('Sent to the lab — this note stays open until the results come back')
+      navigate(`/records?encounterId=${saved.id}`, { replace: true })
+    } catch (caught) {
+      setMessage(caught instanceof Error ? caught.message : 'Unable to send to the lab')
+    } finally { setBusy(false) }
+  }
+
+  /**
    * Saves first so the summarizer reads what is on screen, then drops its draft into the
    * field. It stays editable: the clinician signs the record, not the model.
    */
@@ -149,7 +190,9 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
     } finally { setBusy(false) }
   }
 
-  if (encounterQuery.isLoading || patientQuery.isLoading) return <p>Loading clinical record...</p>
+  if (encounterQuery.isLoading || patientQuery.isLoading || patientEncounters.isLoading) {
+    return <p>Loading clinical record...</p>
+  }
   if (!patientId || (!encounterId && !activeAppointment)) return <div className="card record-empty">
     A patient must have an active clinical session before an encounter can be documented.
   </div>
@@ -161,6 +204,7 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
     {locked && <div className="record-locked">Finalized {formatDateTime(encounterQuery.data!.finalizedAt!)} · This record is read-only.</div>}
     {patientQuery.data
       && <PatientContext patient={patientQuery.data} currentEncounterId={savedId || encounterId} />}
+    {encounterQuery.data && <LabTrip encounter={encounterQuery.data} />}
     <form className="encounter-form" onSubmit={submit}>
       <FormSection title="Visit overview">
         {/* Not a field: the API records whoever's token signed the request. */}
@@ -172,6 +216,8 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
         <Field label="Temperature (°C)" type="number" value={form.temperatureCelsius} onChange={v => set('temperatureCelsius', v)} disabled={locked} />
         <Field label="Pulse (bpm)" type="number" value={form.pulseBpm} onChange={v => set('pulseBpm', v)} disabled={locked} />
         <Field label="Weight (kg)" type="number" value={form.weightKg} onChange={v => set('weightKg', v)} disabled={locked} />
+        <Field label="Height (cm)" type="number" value={form.heightCm} onChange={v => set('heightCm', v)} disabled={locked} />
+        <Derived vitals={form} />
       </FormSection>
       <FormSection title="Clinical assessment">
         <TextField label="Symptoms & history" value={form.symptoms} onChange={v => set('symptoms', v)} disabled={locked} />
@@ -204,9 +250,32 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
       {message && <p className={message.startsWith('Draft saved') || message.startsWith('Summary drafted')
         ? 'record-success' : 'patient-error'}>{message}</p>}
       {!locked && <div className="encounter-actions"><button className="btn ghost" disabled={busy}>Save draft</button>
+        {/* The visit pauses here rather than ending: no diagnosis is asked for, because
+            the test is what will decide it. */}
+        <button type="button" className="btn ghost" disabled={busy || !form.labRequests.trim() || awaitingLab}
+          onClick={() => void sendToLab()}>{awaitingLab ? 'Waiting on the lab' : 'Send to lab'}</button>
+        {/* Signing off does two different things depending on what was prescribed — it
+            walks the patient to the counter, or it ends their visit — so the button says
+            which one it is about to do rather than leaving it to be found out. */}
         <button type="button" className="btn" disabled={busy || !form.diagnosis.trim() || !form.treatmentPlan.trim()}
-          onClick={() => void persist(true)}>{busy ? 'Saving...' : 'Finalize encounter'}</button></div>}
+          onClick={() => void persist(true)}>{busy ? 'Saving...'
+            : form.prescriptions.trim() ? 'Finalize & send to pharmacy' : 'Finalize visit'}</button></div>}
     </form>
+  </div>
+}
+
+/**
+ * Worked out from the fields above rather than typed: nobody records their own BMI, and
+ * a mean arterial pressure done in someone's head mid-consultation is one done wrong.
+ */
+function Derived({ vitals }: { vitals: EncounterForm }) {
+  const readings = derivedVitals(vitals)
+  if (!readings.length) return null
+  return <div className="vitals-derived encounter-wide">
+    {readings.map(reading => <div key={reading.label} className={`vitals-reading ${reading.tone}`}>
+      <span>{reading.label}</span><b>{reading.value}</b>
+      {reading.note && <small>{reading.note}</small>}
+    </div>)}
   </div>
 }
 
@@ -229,9 +298,10 @@ function TextField({ label, value, onChange, required, disabled, hint }: {
       onChange={event => onChange(event.target.value)} /></label>
 }
 function toForm(value: Encounter): EncounterForm {
-  return { ...value, temperatureCelsius: value.temperatureCelsius?.toString() || '',
+  return { ...value, bloodPressure: formatBloodPressure(value.systolicBp, value.diastolicBp),
+    temperatureCelsius: value.temperatureCelsius?.toString() || '',
     pulseBpm: value.pulseBpm?.toString() || '', weightKg: value.weightKg?.toString() || '',
-    visitSummary: value.visitSummary || '' }
+    heightCm: value.heightCm?.toString() || '', visitSummary: value.visitSummary || '' }
 }
 function formatDateTime(value: string) {
   return new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))

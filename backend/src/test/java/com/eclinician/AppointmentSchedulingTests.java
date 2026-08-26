@@ -38,11 +38,11 @@ class AppointmentSchedulingTests {
     void aDoctorCannotHoldTwoAppointmentsAtTheSameTime() {
         UUID doctor = doctor();
         appointments.schedule(TENANT,
-                new AppointmentRequest(patient("+256700910001").id(), doctor, SLOT, "Review"));
+                new AppointmentRequest(patient("+256700910001").id(), doctor, SLOT, "Review", false));
         UUID second = patient("+256700910002").id();
 
         assertThatThrownBy(() -> appointments.schedule(TENANT,
-                new AppointmentRequest(second, doctor, SLOT, "Review")))
+                new AppointmentRequest(second, doctor, SLOT, "Review", false)))
                 .isInstanceOf(ConflictException.class)
                 .hasMessageContaining("already has an appointment");
     }
@@ -51,19 +51,19 @@ class AppointmentSchedulingTests {
     void cancellingFreesTheDoctorsSlot() {
         UUID doctor = doctor();
         AppointmentResponse booked = appointments.schedule(TENANT,
-                new AppointmentRequest(patient("+256700910003").id(), doctor, SLOT, "Review"));
+                new AppointmentRequest(patient("+256700910003").id(), doctor, SLOT, "Review", false));
 
         assertThat(appointments.cancel(TENANT, booked.id()).status())
                 .isEqualTo(AppointmentStatus.CANCELLED);
         assertThat(appointments.schedule(TENANT, new AppointmentRequest(
-                patient("+256700910004").id(), doctor, SLOT, "Review")).id()).isNotNull();
+                patient("+256700910004").id(), doctor, SLOT, "Review", false)).id()).isNotNull();
     }
 
     @Test
     void anAppointmentThatHasTakenPlaceCannotBeCancelled() {
         PatientResponse mary = patient("+256700910005");
         AppointmentResponse visit = appointments.checkIn(TENANT,
-                new AppointmentRequest(mary.id(), null, "Walk-in"));
+                new AppointmentRequest(mary.id(), null, null, "Walk-in", false));
         appointments.startSession(TENANT, mary.id());
         appointments.complete(TENANT, visit.id());
 

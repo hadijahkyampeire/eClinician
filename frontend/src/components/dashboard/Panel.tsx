@@ -36,8 +36,12 @@ export function Panel({ title, count, to, seeAll, empty, first, children }: {
   )
 }
 
-export function Row({ primary, secondary, meta, tone, action }: {
+export function Row({ primary, to, flag, secondary, meta, tone, action }: {
   primary: string
+  /** Where the name goes when it is a patient's — their chart is always one click away. */
+  to?: string
+  /** Why this row is out of order, said on the row rather than left to be guessed. */
+  flag?: string
   secondary?: string | null
   meta?: string | null
   tone?: 'waiting' | 'session' | 'ready'
@@ -46,7 +50,12 @@ export function Row({ primary, secondary, meta, tone, action }: {
   return (
     <li className="panel-row">
       <span className="row-text">
-        <span className="row-primary">{primary}</span>
+        <span className="row-name">
+          {to
+            ? <Link className="row-primary row-link" to={to}>{primary}</Link>
+            : <span className="row-primary">{primary}</span>}
+          {flag && <span className="urgent-flag">{flag}</span>}
+        </span>
         {secondary && <span className="row-secondary">{secondary}</span>}
       </span>
       {meta && <span className={`row-meta${tone ? ` ${tone}` : ''}`}>{meta}</span>}

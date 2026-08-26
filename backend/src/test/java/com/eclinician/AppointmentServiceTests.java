@@ -45,7 +45,7 @@ class AppointmentServiceTests {
 
         AppointmentResponse checkedIn = service.checkIn(
                 patient.getTenantId(),
-                new AppointmentRequest(patient.getId(), null, "Walk-in"));
+                new AppointmentRequest(patient.getId(), null, null, "Walk-in", false));
         assertThat(checkedIn.status()).isEqualTo(AppointmentStatus.CHECKED_IN);
         assertThat(patients.findById(patient.getId()).orElseThrow().getActiveCareStatus())
                 .isEqualTo(PatientCareStatus.CHECKED_IN);
@@ -91,7 +91,7 @@ class AppointmentServiceTests {
         patient = patients.save(patient);
 
         AppointmentResponse arrival = service.checkIn(tenant,
-                new AppointmentRequest(patient.getId(), dentist.getId(), null, "Tooth pain"));
+                new AppointmentRequest(patient.getId(), dentist.getId(), null, "Tooth pain", false));
 
         assertThat(service.list(tenant, null, dentist.getEmail()))
                 .singleElement().extracting(AppointmentResponse::id).isEqualTo(arrival.id());
