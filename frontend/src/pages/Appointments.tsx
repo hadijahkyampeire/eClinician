@@ -24,6 +24,10 @@ import type { Appointment, AppointmentForm, AppointmentStatus } from '../types/a
 
 const activeStatuses: AppointmentStatus[] = ['CHECKED_IN', 'WAITING', 'IN_SESSION']
 
+/** Where a patient stands in the queue: when they arrived, not when the row was made. */
+const queuedAt = (appointment: Appointment) =>
+  appointment.checkedInAt ?? appointment.scheduledAt
+
 export default function Appointments() {
   const [params] = useSearchParams()
   const navigate = useNavigate()
@@ -54,6 +58,9 @@ export default function Appointments() {
     queryKey: ['appointments', tenantId],
     queryFn: () => getAppointments(),
     enabled: Boolean(tenantId),
+    // The queue shows how long each patient has been waiting, so it has to keep moving
+    // on its own. Same beat as the dashboard panels.
+    refetchInterval: 30_000,
   })
   const cliniciansQuery = useQuery({
     queryKey: ['clinicians', tenantId],
@@ -123,8 +130,12 @@ export default function Appointments() {
   }, [confirmation])
 
   const appointments = appointmentsQuery.data ?? []
-  const active = appointments.filter((appointment) =>
-    activeStatuses.includes(appointment.status))
+  // A doctor takes the next patient off the top, so the queue runs in the order people
+  // arrived: whoever checked in first is first. The API sorts newest-created first, which
+  // is right for the history below and exactly backwards here.
+  const active = appointments
+    .filter((appointment) => activeStatuses.includes(appointment.status))
+    .sort((a, b) => queuedAt(a).localeCompare(queuedAt(b)))
   const history = appointments
     .filter((appointment) => !activeStatuses.includes(appointment.status))
     .filter((appointment) => covers(range, appointment.scheduledAt))
