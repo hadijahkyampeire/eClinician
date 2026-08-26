@@ -10,5 +10,6 @@ public record EncounterResponse(
         Integer systolicBp, Integer diastolicBp, Double temperatureCelsius, Integer pulseBpm,
         Double weightKg, Double heightCm,
         String symptoms, String examinationNotes, String diagnosis, String treatmentPlan,
-        String prescriptions, String labRequests, String visitSummary, Instant finalizedAt,
+        String prescriptions, String labRequests, String visitSummary,
+        Instant sentToLabAt, Instant labResultsReadyAt, Instant finalizedAt,
         Instant createdAt, Instant updatedAt) {}

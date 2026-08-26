@@ -44,4 +44,5 @@ export interface PatientFilters {
   nationalId: string
 }
 
-export type PatientCareStatus = 'CHECKED_IN' | 'WAITING' | 'IN_SESSION' | 'PHARMACY'
+export type PatientCareStatus =
+  'CHECKED_IN' | 'WAITING' | 'IN_SESSION' | 'LAB' | 'PHARMACY'

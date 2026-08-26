@@ -3,10 +3,12 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   draftEncounterSummary, finalizeEncounter, getEncounter, getEncounters, saveEncounter,
+  sendEncounterToLab,
 } from '../api/encounters'
 import { getAppointments } from '../api/appointments'
 import { getPatient } from '../api/patients'
 import { useAuth } from '../auth/AuthContext'
+import LabTrip from '../components/records/LabTrip'
 import OrderPicker from '../components/records/OrderPicker'
 import PatientContext from '../components/records/PatientContext'
 import { useLabTests, useMedications } from '../hooks/useCatalog'
@@ -107,6 +109,9 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
   }, [activeAppointment?.id, encounterId, patientId])
 
   const locked = encounterQuery.data?.status === 'FINALIZED'
+  // Sent, and nothing back yet: sending the same tests again would only raise duplicates.
+  const awaitingLab = Boolean(encounterQuery.data?.sentToLabAt)
+    && !encounterQuery.data?.labResultsReadyAt
   const set = (field: keyof EncounterForm, value: string) =>
     setForm(current => ({ ...current, [field]: value }))
 
@@ -130,6 +135,25 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
     } finally { setBusy(false) }
   }
   const submit = (event: FormEvent) => { event.preventDefault(); void persist(false) }
+
+  /**
+   * Walks the patient to the bench without ending the visit. Saved first, because the
+   * orders are raised from what the note says, not from what is on screen unsent.
+   */
+  async function sendToLab() {
+    if (!tenantId) return
+    setBusy(true); setMessage('')
+    try {
+      const saved = await saveEncounter(form, savedId || undefined)
+      setSavedId(saved.id)
+      await sendEncounterToLab(saved.id)
+      await queryClient.invalidateQueries()
+      setMessage('Sent to the lab — this note stays open until the results come back')
+      navigate(`/records?encounterId=${saved.id}`, { replace: true })
+    } catch (caught) {
+      setMessage(caught instanceof Error ? caught.message : 'Unable to send to the lab')
+    } finally { setBusy(false) }
+  }
 
   /**
    * Saves first so the summarizer reads what is on screen, then drops its draft into the
@@ -162,6 +186,7 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
     {locked && <div className="record-locked">Finalized {formatDateTime(encounterQuery.data!.finalizedAt!)} · This record is read-only.</div>}
     {patientQuery.data
       && <PatientContext patient={patientQuery.data} currentEncounterId={savedId || encounterId} />}
+    {encounterQuery.data && <LabTrip encounter={encounterQuery.data} />}
     <form className="encounter-form" onSubmit={submit}>
       <FormSection title="Visit overview">
         {/* Not a field: the API records whoever's token signed the request. */}
@@ -207,6 +232,10 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
       {message && <p className={message.startsWith('Draft saved') || message.startsWith('Summary drafted')
         ? 'record-success' : 'patient-error'}>{message}</p>}
       {!locked && <div className="encounter-actions"><button className="btn ghost" disabled={busy}>Save draft</button>
+        {/* The visit pauses here rather than ending: no diagnosis is asked for, because
+            the test is what will decide it. */}
+        <button type="button" className="btn ghost" disabled={busy || !form.labRequests.trim() || awaitingLab}
+          onClick={() => void sendToLab()}>{awaitingLab ? 'Waiting on the lab' : 'Send to lab'}</button>
         <button type="button" className="btn" disabled={busy || !form.diagnosis.trim() || !form.treatmentPlan.trim()}
           onClick={() => void persist(true)}>{busy ? 'Saving...' : 'Finalize encounter'}</button></div>}
     </form>

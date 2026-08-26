@@ -106,6 +106,7 @@ function CareStatus({
     CHECKED_IN: 'Checked in',
     WAITING: 'Waiting',
     IN_SESSION: 'In session',
+    LAB: 'At the lab',
     PHARMACY: 'Pharmacy',
   }
   return <span className={`care-status ${status.toLowerCase()}`}>{labels[status]}</span>

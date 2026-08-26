@@ -7,6 +7,7 @@ import com.eclinician.domains.entities.Encounter;
 import com.eclinician.domains.entities.Patient;
 import com.eclinician.domains.enums.AppointmentStatus;
 import com.eclinician.domains.enums.EncounterStatus;
+import com.eclinician.domains.enums.PatientCareStatus;
 import com.eclinician.repositories.AppointmentRepository;
 import com.eclinician.repositories.EncounterRepository;
 import com.eclinician.repositories.PatientRepository;
@@ -114,11 +115,42 @@ public class EncounterService {
         appointment.setCompletedAt(Instant.now());
         patient.setActiveCareStatus(blank(value.getPrescriptions())
                 ? null
-                : com.eclinician.domains.enums.PatientCareStatus.PHARMACY);
+                : PatientCareStatus.PHARMACY);
         appointments.save(appointment);
         patients.save(patient);
         pharmacyService.createFromEncounter(tenantId, value.getId(), value.getPatientId(), value.getPrescriptions());
         labService.createFromEncounter(tenantId, value.getId(), value.getPatientId(), value.getLabRequests());
+        return response(patient, encounters.save(value));
+    }
+
+    /**
+     * Sends the patient to the lab without ending the visit.
+     *
+     * Finalizing used to be the only way to raise an order, which meant a clinician who
+     * wanted a result before deciding anything had to write a diagnosis they did not have
+     * yet. Here the encounter stays a draft and the appointment stays in session — the
+     * patient walks to the bench and comes back to the same open note.
+     */
+    @Transactional
+    public EncounterResponse sendToLab(String tenantId, UUID id) {
+        Encounter value = encounter(tenantId, id);
+        requireDraft(value);
+        if (blank(value.getLabRequests())) {
+            throw new ConflictException("Add the tests you want run before sending to the lab");
+        }
+        Appointment appointment = appointment(tenantId, value.getAppointmentId());
+        if (appointment.getStatus() != AppointmentStatus.IN_SESSION) {
+            throw new ConflictException("The patient must be in session to be sent to the lab");
+        }
+        Patient patient = patient(tenantId, value.getPatientId());
+        labService.createFromEncounter(tenantId, value.getId(), value.getPatientId(),
+                value.getLabRequests());
+        patient.setActiveCareStatus(PatientCareStatus.LAB);
+        // A second trip starts a fresh wait: whatever came back last time is not the
+        // result of the test just ordered.
+        value.setSentToLabAt(Instant.now());
+        value.setLabResultsReadyAt(null);
+        patients.save(patient);
         return response(patient, encounters.save(value));
     }
 
@@ -187,7 +219,8 @@ public class EncounterService {
                 value.getPulseBpm(), value.getWeightKg(), value.getHeightCm(),
                 value.getSymptoms(), value.getExaminationNotes(),
                 value.getDiagnosis(), value.getTreatmentPlan(), value.getPrescriptions(),
-                value.getLabRequests(), value.getVisitSummary(), value.getFinalizedAt(),
+                value.getLabRequests(), value.getVisitSummary(), value.getSentToLabAt(),
+                value.getLabResultsReadyAt(), value.getFinalizedAt(),
                 value.getCreatedAt(),
                 value.getUpdatedAt());
     }

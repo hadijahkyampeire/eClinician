@@ -205,6 +205,7 @@ function CareStatus({ status }: { status: PatientCareStatus | null }) {
     CHECKED_IN: 'Checked in',
     WAITING: 'Waiting',
     IN_SESSION: 'In session',
+    LAB: 'At the lab',
     PHARMACY: 'Pharmacy',
   }
   // No active status is not a state worth a badge; the check-in button says it better.

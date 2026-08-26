@@ -128,6 +128,7 @@
 .care-status.checked_in { background: #ecfdf5; color: #047857; }
 .care-status.waiting { background: #fffbeb; color: #b45309; }
 .care-status.in_session { background: #eff6ff; color: #1d4ed8; }
+.care-status.lab { background: #ecfeff; color: #0e7490; }
 .care-status.pharmacy { background: #f5f3ff; color: #6d28d9; }
 .link-button {
   padding: 0;

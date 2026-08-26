@@ -42,6 +42,14 @@ export function draftEncounterSummary(id: string) {
   return request<Encounter>(`/api/encounters/${id}/summary`, { method: 'POST' })
 }
 
+/**
+ * Raises the tests already listed on the note and walks the patient to the bench. The
+ * encounter stays a draft: the visit is paused, not finished.
+ */
+export function sendEncounterToLab(id: string) {
+  return request<Encounter>(`/api/encounters/${id}/lab`, { method: 'POST' })
+}
+
 export function finalizeEncounter(id: string) {
   return request<Encounter>(`/api/encounters/${id}/finalize`, { method: 'POST' })
 }

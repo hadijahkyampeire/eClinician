@@ -61,6 +61,9 @@ public class Encounter {
     /** Drafted from the notes above, then edited and owned by the clinician. */
     @Column(columnDefinition = "TEXT")
     private String visitSummary;
+    /** The lab round trip, while the encounter stays open: out, and back with results. */
+    private Instant sentToLabAt;
+    private Instant labResultsReadyAt;
     private Instant finalizedAt;
     private Instant createdAt;
     private Instant updatedAt;

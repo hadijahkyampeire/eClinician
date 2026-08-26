@@ -9,6 +9,7 @@ import EventBusyOutlinedIcon from '@mui/icons-material/EventBusyOutlined'
 import ExpandMoreOutlinedIcon from '@mui/icons-material/ExpandMoreOutlined'
 import { elapsed } from '../dashboard/time'
 import type { Appointment, AppointmentStatus } from '../../types/appointment'
+import type { PatientCareStatus } from '../../types/patient'
 
 /**
  * The three things this table is asked to be, which differ in what a row may still do:
@@ -67,7 +68,8 @@ export default function AppointmentTable({
                 <td>{appointment.doctorName || 'Unassigned'}</td>
                 <td>{appointment.doctorSpecialty || '—'}</td>
                 <td>{appointment.room || '—'}</td>
-                <td><AppointmentBadge status={appointment.status} /></td>
+                <td><AppointmentBadge status={appointment.status}
+                  careStatus={appointment.careStatus} /></td>
                 <td>{formatDateTime(appointment.scheduledAt, queue)}</td>
                 <td>{appointment.checkedInAt
                   ? formatDateTime(appointment.checkedInAt, queue) : '—'}</td>
@@ -179,7 +181,14 @@ function IconAction({ title, danger, disabled, to, onClick, expanded, controls, 
   return <Tooltip title={title}><span>{button}</span></Tooltip>
 }
 
-function AppointmentBadge({ status }: { status: AppointmentStatus }) {
+/** The visit's own state, except while the patient is out of the room for tests. */
+function AppointmentBadge({ status, careStatus }: {
+  status: AppointmentStatus
+  careStatus?: PatientCareStatus | null
+}) {
+  if (careStatus === 'LAB') {
+    return <span className="appointment-status lab">at the lab</span>
+  }
   return <span className={`appointment-status ${status.toLowerCase()}`}>
     {status.replaceAll('_', ' ').toLowerCase()}
   </span>

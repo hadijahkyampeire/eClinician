@@ -584,6 +584,11 @@
   color: #b45309;
 }
 
+.row-meta.ready {
+  background: #ecfdf5;
+  color: #047857;
+}
+
 .row-meta.session {
   background: var(--dept-bg);
   color: var(--dept);

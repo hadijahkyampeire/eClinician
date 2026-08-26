@@ -32,6 +32,9 @@ export interface Encounter extends Omit<EncounterForm,
   pulseBpm: number | null
   weightKg: number | null
   heightCm: number | null
+  /** The lab round trip, both response-only: sent, and back with results. */
+  sentToLabAt: string | null
+  labResultsReadyAt: string | null
   finalizedAt: string | null
   createdAt: string
   updatedAt: string

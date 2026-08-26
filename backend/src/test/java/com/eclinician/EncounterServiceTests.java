@@ -4,13 +4,17 @@ import com.eclinician.domains.dtos.AppointmentRequest;
 import com.eclinician.domains.dtos.AppointmentResponse;
 import com.eclinician.domains.dtos.EncounterRequest;
 import com.eclinician.domains.dtos.EncounterResponse;
+import com.eclinician.domains.dtos.LabOrderResponse;
+import com.eclinician.domains.dtos.LabResultRequest;
 import com.eclinician.domains.entities.Patient;
 import com.eclinician.domains.enums.AppointmentStatus;
 import com.eclinician.domains.enums.EncounterStatus;
+import com.eclinician.domains.enums.LabStatus;
 import com.eclinician.domains.enums.PatientCareStatus;
 import com.eclinician.repositories.PatientRepository;
 import com.eclinician.services.AppointmentService;
 import com.eclinician.services.EncounterService;
+import com.eclinician.services.LabService;
 import com.eclinician.web.ConflictException;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -27,6 +31,7 @@ class EncounterServiceTests {
     @Autowired EncounterService encounters;
     @Autowired AppointmentService appointments;
     @Autowired PatientRepository patients;
+    @Autowired LabService labs;
 
     @Test
     void draftCanBeFinalizedAndCompletesTheVisit() {
@@ -69,6 +74,60 @@ class EncounterServiceTests {
                 request(patient, checkedIn, "Changed", "Changed")))
                 .isInstanceOf(ConflictException.class)
                 .hasMessageContaining("cannot be changed");
+    }
+
+    @Test
+    void aTripToTheLabPausesTheVisitAndSendsThePatientBackWithResults() {
+        Patient patient = patient("lab-round-trip-hospital");
+        String tenantId = patient.getTenantId();
+        AppointmentResponse checkedIn = appointments.checkIn(tenantId,
+                new AppointmentRequest(patient.getId(), null, "Fever"));
+        appointments.startSession(tenantId, patient.getId());
+        EncounterResponse draft = encounters.save(tenantId, "Dr Test", null,
+                request(patient, checkedIn, null, null));
+
+        EncounterResponse sent = encounters.sendToLab(tenantId, draft.id());
+        // The visit is paused, not finished: no diagnosis was needed to raise the order.
+        assertThat(sent.status()).isEqualTo(EncounterStatus.DRAFT);
+        assertThat(sent.sentToLabAt()).isNotNull();
+        assertThat(sent.labResultsReadyAt()).isNull();
+        assertThat(appointments.list(tenantId, patient.getId()))
+                .singleElement().extracting(AppointmentResponse::status)
+                .isEqualTo(AppointmentStatus.IN_SESSION);
+        assertThat(patients.findById(patient.getId()).orElseThrow().getActiveCareStatus())
+                .isEqualTo(PatientCareStatus.LAB);
+
+        LabOrderResponse order = labs.listForPatient(tenantId, patient.getId()).getFirst();
+        assertThat(order.testName()).isEqualTo("Full blood count");
+        labs.update(tenantId, "Tech", order.id(),
+                new LabResultRequest(LabStatus.COMPLETED, "Haemoglobin 11.2 g/dl", null));
+
+        // Resulted, so the patient is back with the clinician and the open note says so.
+        assertThat(patients.findById(patient.getId()).orElseThrow().getActiveCareStatus())
+                .isEqualTo(PatientCareStatus.IN_SESSION);
+        assertThat(encounters.get(tenantId, draft.id()).labResultsReadyAt()).isNotNull();
+
+        // Finalizing after the trip does not raise the same test a second time.
+        encounters.save(tenantId, "Dr Test", draft.id(),
+                request(patient, checkedIn, "Anaemia", "Iron supplements"));
+        encounters.finalizeEncounter(tenantId, draft.id());
+        assertThat(labs.listForPatient(tenantId, patient.getId())).hasSize(1);
+    }
+
+    @Test
+    void theLabWillNotTakeAPatientWithNoTestsOrdered() {
+        Patient patient = patient("empty-lab-request-hospital");
+        String tenantId = patient.getTenantId();
+        AppointmentResponse checkedIn = appointments.checkIn(tenantId,
+                new AppointmentRequest(patient.getId(), null, "Review"));
+        appointments.startSession(tenantId, patient.getId());
+        EncounterRequest noTests = new EncounterRequest(patient.getId(), checkedIn.id(), "Review",
+                120, 80, 37.0, 72, 65.0, 162.0, null, null, null, null, null, null);
+        EncounterResponse draft = encounters.save(tenantId, "Dr Test", null, noTests);
+
+        assertThatThrownBy(() -> encounters.sendToLab(tenantId, draft.id()))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("Add the tests");
     }
 
     private Patient patient(String tenantId) {

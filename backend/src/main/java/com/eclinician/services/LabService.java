@@ -4,13 +4,17 @@ import com.eclinician.domains.dtos.LabOrderResponse;
 import com.eclinician.domains.dtos.LabResultRequest;
 import com.eclinician.domains.entities.LabOrder;
 import com.eclinician.domains.enums.LabStatus;
+import com.eclinician.domains.enums.PatientCareStatus;
+import com.eclinician.repositories.EncounterRepository;
 import com.eclinician.repositories.LabOrderRepository;
 import com.eclinician.repositories.PatientRepository;
 import com.eclinician.web.ConflictException;
 import com.eclinician.web.NotFoundException;
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,25 +23,36 @@ public class LabService {
 
     private final LabOrderRepository orders;
     private final PatientRepository patients;
+    private final EncounterRepository encounters;
 
-    public LabService(LabOrderRepository orders, PatientRepository patients) {
+    public LabService(LabOrderRepository orders, PatientRepository patients,
+            EncounterRepository encounters) {
         this.orders = orders;
         this.patients = patients;
+        this.encounters = encounters;
     }
 
     /**
-     * Called when an encounter is finalized. Splits the clinician's free-text block
-     * into one PENDING order per line.
+     * Splits the clinician's free-text block into one PENDING order per line — when they
+     * send the patient to the bench mid-visit, and again when the visit is finalized.
+     *
+     * Only lines this encounter has not already raised are created, so a clinician who
+     * sends two tests, gets them back and then adds a third gets one new order rather
+     * than three, and finalize after a lab trip adds nothing at all.
      */
     @Transactional
     public void createFromEncounter(String tenantId, UUID encounterId, UUID patientId,
                                     String labRequests) {
         if (labRequests == null || labRequests.isBlank()) return;
-        if (orders.existsByTenantIdAndEncounterId(tenantId, encounterId)) return;
+        Set<String> already = orders.findByTenantIdAndPatientIdOrderByCreatedAtDesc(tenantId, patientId)
+                .stream()
+                .filter(value -> encounterId.equals(value.getEncounterId()))
+                .map(LabOrder::getTestName)
+                .collect(Collectors.toSet());
 
         labRequests.lines()
                 .map(String::trim)
-                .filter(line -> !line.isEmpty())
+                .filter(line -> !line.isEmpty() && already.add(line))
                 .forEach(line -> orders.save(order(tenantId, encounterId, patientId, line)));
     }
 
@@ -76,7 +91,41 @@ public class LabService {
             value.setResultedBy(technicianName);
             value.setResultedAt(Instant.now());
         }
-        return response(tenantId, orders.save(value));
+        LabOrder saved = orders.save(value);
+        sendBackIfDone(tenantId, saved);
+        return response(tenantId, saved);
+    }
+
+    /**
+     * The way back to the consulting room.
+     *
+     * A patient at the bench is still mid-visit, so once nothing of theirs is pending the
+     * status returns to In session and the open note is stamped — that stamp is what puts
+     * "Results ready" on the clinician's unfinished work rather than leaving them to keep
+     * checking. Cancelled counts as done: there is no result coming.
+     */
+    private void sendBackIfDone(String tenantId, LabOrder resulted) {
+        if (resulted.getEncounterId() == null) return;
+        // Only this visit's tests hold the patient at the bench. A pending order left over
+        // from some earlier visit is not what they are standing there waiting for.
+        boolean stillWaiting = orders
+                .findByTenantIdAndPatientIdOrderByCreatedAtDesc(tenantId, resulted.getPatientId())
+                .stream()
+                .filter(value -> resulted.getEncounterId().equals(value.getEncounterId()))
+                .anyMatch(value -> value.getStatus() == LabStatus.PENDING);
+        if (stillWaiting) return;
+
+        patients.findByIdAndTenantId(resulted.getPatientId(), tenantId).ifPresent(patient -> {
+            if (patient.getActiveCareStatus() != PatientCareStatus.LAB) return;
+            patient.setActiveCareStatus(PatientCareStatus.IN_SESSION);
+            patients.save(patient);
+        });
+        encounters.findByIdAndTenantId(resulted.getEncounterId(), tenantId)
+                .filter(encounter -> encounter.getSentToLabAt() != null)
+                .ifPresent(encounter -> {
+                    encounter.setLabResultsReadyAt(Instant.now());
+                    encounters.save(encounter);
+                });
     }
 
     private LabOrder order(String tenantId, UUID encounterId, UUID patientId, String testName) {

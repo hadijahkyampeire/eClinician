@@ -63,18 +63,24 @@ export function InTheClinic({ act, first }: {
           primary={visit.patientName}
           to={`/patients/${visit.patientId}`}
           secondary={visit.reason}
-          tone={visit.status === 'IN_SESSION' ? 'session' : 'waiting'}
-          meta={visit.status === 'IN_SESSION'
-            ? `In session ${since(visit.sessionStartedAt) ?? ''}`
-            : visit.status === 'WAITING'
-              ? `Waiting ${since(visit.waitingAt) ?? ''}`
-              : `Checked in ${since(visit.checkedInAt) ?? ''}`}
+          tone={visit.careStatus === 'LAB' ? 'waiting'
+            : visit.status === 'IN_SESSION' ? 'session' : 'waiting'}
+          // A visit in session does not mean the patient is in the room — they may be
+          // standing at the bench, which is the one thing the queue must not hide.
+          meta={visit.careStatus === 'LAB'
+            ? 'At the lab'
+            : visit.status === 'IN_SESSION'
+              ? `In session ${since(visit.sessionStartedAt) ?? ''}`
+              : visit.status === 'WAITING'
+                ? `Waiting ${since(visit.waitingAt) ?? ''}`
+                : `Checked in ${since(visit.checkedInAt) ?? ''}`}
           action={
             act === 'to-room' && visit.status === 'CHECKED_IN' ? (
               <button className="btn small" disabled={busy} onClick={() => toRoom.mutate(visit.id)}>
                 Take to the waiting room
               </button>
-            ) : act === 'start-session' && visit.status !== 'IN_SESSION' ? (
+            ) : act === 'start-session' && visit.status !== 'IN_SESSION'
+              && visit.careStatus !== 'LAB' ? (
               <button className="btn small" disabled={busy} onClick={() => start.mutate(visit.patientId)}>
                 Start session
               </button>
@@ -104,9 +110,16 @@ export function UnfinishedNotes({ readOnly }: { readOnly?: boolean }) {
         <Row key={draft.id} primary={draft.patientName ?? 'Patient'}
           to={`/patients/${draft.patientId}`}
           secondary={draft.chiefComplaint || 'No complaint recorded yet'}
-          meta={readOnly ? draft.clinicianName : undefined}
+          // A note left open because its results had not come back is not the same
+          // unfinished as one left open at the end of the day.
+          meta={readOnly ? draft.clinicianName
+            : draft.labResultsReadyAt ? 'Results ready'
+            : draft.sentToLabAt ? 'At the lab' : undefined}
+          tone={draft.labResultsReadyAt ? 'ready' : 'waiting'}
           action={readOnly ? null : (
-            <Link className="btn small" to={`/records?encounterId=${draft.id}`}>Continue</Link>
+            <Link className="btn small" to={`/records?encounterId=${draft.id}`}>
+              {draft.labResultsReadyAt ? 'Read results' : 'Continue'}
+            </Link>
           )} />
       ))}
     </Panel>

@@ -74,6 +74,19 @@
 .encounter-grid input:focus, .encounter-grid textarea:focus { outline: 2px solid var(--dept-bg); border-color: var(--dept); }
 .encounter-grid input:disabled, .encounter-grid textarea:disabled { background: var(--bg); color: var(--text); }
 .encounter-wide { grid-column: 1 / -1; }
+/* Where the patient is while the note sits open. Amber at the bench, green once the
+   results are back and there is something to read. */
+.lab-trip { padding: 14px 18px; border-radius: 10px; border: 1px solid #fde68a; background: #fffbeb; }
+.lab-trip.ready { border-color: #a7f3d0; background: #ecfdf5; }
+.lab-trip header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; }
+.lab-trip header b { color: #b45309; }
+.lab-trip.ready header b { color: #047857; }
+.lab-trip header span { font-size: 13px; color: var(--text-muted); }
+.lab-trip ul { margin: 10px 0 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.lab-trip li { display: grid; gap: 2px; padding-top: 8px; border-top: 1px solid rgba(0, 0, 0, 0.06); }
+.lab-trip li b { font-size: 13px; color: var(--heading); }
+.lab-trip li span, .lab-trip li small { font-size: 13px; color: var(--text-muted); }
+
 /* Read, not filled in — flat cards rather than boxes, so the eye skips them on the way
    down the form and comes back to them once the numbers above are in. */
 .vitals-derived { display: flex; flex-wrap: wrap; gap: 10px; }

@@ -2,6 +2,7 @@ package com.eclinician.domains.dtos;
 
 import com.eclinician.domains.entities.Appointment;
 import com.eclinician.domains.enums.AppointmentStatus;
+import com.eclinician.domains.enums.PatientCareStatus;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -14,6 +15,9 @@ public record AppointmentResponse(
         String doctorSpecialty,
         String room,
         AppointmentStatus status,
+        /** Where the patient physically is right now — the queue reads this, not the
+         * appointment's lifecycle, to tell a patient at the bench from one in the room. */
+        PatientCareStatus careStatus,
         Instant scheduledAt,
         Instant checkedInAt,
         Instant waitingAt,
@@ -24,7 +28,7 @@ public record AppointmentResponse(
         Instant updatedAt) {
 
     public static AppointmentResponse from(Appointment appointment, String patientName,
-            String doctorName, String doctorSpecialty, String room) {
+            PatientCareStatus careStatus, String doctorName, String doctorSpecialty, String room) {
         return new AppointmentResponse(
                 appointment.getId(),
                 appointment.getPatientId(),
@@ -34,6 +38,7 @@ public record AppointmentResponse(
                 doctorSpecialty,
                 room,
                 appointment.getStatus(),
+                careStatus,
                 appointment.getScheduledAt(),
                 appointment.getCheckedInAt(),
                 appointment.getWaitingAt(),

@@ -291,6 +291,7 @@ public class AppointmentService {
                         .orElse(null);
         return AppointmentResponse.from(appointment,
                 patient.getFirstName() + " " + patient.getLastName(),
+                patient.getActiveCareStatus(),
                 doctor == null ? null : doctor.getName(),
                 doctor == null ? null : doctor.getSpecialty(),
                 room(appointment));

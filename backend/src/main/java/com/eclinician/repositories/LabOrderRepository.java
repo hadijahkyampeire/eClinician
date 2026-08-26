@@ -19,9 +19,6 @@ public interface LabOrderRepository extends JpaRepository<LabOrder, UUID> {
 
     Optional<LabOrder> findByIdAndTenantId(UUID id, String tenantId);
 
-    /** Guards against creating a second set of orders if finalize is retried. */
-    boolean existsByTenantIdAndEncounterId(String tenantId, UUID encounterId);
-
     long countByTenantIdAndStatus(String tenantId, LabStatus status);
 
     long countByTenantIdAndStatusAndResultedAtAfter(
