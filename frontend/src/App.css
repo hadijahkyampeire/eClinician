@@ -552,6 +552,16 @@
   color: var(--heading);
 }
 
+/* A patient's name is a way into their chart, and reads as one. */
+.row-link {
+  color: var(--dept);
+  text-decoration: none;
+}
+
+.row-link:hover {
+  text-decoration: underline;
+}
+
 .row-secondary,
 .row-meta {
   font-size: 13px;

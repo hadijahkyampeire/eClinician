@@ -36,8 +36,10 @@ export function Panel({ title, count, to, seeAll, empty, first, children }: {
   )
 }
 
-export function Row({ primary, secondary, meta, tone, action }: {
+export function Row({ primary, to, secondary, meta, tone, action }: {
   primary: string
+  /** Where the name goes when it is a patient's — their chart is always one click away. */
+  to?: string
   secondary?: string | null
   meta?: string | null
   tone?: 'waiting' | 'session' | 'ready'
@@ -46,7 +48,9 @@ export function Row({ primary, secondary, meta, tone, action }: {
   return (
     <li className="panel-row">
       <span className="row-text">
-        <span className="row-primary">{primary}</span>
+        {to
+          ? <Link className="row-primary row-link" to={to}>{primary}</Link>
+          : <span className="row-primary">{primary}</span>}
         {secondary && <span className="row-secondary">{secondary}</span>}
       </span>
       {meta && <span className={`row-meta${tone ? ` ${tone}` : ''}`}>{meta}</span>}

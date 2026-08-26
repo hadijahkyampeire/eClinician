@@ -1,3 +1,4 @@
+import { parseBloodPressure } from '../lib/vitals'
 import type { Encounter, EncounterForm } from '../types/encounter'
 
 import { request as send } from './http'
@@ -18,13 +19,20 @@ export function getEncounter(id: string) {
 
 export function saveEncounter(form: EncounterForm, id?: string) {
   const number = (value: string) => value === '' ? null : Number(value)
+  // One box on screen, two columns in the record. Half a reading is no reading, so
+  // anything that is not "120/80" is sent as neither number rather than a guess.
+  const { bloodPressure, ...rest } = form
+  const pressure = parseBloodPressure(bloodPressure)
   return request<Encounter>(id ? `/api/encounters/${id}` : '/api/encounters', {
     method: id ? 'PUT' : 'POST',
     body: JSON.stringify({
-      ...form,
+      ...rest,
+      systolicBp: pressure?.systolic ?? null,
+      diastolicBp: pressure?.diastolic ?? null,
       temperatureCelsius: number(form.temperatureCelsius),
       pulseBpm: number(form.pulseBpm),
       weightKg: number(form.weightKg),
+      heightCm: number(form.heightCm),
     }),
   })
 }

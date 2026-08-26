@@ -14,6 +14,11 @@ export default function PatientDetails() {
   const tenantId = session?.tenant?.id
   const canViewClinicalHistory =
     session?.user.role === 'Administrator' || session?.user.role === 'Clinician'
+  // A clinician reaches a chart from their queue, not from a directory they cannot open,
+  // so "back" has to mean the place they actually came from.
+  const back = session?.user.role === 'Receptionist' || session?.user.role === 'Administrator'
+    ? { to: '/patients', where: 'patients' }
+    : { to: '/dashboard', where: 'dashboard' }
 
   const { data: patient, isLoading, error } = useQuery({
     queryKey: ['patient', tenantId, patientId],
@@ -36,7 +41,7 @@ export default function PatientDetails() {
     return (
       <div className="patient-detail-state">
         <p>We couldn’t load this patient.</p>
-        <Link to="/patients">Return to patients</Link>
+        <Link to={back.to}>Return to {back.where}</Link>
       </div>
     )
   }
@@ -52,7 +57,7 @@ export default function PatientDetails() {
 
   return (
     <div className="patient-detail-page">
-      <Link className="detail-back-link" to="/patients">← Back to patients</Link>
+      <Link className="detail-back-link" to={back.to}>← Back to {back.where}</Link>
 
       <header className="patient-profile-header">
         <div className="patient-profile-avatar" aria-hidden="true">

@@ -95,10 +95,11 @@ public class ClinicalSummaryService {
         StringBuilder notes = new StringBuilder();
         append(notes, "Chief complaint", encounter.getChiefComplaint());
         append(notes, "Symptoms", encounter.getSymptoms());
-        append(notes, "Blood pressure", encounter.getBloodPressure());
+        append(notes, "Blood pressure", bloodPressure(encounter));
         append(notes, "Temperature (C)", string(encounter.getTemperatureCelsius()));
         append(notes, "Pulse (bpm)", string(encounter.getPulseBpm()));
         append(notes, "Weight (kg)", string(encounter.getWeightKg()));
+        append(notes, "Height (cm)", string(encounter.getHeightCm()));
         append(notes, "Examination", encounter.getExaminationNotes());
         append(notes, "Diagnosis", encounter.getDiagnosis());
         append(notes, "Treatment plan", encounter.getTreatmentPlan());
@@ -111,6 +112,14 @@ public class ClinicalSummaryService {
         if (value != null && !value.isBlank()) {
             notes.append(label).append(": ").append(value.trim()).append('\n');
         }
+    }
+
+    /** Read back the way it was taken, so the summarizer sees a reading and not two numbers. */
+    private static String bloodPressure(Encounter encounter) {
+        if (encounter.getSystolicBp() == null || encounter.getDiastolicBp() == null) {
+            return null;
+        }
+        return encounter.getSystolicBp() + "/" + encounter.getDiastolicBp();
     }
 
     private static String string(Object value) {

@@ -38,10 +38,14 @@ public class Encounter {
     private String clinicianName;
     @Column(length = 500)
     private String chiefComplaint;
-    private String bloodPressure;
+    /** Kept as two numbers so the derived readings — MAP, pulse pressure, the category a
+     * clinician would otherwise look up — can be read off them. */
+    private Integer systolicBp;
+    private Integer diastolicBp;
     private Double temperatureCelsius;
     private Integer pulseBpm;
     private Double weightKg;
+    private Double heightCm;
     @Column(columnDefinition = "TEXT")
     private String symptoms;
     @Column(columnDefinition = "TEXT")

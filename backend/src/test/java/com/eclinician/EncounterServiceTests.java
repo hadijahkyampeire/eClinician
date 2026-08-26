@@ -85,7 +85,7 @@ class EncounterServiceTests {
     private EncounterRequest request(Patient patient, AppointmentResponse appointment,
             String diagnosis, String plan) {
         return new EncounterRequest(patient.getId(), appointment.id(), "Fever",
-                "120/80", 37.2, 80, 65.0, "Fever and chills", "Alert", diagnosis, plan,
+                120, 80, 37.2, 80, 65.0, 162.0, "Fever and chills", "Alert", diagnosis, plan,
                 "Medication once daily", "Full blood count");
     }
 }

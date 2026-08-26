@@ -137,10 +137,12 @@ public class EncounterService {
 
     private void copy(EncounterRequest source, Encounter target) {
         target.setChiefComplaint(source.chiefComplaint());
-        target.setBloodPressure(source.bloodPressure());
+        target.setSystolicBp(source.systolicBp());
+        target.setDiastolicBp(source.diastolicBp());
         target.setTemperatureCelsius(source.temperatureCelsius());
         target.setPulseBpm(source.pulseBpm());
         target.setWeightKg(source.weightKg());
+        target.setHeightCm(source.heightCm());
         target.setSymptoms(source.symptoms());
         target.setExaminationNotes(source.examinationNotes());
         target.setDiagnosis(source.diagnosis());
@@ -181,8 +183,9 @@ public class EncounterService {
         return new EncounterResponse(value.getId(), value.getPatientId(),
                 patient.getFirstName() + " " + patient.getLastName(), value.getAppointmentId(),
                 value.getStatus(), value.getClinicianName(), value.getChiefComplaint(),
-                value.getBloodPressure(), value.getTemperatureCelsius(), value.getPulseBpm(),
-                value.getWeightKg(), value.getSymptoms(), value.getExaminationNotes(),
+                value.getSystolicBp(), value.getDiastolicBp(), value.getTemperatureCelsius(),
+                value.getPulseBpm(), value.getWeightKg(), value.getHeightCm(),
+                value.getSymptoms(), value.getExaminationNotes(),
                 value.getDiagnosis(), value.getTreatmentPlan(), value.getPrescriptions(),
                 value.getLabRequests(), value.getVisitSummary(), value.getFinalizedAt(),
                 value.getCreatedAt(),

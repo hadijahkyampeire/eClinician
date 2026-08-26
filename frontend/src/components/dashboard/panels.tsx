@@ -9,7 +9,8 @@ import type { Appointment } from '../../types/appointment'
 import { Panel, Row } from './Panel'
 import { since } from './time'
 
-// The tiles say how many. These say who — and put the next action on the row.
+// The tiles say how many. These say who — and put the next action on the row. A patient's
+// name is their chart: clicking it opens the file rather than only the next step.
 
 const IN_THE_BUILDING = ['CHECKED_IN', 'WAITING', 'IN_SESSION']
 const LIVE = { refetchInterval: 30_000 }
@@ -60,6 +61,7 @@ export function InTheClinic({ act, first }: {
         <Row
           key={visit.id}
           primary={visit.patientName}
+          to={`/patients/${visit.patientId}`}
           secondary={visit.reason}
           tone={visit.status === 'IN_SESSION' ? 'session' : 'waiting'}
           meta={visit.status === 'IN_SESSION'
@@ -100,6 +102,7 @@ export function UnfinishedNotes({ readOnly }: { readOnly?: boolean }) {
       empty="Nothing half-written — every visit is signed off.">
       {drafts.map(draft => (
         <Row key={draft.id} primary={draft.patientName ?? 'Patient'}
+          to={`/patients/${draft.patientId}`}
           secondary={draft.chiefComplaint || 'No complaint recorded yet'}
           meta={readOnly ? draft.clinicianName : undefined}
           action={readOnly ? null : (

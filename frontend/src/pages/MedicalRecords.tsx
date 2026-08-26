@@ -10,11 +10,12 @@ import { useAuth } from '../auth/AuthContext'
 import OrderPicker from '../components/records/OrderPicker'
 import PatientContext from '../components/records/PatientContext'
 import { useLabTests, useMedications } from '../hooks/useCatalog'
+import { derivedVitals, formatBloodPressure } from '../lib/vitals'
 import type { Encounter, EncounterForm } from '../types/encounter'
 
 const emptyForm: EncounterForm = {
   patientId: '', appointmentId: '', chiefComplaint: '',
-  bloodPressure: '', temperatureCelsius: '', pulseBpm: '', weightKg: '', symptoms: '',
+  bloodPressure: '', temperatureCelsius: '', pulseBpm: '', weightKg: '', heightCm: '', symptoms: '',
   examinationNotes: '', diagnosis: '', treatmentPlan: '', prescriptions: '', labRequests: '',
   visitSummary: '',
 }
@@ -172,6 +173,8 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
         <Field label="Temperature (°C)" type="number" value={form.temperatureCelsius} onChange={v => set('temperatureCelsius', v)} disabled={locked} />
         <Field label="Pulse (bpm)" type="number" value={form.pulseBpm} onChange={v => set('pulseBpm', v)} disabled={locked} />
         <Field label="Weight (kg)" type="number" value={form.weightKg} onChange={v => set('weightKg', v)} disabled={locked} />
+        <Field label="Height (cm)" type="number" value={form.heightCm} onChange={v => set('heightCm', v)} disabled={locked} />
+        <Derived vitals={form} />
       </FormSection>
       <FormSection title="Clinical assessment">
         <TextField label="Symptoms & history" value={form.symptoms} onChange={v => set('symptoms', v)} disabled={locked} />
@@ -210,6 +213,21 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
   </div>
 }
 
+/**
+ * Worked out from the fields above rather than typed: nobody records their own BMI, and
+ * a mean arterial pressure done in someone's head mid-consultation is one done wrong.
+ */
+function Derived({ vitals }: { vitals: EncounterForm }) {
+  const readings = derivedVitals(vitals)
+  if (!readings.length) return null
+  return <div className="vitals-derived encounter-wide">
+    {readings.map(reading => <div key={reading.label} className={`vitals-reading ${reading.tone}`}>
+      <span>{reading.label}</span><b>{reading.value}</b>
+      {reading.note && <small>{reading.note}</small>}
+    </div>)}
+  </div>
+}
+
 function FormSection({ title, children }: { title: string; children: ReactNode }) {
   return <section className="card encounter-section"><h3>{title}</h3><div className="encounter-grid">{children}</div></section>
 }
@@ -229,9 +247,10 @@ function TextField({ label, value, onChange, required, disabled, hint }: {
       onChange={event => onChange(event.target.value)} /></label>
 }
 function toForm(value: Encounter): EncounterForm {
-  return { ...value, temperatureCelsius: value.temperatureCelsius?.toString() || '',
+  return { ...value, bloodPressure: formatBloodPressure(value.systolicBp, value.diastolicBp),
+    temperatureCelsius: value.temperatureCelsius?.toString() || '',
     pulseBpm: value.pulseBpm?.toString() || '', weightKg: value.weightKg?.toString() || '',
-    visitSummary: value.visitSummary || '' }
+    heightCm: value.heightCm?.toString() || '', visitSummary: value.visitSummary || '' }
 }
 function formatDateTime(value: string) {
   return new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
