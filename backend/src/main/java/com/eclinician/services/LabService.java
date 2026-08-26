@@ -1,5 +1,6 @@
 package com.eclinician.services;
 
+import com.eclinician.domains.dtos.BenchPatient;
 import com.eclinician.domains.dtos.LabOrderResponse;
 import com.eclinician.domains.dtos.LabResultRequest;
 import com.eclinician.domains.entities.LabOrder;
@@ -13,6 +14,8 @@ import com.eclinician.repositories.PatientRepository;
 import com.eclinician.web.ConflictException;
 import com.eclinician.web.NotFoundException;
 import java.time.Instant;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -65,6 +68,36 @@ public class LabService {
                 ? orders.findByTenantIdOrderByCreatedAtDesc(tenantId)
                 : orders.findByTenantIdAndStatusOrderByCreatedAtDesc(tenantId, status);
         return found.stream().map(value -> response(tenantId, value)).toList();
+    }
+
+    /**
+     * The bench's queue as people rather than line items, longest wait first.
+     *
+     * Two patients needing the same test used to be two rows that read identically, and
+     * one wrong click filed a result against the wrong person. Grouping them is the whole
+     * point: a technician picks a patient, then works through what that patient needs.
+     */
+    public List<BenchPatient> bench(String tenantId) {
+        return orders.findByTenantIdOrderByCreatedAtDesc(tenantId).stream()
+                .filter(order -> order.getStatus() == LabStatus.PENDING
+                        || order.getStatus() == LabStatus.IN_PROGRESS)
+                .collect(Collectors.groupingBy(LabOrder::getPatientId, LinkedHashMap::new,
+                        Collectors.toList()))
+                .values().stream()
+                .map(theirs -> {
+                    List<LabOrderResponse> tests = theirs.stream()
+                            .sorted(Comparator.comparing(LabOrder::getCreatedAt,
+                                    Comparator.nullsLast(Comparator.naturalOrder())))
+                            .map(order -> response(tenantId, order))
+                            .toList();
+                    return new BenchPatient(tests.getFirst().patientId(),
+                            tests.getFirst().patientName(), tests, tests.getFirst().createdAt());
+                })
+                // Whoever has been waiting longest is next, the same rule the clinic queue
+                // runs on. A null stamp only reaches here from seeded history.
+                .sorted(Comparator.comparing(BenchPatient::waitingSince,
+                        Comparator.nullsLast(Comparator.naturalOrder())))
+                .toList();
     }
 
     /** SRS 5.1.3: the clinician reads their patient's results, not the technician's queue. */

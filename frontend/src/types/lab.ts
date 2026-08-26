@@ -25,3 +25,11 @@ export interface LabResultForm {
   result: string
   notes: string
 }
+
+/** One patient's outstanding lab work, together. Mirrors BenchPatient. */
+export interface BenchPatient {
+  patientId: string
+  patientName: string
+  tests: LabOrder[]
+  waitingSince: string
+}

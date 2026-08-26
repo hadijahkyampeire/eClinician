@@ -4,14 +4,16 @@ import { TextField } from '@mui/material'
 import { getLabOrders, updateLabOrder } from '../api/lab'
 import { useAuth } from '../auth/AuthContext'
 import ConfirmDialog from '../components/ConfirmDialog'
+import BenchQueue from '../components/lab/BenchQueue'
 import LabRow from '../components/lab/LabRow'
 import type { LabOrder, LabResultForm, LabStatus } from '../types/lab'
 
+/**
+ * Outstanding work lives in the queue above, per patient. Repeating it here as a flat
+ * list of tests would put back exactly what the queue was built to remove: two identical
+ * rows for two different people. So this half is what has already been answered.
+ */
 const FILTERS: { label: string; value: LabStatus | 'ALL' }[] = [
-  { label: 'Pending', value: 'PENDING' },
-  // Sample taken but not yet read. Without its own tab, a culture plated on Tuesday
-  // falls off the default view and is remembered by nobody.
-  { label: 'In progress', value: 'IN_PROGRESS' },
   { label: 'Completed', value: 'COMPLETED' },
   { label: 'Cancelled', value: 'CANCELLED' },
   { label: 'All', value: 'ALL' },
@@ -21,7 +23,7 @@ export default function Laboratory() {
   const { session } = useAuth()
   const queryClient = useQueryClient()
   const tenantId = session?.tenant?.id
-  const [filter, setFilter] = useState<LabStatus | 'ALL'>('PENDING')
+  const [filter, setFilter] = useState<LabStatus | 'ALL'>('COMPLETED')
   const [error, setError] = useState('')
   // Both of these used to be window.prompt. A clinical result typed into a browser prompt
   // cannot be validated, laid out, or read back before it is saved.
@@ -45,6 +47,7 @@ export default function Laboratory() {
       setResulting(null)
       setCancelling(null)
       void queryClient.invalidateQueries({ queryKey: ['lab-orders'] })
+      void queryClient.invalidateQueries({ queryKey: ['lab-bench'] })
       void queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
     },
     onError: (err: Error) => {
@@ -75,6 +78,12 @@ export default function Laboratory() {
     <>
       <div className="page-header"><h2>Laboratory</h2><p>Tests requested by clinicians</p></div>
 
+      {/* Who is waiting, and what each of them needs. The filtered list below is the same
+          work seen test by test, which is the right shape for looking something up and
+          the wrong one for working through the queue. */}
+      <BenchQueue busy={mutation.isPending} onResult={openResult}
+        onStart={sampleTaken} onCancel={openCancel} />
+
       <div className="pharmacy-filters">
         {FILTERS.map(item => (
           <button key={item.value} className={`pharmacy-tab${filter === item.value ? ' active' : ''}`}
@@ -85,14 +94,14 @@ export default function Laboratory() {
       {error && <p className="patient-error">{error}</p>}
 
       <section className="card record-list-card">
-        <div className="record-list-heading"><h3>Lab queue</h3><span>{data.length} items</span></div>
+        <div className="record-list-heading"><h3>Recorded tests</h3><span>{data.length} items</span></div>
         {isLoading ? <p className="record-empty">Loading lab orders...</p>
           : data.length ? <div className="record-list">
               {data.map(order => <LabRow key={order.id} order={order} busy={mutation.isPending}
                 onResult={() => openResult(order)} onStart={() => sampleTaken(order)}
                 onCancel={() => openCancel(order)} />)}
             </div>
-          : <p className="record-empty">Nothing here. Lab orders appear when a clinician finalizes an encounter.</p>}
+          : <p className="record-empty">Nothing recorded yet. A test moves here once you result or cancel it.</p>}
       </section>
 
       {resulting && (

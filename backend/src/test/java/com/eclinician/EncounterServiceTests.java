@@ -4,6 +4,7 @@ import com.eclinician.domains.dtos.AppointmentRequest;
 import com.eclinician.domains.dtos.AppointmentResponse;
 import com.eclinician.domains.dtos.EncounterRequest;
 import com.eclinician.domains.dtos.EncounterResponse;
+import com.eclinician.domains.dtos.BenchPatient;
 import com.eclinician.domains.dtos.LabOrderResponse;
 import com.eclinician.domains.dtos.LabResultRequest;
 import com.eclinician.domains.dtos.PrescriptionResponse;
@@ -235,6 +236,54 @@ class EncounterServiceTests {
         assertThatThrownBy(() -> encounters.save(tenantId, "Dr Test", draft.id(), corrected))
                 .isInstanceOf(ConflictException.class)
                 .hasMessageContaining("the patient has left");
+    }
+
+    /**
+     * The bench works through people. Two patients needing the same test used to be two
+     * rows that read identically, and whoever has waited longest is next.
+     */
+    @Test
+    void theBenchQueueIsPatientsInTheOrderTheyArrived() {
+        Patient first = sentToLab("bench-hospital", "Ann", "Full blood count\nUrinalysis");
+        Patient second = sentToLab("bench-hospital", "Ben", "Full blood count");
+
+        assertThat(labs.bench("bench-hospital")).satisfiesExactly(
+                ann -> {
+                    assertThat(ann.patientId()).isEqualTo(first.getId());
+                    assertThat(ann.tests()).extracting(LabOrderResponse::testName)
+                            .containsExactly("Full blood count", "Urinalysis");
+                    assertThat(ann.waitingSince()).isNotNull();
+                },
+                ben -> {
+                    assertThat(ben.patientId()).isEqualTo(second.getId());
+                    assertThat(ben.tests()).hasSize(1);
+                });
+
+        // Answered tests leave the bench; the patient goes with the last of them.
+        for (LabOrderResponse test : labs.listForPatient("bench-hospital", second.getId())) {
+            labs.update("bench-hospital", "Tech", test.id(),
+                    new LabResultRequest(LabStatus.COMPLETED, "Normal", null));
+        }
+        assertThat(labs.bench("bench-hospital")).singleElement()
+                .extracting(BenchPatient::patientId).isEqualTo(first.getId());
+    }
+
+    /** A patient checked in, seen, and sent to the bench with the tests named. */
+    private Patient sentToLab(String tenantId, String name, String tests) {
+        Patient patient = new Patient();
+        patient.setTenantId(tenantId);
+        patient.setFirstName(name);
+        patient.setLastName("Bench");
+        patient.setDateOfBirth(LocalDate.of(1990, 1, 1));
+        Patient saved = patients.save(patient);
+        AppointmentResponse checkedIn = appointments.checkIn(tenantId,
+                new AppointmentRequest(saved.getId(), null, null, "Fever", false));
+        appointments.startSession(tenantId, saved.getId());
+        EncounterResponse draft = encounters.save(tenantId, "Dr Test",
+                null, new EncounterRequest(saved.getId(), checkedIn.id(), "Fever",
+                        120, 80, 37.2, 80, 65.0, 162.0, null, null, null, null, null, tests));
+        encounters.sendToLab(tenantId, draft.id());
+        return saved;
     }
 
     @Test

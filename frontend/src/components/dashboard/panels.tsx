@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 import { getAppointments, markAppointmentWaiting, startPatientSession } from '../../api/appointments'
 import { getEncounters } from '../../api/encounters'
-import { getLabOrders } from '../../api/lab'
+import { getBench } from '../../api/lab'
 import { getCounter, getUnsupplied } from '../../api/pharmacy'
 import { useAuth } from '../../auth/AuthContext'
 import { byQueueOrder } from '../../lib/queue'
@@ -177,21 +177,28 @@ export function PendingMedicines() {
   )
 }
 
-/** Tests waiting to be run. */
+/**
+ * Who the bench has waiting. Two patients needing the same test read as two identical
+ * rows when the queue is a list of tests, which is how a result ends up filed against
+ * the wrong person.
+ */
 export function PendingTests() {
   const tenantId = useAuth().session?.tenant?.id
   const { data = [] } = useQuery({
-    queryKey: ['lab-orders', tenantId, 'PENDING'],
-    queryFn: () => getLabOrders('PENDING'), ...LIVE,
+    queryKey: ['lab-bench', tenantId], queryFn: getBench, ...LIVE,
   })
 
   return (
     <Panel title="Waiting to be run" count={data.length} to="/laboratory" seeAll="Open the queue"
       first={{ label: 'See resulted tests', to: '/laboratory' }}
-      empty="No tests waiting. One lands here the moment a clinician finalizes a visit.">
-      {data.map(order => (
-        <Row key={order.id} primary={order.testName} secondary={order.patientName}
-          action={<Link className="btn small" to="/laboratory">Record result</Link>} />
+      empty="No tests waiting. One lands here the moment a clinician sends a patient over.">
+      {data.map(person => (
+        <Row key={person.patientId} primary={person.patientName}
+          // Test names run long, so the rest are counted rather than listed.
+          secondary={person.tests.slice(0, 2).map(test => test.testName).join(', ')
+            + (person.tests.length > 2 ? ` +${person.tests.length - 2} more` : '')}
+          meta={`${since(person.waitingSince) ?? ''} waiting`} tone="waiting"
+          action={<Link className="btn small" to="/laboratory">Open</Link>} />
       ))}
     </Panel>
   )

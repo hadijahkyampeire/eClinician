@@ -3,7 +3,7 @@ import { request as send } from './http'
 /** Every call in this module, through the one place that handles expiry. */
 const request = <T>(path: string, options?: RequestInit) =>
   send<T>(path, options, 'Lab request failed')
-import type { LabOrder, LabResultForm, LabStatus } from '../types/lab'
+import type { BenchPatient, LabOrder, LabResultForm, LabStatus } from '../types/lab'
 
 
 export function getLabOrders(status?: LabStatus) {
@@ -20,4 +20,9 @@ export function updateLabOrder(id: string, form: LabResultForm) {
     method: 'POST',
     body: JSON.stringify(form),
   })
+}
+
+/** The queue as people rather than line items, longest wait first. */
+export function getBench() {
+  return request<BenchPatient[]>('/api/lab/bench')
 }
