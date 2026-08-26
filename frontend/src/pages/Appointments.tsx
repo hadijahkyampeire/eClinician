@@ -28,6 +28,13 @@ const activeStatuses: AppointmentStatus[] = ['CHECKED_IN', 'WAITING', 'IN_SESSIO
 const queuedAt = (appointment: Appointment) =>
   appointment.checkedInAt ?? appointment.scheduledAt
 
+/**
+ * A booking that has not happened yet is not history, and putting it there hid it: the
+ * look-back windows all end tonight, so next week's appointment fell out of both tables
+ * and only reappeared under "All time".
+ */
+const isUpcoming = (appointment: Appointment) => appointment.status === 'SCHEDULED'
+
 export default function Appointments() {
   const [params] = useSearchParams()
   const navigate = useNavigate()
@@ -136,8 +143,11 @@ export default function Appointments() {
   const active = appointments
     .filter((appointment) => activeStatuses.includes(appointment.status))
     .sort((a, b) => queuedAt(a).localeCompare(queuedAt(b)))
+  const upcoming = appointments.filter(isUpcoming)
+    .sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt))
   const history = appointments
-    .filter((appointment) => !activeStatuses.includes(appointment.status))
+    .filter((appointment) =>
+      !activeStatuses.includes(appointment.status) && !isUpcoming(appointment))
     .filter((appointment) => covers(range, appointment.scheduledAt))
   const error = workflow.error || transition.error || cancel.error || appointmentsQuery.error
   const tableActions = canBook
@@ -214,7 +224,7 @@ export default function Appointments() {
           </div>
           <span>{active.length} active</span>
         </div>
-        <AppointmentTable appointments={active} active role={role}
+        <AppointmentTable appointments={active} variant="queue" role={role}
           busy={transition.isPending || cancel.isPending}
           onTransition={(id, next) => transition.mutate({ id, next })}
           {...tableActions} />
@@ -223,8 +233,20 @@ export default function Appointments() {
       <section className="card appointment-section">
         <div className="appointment-section-heading">
           <div>
+            <h3>Upcoming appointments</h3>
+            <p>Booked visits that have not started yet, soonest first.</p>
+          </div>
+          <span>{upcoming.length} booked</span>
+        </div>
+        <AppointmentTable appointments={upcoming} variant="upcoming" role={role}
+          busy={cancel.isPending} onTransition={() => undefined} {...tableActions} />
+      </section>
+
+      <section className="card appointment-section">
+        <div className="appointment-section-heading">
+          <div>
             <h3>Appointment history</h3>
-            <p>Booked, completed and cancelled appointments remain available.</p>
+            <p>Visits that have taken place. A past appointment is a record, not a form.</p>
           </div>
           <span>{history.length} in {describe(range)}</span>
         </div>
@@ -243,8 +265,8 @@ export default function Appointments() {
           <DateRangeFields from={range.from} to={range.to}
             onChange={(from, to) => setRange({ key: 'custom', from, to })} />
         </div>
-        <AppointmentTable appointments={history} role={role} busy={cancel.isPending}
-          onTransition={() => undefined} {...tableActions} />
+        <AppointmentTable appointments={history} variant="past" role={role}
+          busy={false} onTransition={() => undefined} />
       </section>
 
       {cancelling && (
