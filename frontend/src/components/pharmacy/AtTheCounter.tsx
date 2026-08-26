@@ -13,7 +13,11 @@ import { useAuth } from '../../auth/AuthContext'
  * counter be the place their visit finally closes.
  */
 export default function AtTheCounter({ busy }: { busy: boolean }) {
-  const tenantId = useAuth().session?.tenant?.id
+  const session = useAuth().session
+  const tenantId = session?.tenant?.id
+  // The counter closes the visit, so only the counter gets the button. An administrator
+  // watching the queue cannot dispense either.
+  const canCheckOut = session?.user.role === 'Pharmacist'
   const queryClient = useQueryClient()
   const { data = [] } = useQuery({
     queryKey: ['pharmacy-counter', tenantId], queryFn: getCounter,
@@ -48,11 +52,14 @@ export default function AtTheCounter({ busy }: { busy: boolean }) {
               <span className={`record-status ${person.ready ? 'dispensed' : 'pending'}`}>
                 {person.ready ? 'ready to go' : 'waiting'}
               </span>
-              {/* Available whether or not everything was supplied: someone who gives up
-                  and leaves without their medicine has still left. */}
-              <Button size="small" variant={person.ready ? 'contained' : 'outlined'}
-                disabled={busy || checkOut.isPending}
-                onClick={() => checkOut.mutate(person.patientId)}>Check out</Button>
+              {/* Available whether or not everything was supplied: a medicine nobody
+                  could fill still ends with the patient walking out, and the clinician
+                  has until then to prescribe something else instead. */}
+              {canCheckOut && (
+                <Button size="small" variant={person.ready ? 'contained' : 'outlined'}
+                  disabled={busy || checkOut.isPending}
+                  onClick={() => checkOut.mutate(person.patientId)}>Check out</Button>
+              )}
             </div>
           </div>
         ))}

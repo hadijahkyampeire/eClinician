@@ -62,8 +62,12 @@ public class PharmacyController {
         return pharmacyService.atTheCounter(tenantId);
     }
 
-    /** They have their medicines and gone. The last thing open on them closes here. */
-    @PreAuthorize("hasAnyRole('PHARMACIST', 'ADMINISTRATOR')")
+    /**
+     * They have their medicines and gone. The last thing open on them closes here — and
+     * only the counter closes it, the same rule dispensing already follows: the pharmacy
+     * is the last stop, so the pharmacy is what says the visit is over.
+     */
+    @PreAuthorize("hasRole('PHARMACIST')")
     @PostMapping("/counter/{patientId}/check-out")
     public void checkOut(@CurrentTenant String tenantId, @PathVariable UUID patientId) {
         pharmacyService.checkOut(tenantId, patientId);
