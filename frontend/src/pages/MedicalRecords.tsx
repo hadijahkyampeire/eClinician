@@ -89,7 +89,6 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
    */
   const [busy, setBusy] = useState<'' | 'draft' | 'lab' | 'finalize' | 'summary'>('')
   const running = useRef(false)
-  const working = busy !== ''
 
   /** The note being edited: whichever the URL names, or the one just created. */
   const noteId = encounterId || savedId
@@ -148,7 +147,7 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
     // Seed a new record after the active appointment query resolves.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!encounterId && patientId) setForm(value => ({ ...value, patientId,
-      appointmentId: value.appointmentId || activeAppointment?.id || '' }))
+      appointmentId: activeAppointment?.id || value.appointmentId || '' }))
   }, [activeAppointment?.id, encounterId, patientId])
 
   const locked = encounterQuery.data?.status === 'FINALIZED'
@@ -257,7 +256,7 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
       <FormSection title="Visit summary">
         <div className="summary-heading form-field-wide">
           <p>Drafted from the notes above, then edited and signed by you.</p>
-          {!locked && <button type="button" className="btn ghost" disabled={working}
+          {!locked && <button type="button" className="btn ghost" disabled={busy === 'summary'}
             onClick={() => void draftSummary()}>
             {busy === 'summary' ? 'Working...'
               : form.visitSummary ? 'Redraft with AI' : 'Draft with AI'}
@@ -268,22 +267,24 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
       </FormSection>
       {message && <p className={message.startsWith('Draft saved') || message.startsWith('Summary drafted')
         ? 'record-success' : 'patient-error'}>{message}</p>}
-      {/* Every button is disabled while any one of them is working — two saves in flight
-          write two notes for one visit — but only the one that was pressed says so. */}
+      {/* Only the button that was pressed goes quiet. Greying all four out said "the
+          screen is busy" when the honest answer is "this one thing is". A second action
+          during that moment is refused by the guard in `once` rather than by disabling
+          everything, which is what actually keeps two saves out of the air at once. */}
       {!locked && <div className="encounter-actions">
-        <button className="btn ghost" disabled={working}>
+        <button className="btn ghost" disabled={busy === 'draft'}>
           {busy === 'draft' ? 'Saving...' : 'Save draft'}</button>
         {/* The visit pauses here rather than ending: no diagnosis is asked for, because
             the test is what will decide it. */}
-        <button type="button" className="btn ghost"
-          disabled={working || !form.labRequests.trim() || awaitingLab}
+        <button type="button" className="btn lab"
+          disabled={busy === 'lab' || !form.labRequests.trim() || awaitingLab}
           onClick={() => void sendToLab()}>{busy === 'lab' ? 'Sending...'
             : awaitingLab ? 'Waiting on the lab' : 'Send to lab'}</button>
         {/* Signing off does two different things depending on what was prescribed — it
             walks the patient to the counter, or it ends their visit — so the button says
             which one it is about to do rather than leaving it to be found out. */}
         <button type="button" className="btn"
-          disabled={working || !form.diagnosis.trim() || !form.treatmentPlan.trim()}
+          disabled={busy === 'finalize' || !form.diagnosis.trim() || !form.treatmentPlan.trim()}
           onClick={() => void persist(true)}>{busy === 'finalize' ? 'Finalizing...'
             : form.prescriptions.trim() ? 'Finalize & send to pharmacy' : 'Finalize visit'}</button>
       </div>}

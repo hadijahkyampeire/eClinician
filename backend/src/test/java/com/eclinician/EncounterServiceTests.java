@@ -149,6 +149,49 @@ class EncounterServiceTests {
         assertThat(encounters.get(tenantId, draft.id()).labResultsReadyAt()).isNotNull();
     }
 
+    /**
+     * Two saves that both think they are the first must land on one note. The unique index
+     * on appointment_id says one visit has one note; reaching it as a raw database error
+     * tells a clinician nothing they can act on.
+     */
+    @Test
+    void aSecondSaveForTheSameVisitLandsOnTheSameNote() {
+        Patient patient = patient("one-note-hospital");
+        String tenantId = patient.getTenantId();
+        AppointmentResponse checkedIn = appointments.checkIn(tenantId,
+                new AppointmentRequest(patient.getId(), null, null, "Fever", false));
+        appointments.startSession(tenantId, patient.getId());
+
+        EncounterResponse first = encounters.save(tenantId, "Dr Test", null,
+                request(patient, checkedIn, null, null));
+        EncounterResponse second = encounters.save(tenantId, "Dr Test", null,
+                request(patient, checkedIn, null, null));
+
+        assertThat(second.id()).isEqualTo(first.id());
+        assertThat(encounters.list(tenantId, patient.getId())).hasSize(1);
+    }
+
+    /**
+     * A visit that is signed off is a record, and its appointment is closed with it. The
+     * refusal says which, in words — never as a raw constraint the clinician cannot read.
+     */
+    @Test
+    void aNoteForAVisitAlreadySignedOffIsRefusedReadably() {
+        Patient patient = patient("signed-off-hospital");
+        String tenantId = patient.getTenantId();
+        AppointmentResponse checkedIn = appointments.checkIn(tenantId,
+                new AppointmentRequest(patient.getId(), null, null, "Fever", false));
+        appointments.startSession(tenantId, patient.getId());
+        EncounterResponse draft = encounters.save(tenantId, "Dr Test", null,
+                request(patient, checkedIn, "Malaria", "Treat"));
+        encounters.finalizeEncounter(tenantId, draft.id());
+
+        assertThatThrownBy(() -> encounters.save(tenantId, "Dr Test", null,
+                request(patient, checkedIn, "Malaria", "Treat")))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("must be in session");
+    }
+
     @Test
     void theDeskCanPutAnUrgentPatientAheadOfTheQueue() {
         Patient patient = patient("urgent-hospital");
