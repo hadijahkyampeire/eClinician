@@ -63,13 +63,17 @@ public class EncounterService {
     public EncounterResponse save(String tenantId, String clinicianName, UUID id,
             EncounterRequest request) {
         Encounter existing = id == null ? null : encounter(tenantId, id);
-        if (existing != null) requireDraft(existing);
         Patient patient = patient(tenantId, request.patientId());
         Appointment appointment = appointment(tenantId, request.appointmentId());
         if (!appointment.getPatientId().equals(patient.getId())) {
             throw new ConflictException("Appointment does not belong to this patient");
         }
-        if (appointment.getStatus() != AppointmentStatus.IN_SESSION) {
+        // Signing off is not the same as the patient leaving. Between the two they are
+        // still in the building — at the counter, or walking back from the bench — and a
+        // clinician who spots a wrong dose in that window has to be able to fix it.
+        boolean correcting = correctable(existing, patient);
+        if (existing != null && !correcting) requireDraft(existing);
+        if (!correcting && appointment.getStatus() != AppointmentStatus.IN_SESSION) {
             throw new ConflictException("Appointment must be in session to document an encounter");
         }
 
@@ -90,11 +94,32 @@ public class EncounterService {
                 throw new ConflictException("Encounter patient and appointment cannot be changed");
             }
         }
-        requireDraft(value);
+        if (!correcting) requireDraft(value);
         copy(request, value);
         // The clinician is whoever is signed in, not whoever the form claims.
         value.setClinicianName(clinicianName);
-        return response(patient, encounters.save(value));
+        Encounter saved = encounters.save(value);
+        if (correcting) {
+            // Anything added to the note during a correction still has to reach the people
+            // who act on it. Both of these only raise lines that are not already out.
+            pharmacyService.createFromEncounter(tenantId, saved.getId(), saved.getPatientId(),
+                    saved.getPrescriptions());
+            labService.createFromEncounter(tenantId, saved.getId(), saved.getPatientId(),
+                    saved.getLabRequests());
+        }
+        return response(patient, saved);
+    }
+
+    /**
+     * A signed record is still open to correction until the patient is checked out, and
+     * shut for good afterwards. Care status is the whole test: it is set the moment they
+     * are sent on to the pharmacy and cleared when they leave, so it is exactly "are they
+     * still here".
+     */
+    private boolean correctable(Encounter existing, Patient patient) {
+        return existing != null
+                && existing.getStatus() == EncounterStatus.FINALIZED
+                && patient.getActiveCareStatus() != null;
     }
 
     @Transactional
@@ -188,7 +213,8 @@ public class EncounterService {
 
     private void requireDraft(Encounter value) {
         if (value.getStatus() == EncounterStatus.FINALIZED) {
-            throw new ConflictException("Finalized encounters cannot be changed");
+            throw new ConflictException(
+                    "This visit is signed off and the patient has left — it cannot be changed");
         }
     }
 

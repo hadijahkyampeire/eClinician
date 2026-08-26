@@ -33,3 +33,8 @@ export function getCounter() {
 export function checkOutOfPharmacy(patientId: string) {
   return request<void>(`/api/pharmacy/counter/${patientId}/check-out`, { method: 'POST' })
 }
+
+/** What the pharmacy could not supply, for patients who are still in the building. */
+export function getUnsupplied() {
+  return request<Prescription[]>('/api/pharmacy/unsupplied')
+}

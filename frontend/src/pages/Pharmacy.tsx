@@ -50,6 +50,7 @@ export default function Pharmacy() {
       void queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
       void queryClient.invalidateQueries({ queryKey: ['patients'] })
       void queryClient.invalidateQueries({ queryKey: ['pharmacy-counter'] })
+      void queryClient.invalidateQueries({ queryKey: ['unsupplied'] })
       void queryClient.invalidateQueries({ queryKey: ['patient'] })
     },
     onError: (err: Error) => {

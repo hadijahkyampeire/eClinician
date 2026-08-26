@@ -14,7 +14,7 @@ import LocalPharmacyOutlinedIcon from '@mui/icons-material/LocalPharmacyOutlined
 import BiotechOutlinedIcon from '@mui/icons-material/BiotechOutlined'
 import ApartmentOutlinedIcon from '@mui/icons-material/ApartmentOutlined'
 import {
-  InTheClinic, PendingMedicines, PendingTests, UnfinishedNotes,
+  CouldNotBeSupplied, InTheClinic, PendingMedicines, PendingTests, UnfinishedNotes,
 } from './panels'
 import {
   AppointmentsLookback, LabLookback, PharmacyLookback, VisitsLookback,
@@ -82,6 +82,7 @@ export const VIEWS: Record<Role, View> = {
     panels: <>
       <InTheClinic act="start-session" first={{ label: 'See who is booked today', to: '/appointments' }} />
       <UnfinishedNotes />
+      <CouldNotBeSupplied />
     </>,
     lookback: <VisitsLookback />,
   },

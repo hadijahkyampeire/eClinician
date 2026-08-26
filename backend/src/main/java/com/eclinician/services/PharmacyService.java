@@ -13,7 +13,9 @@ import com.eclinician.web.ConflictException;
 import com.eclinician.web.NotFoundException;
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,18 +31,28 @@ public class PharmacyService {
     }
 
     /**
-     * Called when an encounter is finalized. Splits the clinician's free-text block
-     * into one PENDING order per line.
+     * Called when an encounter is finalized, and again whenever a clinician corrects one
+     * while the patient is still in the building. Splits the free-text block into one
+     * PENDING order per line.
+     *
+     * <p>Only lines this encounter has not already raised are created. It used to skip the
+     * whole block if any order existed, which was fine while finalize was the only caller
+     * — but a medicine added during a correction would then have been written on the note
+     * and never reached the counter, which is the worst way for this to fail.
      */
     @Transactional
     public void createFromEncounter(String tenantId, UUID encounterId, UUID patientId,
                                     String prescriptions) {
         if (prescriptions == null || prescriptions.isBlank()) return;
-        if (orders.existsByTenantIdAndEncounterId(tenantId, encounterId)) return;
+        Set<String> already = orders
+                .findByTenantIdAndPatientIdOrderByCreatedAtDesc(tenantId, patientId).stream()
+                .filter(order -> encounterId.equals(order.getEncounterId()))
+                .map(PrescriptionOrder::getMedication)
+                .collect(Collectors.toSet());
 
         prescriptions.lines()
                 .map(String::trim)
-                .filter(line -> !line.isEmpty())
+                .filter(line -> !line.isEmpty() && already.add(line))
                 .forEach(line -> orders.save(order(tenantId, encounterId, patientId, line)));
     }
 
@@ -67,6 +79,19 @@ public class PharmacyService {
                     return new CounterPatient(patient.getId(),
                             patient.getFirstName() + " " + patient.getLastName(), medicines, ready);
                 })
+                .toList();
+    }
+
+    /**
+     * Everything the pharmacy could not supply, for patients who are still here — the
+     * clinician's way of finding out, so a substitution is something they are told about
+     * rather than something they happen to notice.
+     */
+    public List<PrescriptionResponse> unsupplied(String tenantId) {
+        return patients.findByTenantIdAndActiveCareStatus(tenantId, PatientCareStatus.PHARMACY)
+                .stream()
+                .flatMap(patient -> listForPatient(tenantId, patient.getId()).stream())
+                .filter(order -> order.status() == PrescriptionStatus.UNAVAILABLE)
                 .toList();
     }
 
@@ -126,22 +151,25 @@ public class PharmacyService {
     }
 
     /**
-     * Nothing left waiting to be handed over, so the patient is free to go.
+     * Everything on this visit handed over, so the patient can go without anyone saying so.
      *
-     * Two things used to keep them pinned here. "Not dispensed" counted an out-of-stock
-     * line as outstanding, so a medicine the pharmacy could not supply held the patient
-     * at the counter for good — and because the desk's Check in button only appears once
-     * a patient has no active status, that patient could never be checked in again. And
-     * the question was asked of every prescription they had ever been given, so one
-     * forgotten line from a visit last year did the same thing.
+     * A medicine the pharmacy could not supply deliberately keeps them here. The clinician
+     * may want to prescribe something else instead, and they can only do that while the
+     * patient is still in care — so clearing the status on an unavailable line would shut
+     * the note on the substitution it was asking for. Nobody gets stuck: whoever is at the
+     * counter can check them out by hand once it is settled, one way or the other.
+     *
+     * <p>Only this visit's medicines count. Asked of every prescription a patient had ever
+     * been given, one forgotten line from last year kept them at a counter they had walked
+     * away from months ago.
      */
     private void releaseFromTheCounter(String tenantId, PrescriptionOrder touched) {
-        boolean stillWaiting = orders
+        boolean unfinished = orders
                 .findByTenantIdAndPatientIdOrderByCreatedAtDesc(tenantId, touched.getPatientId())
                 .stream()
                 .filter(order -> touched.getEncounterId().equals(order.getEncounterId()))
-                .anyMatch(order -> order.getStatus() == PrescriptionStatus.PENDING);
-        if (stillWaiting) return;
+                .anyMatch(order -> order.getStatus() != PrescriptionStatus.DISPENSED);
+        if (unfinished) return;
 
         patients.findByIdAndTenantId(touched.getPatientId(), tenantId).ifPresent(patient -> {
             if (patient.getActiveCareStatus() == PatientCareStatus.PHARMACY) {

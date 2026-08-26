@@ -89,7 +89,6 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
    */
   const [busy, setBusy] = useState<'' | 'draft' | 'lab' | 'finalize' | 'summary'>('')
   const running = useRef(false)
-  const working = busy !== ''
 
   /** The note being edited: whichever the URL names, or the one just created. */
   const noteId = encounterId || savedId
@@ -148,10 +147,18 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
     // Seed a new record after the active appointment query resolves.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!encounterId && patientId) setForm(value => ({ ...value, patientId,
-      appointmentId: value.appointmentId || activeAppointment?.id || '' }))
+      appointmentId: activeAppointment?.id || value.appointmentId || '' }))
   }, [activeAppointment?.id, encounterId, patientId])
 
-  const locked = encounterQuery.data?.status === 'FINALIZED'
+  /*
+   * Signed off is not the same as gone. Between finalizing and the patient walking out
+   * they are still in the building — at the counter, or coming back from the bench — and
+   * a clinician who spots a wrong dose in that window has to be able to fix it. Their
+   * care status is exactly "are they still here", so it is what decides.
+   */
+  const signed = encounterQuery.data?.status === 'FINALIZED'
+  const correcting = signed && Boolean(patientQuery.data?.activeCareStatus)
+  const locked = signed && !correcting
   // Sent, and nothing back yet: sending the same tests again would only raise duplicates.
   const awaitingLab = Boolean(encounterQuery.data?.sentToLabAt)
     && !encounterQuery.data?.labResultsReadyAt
@@ -168,7 +175,8 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
         await queryClient.invalidateQueries()
         navigate(`/patients/${saved.patientId}`)
       } else {
-        setMessage('Draft saved')
+        await queryClient.invalidateQueries()
+        setMessage(correcting ? 'Correction saved' : 'Draft saved')
         navigate(`/records?encounterId=${saved.id}`, { replace: true })
         await queryClient.invalidateQueries({ queryKey: ['encounters'] })
       }
@@ -217,9 +225,15 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
 
   return <div className="encounter-page">
     <Link className="detail-back-link" to={patientId ? `/patients/${patientId}` : '/records'}>← Back to patient</Link>
-    <div className="page-header"><h2>{locked ? 'Clinical encounter' : 'Document clinical encounter'}</h2>
+    <div className="page-header"><h2>{signed ? 'Clinical encounter' : 'Document clinical encounter'}</h2>
       <p>{patientQuery.data ? `${patientQuery.data.firstName} ${patientQuery.data.lastName}` : encounterQuery.data?.patientName}</p></div>
-    {locked && <div className="record-locked">Finalized {formatDateTime(encounterQuery.data!.finalizedAt!)} · This record is read-only.</div>}
+    {locked && <div className="record-locked">
+      Finalized {formatDateTime(encounterQuery.data!.finalizedAt!)} · The patient has left
+      and this record is read-only.</div>}
+    {correcting && <div className="record-correcting">
+      Signed off {formatDateTime(encounterQuery.data!.finalizedAt!)} ·{' '}
+      {patientQuery.data?.firstName} is still in the building, so this can still be put
+      right. A correction overwrites what is here rather than being filed beside it.</div>}
     {patientQuery.data
       && <PatientContext patient={patientQuery.data} currentEncounterId={savedId || encounterId} />}
     {encounterQuery.data && <LabTrip encounter={encounterQuery.data} />}
@@ -257,7 +271,7 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
       <FormSection title="Visit summary">
         <div className="summary-heading form-field-wide">
           <p>Drafted from the notes above, then edited and signed by you.</p>
-          {!locked && <button type="button" className="btn ghost" disabled={working}
+          {!locked && <button type="button" className="btn ghost" disabled={busy === 'summary'}
             onClick={() => void draftSummary()}>
             {busy === 'summary' ? 'Working...'
               : form.visitSummary ? 'Redraft with AI' : 'Draft with AI'}
@@ -268,24 +282,33 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
       </FormSection>
       {message && <p className={message.startsWith('Draft saved') || message.startsWith('Summary drafted')
         ? 'record-success' : 'patient-error'}>{message}</p>}
-      {/* Every button is disabled while any one of them is working — two saves in flight
-          write two notes for one visit — but only the one that was pressed says so. */}
-      {!locked && <div className="encounter-actions">
-        <button className="btn ghost" disabled={working}>
+      {/* Only the button that was pressed goes quiet. Greying all four out said "the
+          screen is busy" when the honest answer is "this one thing is". A second action
+          during that moment is refused by the guard in `once` rather than by disabling
+          everything, which is what actually keeps two saves out of the air at once. */}
+      {/* A signed note is corrected, not re-signed: it is already finalized, the visit is
+          already closed, and the orders it raised are already out. */}
+      {correcting && <div className="encounter-actions">
+        <button className="btn" disabled={busy === 'draft'}>
+          {busy === 'draft' ? 'Saving...' : 'Save correction'}</button>
+      </div>}
+      {!signed && <div className="encounter-actions">
+        <button className="btn ghost" disabled={busy === 'draft'}>
           {busy === 'draft' ? 'Saving...' : 'Save draft'}</button>
         {/* The visit pauses here rather than ending: no diagnosis is asked for, because
             the test is what will decide it. */}
-        <button type="button" className="btn ghost"
-          disabled={working || !form.labRequests.trim() || awaitingLab}
+        <button type="button" className="btn lab"
+          disabled={busy === 'lab' || !form.labRequests.trim() || awaitingLab}
           onClick={() => void sendToLab()}>{busy === 'lab' ? 'Sending...'
             : awaitingLab ? 'Waiting on the lab' : 'Send to lab'}</button>
-        {/* Signing off does two different things depending on what was prescribed — it
-            walks the patient to the counter, or it ends their visit — so the button says
-            which one it is about to do rather than leaving it to be found out. */}
+        {/* The clinician sends the patient onward; they do not close the visit. Whoever
+            is last to see them does that, and with medicine on the note that is the
+            counter. With nothing prescribed nobody else is going to see them, so ending
+            it here is the one case where the visit stops with the clinician. */}
         <button type="button" className="btn"
-          disabled={working || !form.diagnosis.trim() || !form.treatmentPlan.trim()}
-          onClick={() => void persist(true)}>{busy === 'finalize' ? 'Finalizing...'
-            : form.prescriptions.trim() ? 'Finalize & send to pharmacy' : 'Finalize visit'}</button>
+          disabled={busy === 'finalize' || !form.diagnosis.trim() || !form.treatmentPlan.trim()}
+          onClick={() => void persist(true)}>{busy === 'finalize' ? 'Sending...'
+            : form.prescriptions.trim() ? 'Send to pharmacy' : 'End visit'}</button>
       </div>}
     </form>
   </div>
