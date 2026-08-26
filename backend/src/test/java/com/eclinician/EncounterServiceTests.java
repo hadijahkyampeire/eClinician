@@ -6,6 +6,7 @@ import com.eclinician.domains.dtos.EncounterRequest;
 import com.eclinician.domains.dtos.EncounterResponse;
 import com.eclinician.domains.dtos.LabOrderResponse;
 import com.eclinician.domains.dtos.LabResultRequest;
+import com.eclinician.domains.dtos.PrescriptionResponse;
 import com.eclinician.domains.entities.Patient;
 import com.eclinician.domains.enums.AppointmentStatus;
 import com.eclinician.domains.enums.EncounterStatus;
@@ -15,6 +16,7 @@ import com.eclinician.repositories.PatientRepository;
 import com.eclinician.services.AppointmentService;
 import com.eclinician.services.EncounterService;
 import com.eclinician.services.LabService;
+import com.eclinician.services.PharmacyService;
 import com.eclinician.web.ConflictException;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -32,6 +34,7 @@ class EncounterServiceTests {
     @Autowired AppointmentService appointments;
     @Autowired PatientRepository patients;
     @Autowired LabService labs;
+    @Autowired PharmacyService pharmacy;
 
     @Test
     void draftCanBeFinalizedAndCompletesTheVisit() {
@@ -54,8 +57,9 @@ class EncounterServiceTests {
                 .isEqualTo(PatientCareStatus.PHARMACY);
     }
 
+    /** Locked means locked once the patient has gone; until then see the correction test. */
     @Test
-    void finalizationRequiresDiagnosisAndPlanAndFinalizedRecordsAreLocked() {
+    void finalizationRequiresDiagnosisAndPlanAndAClosedVisitIsLocked() {
         Patient patient = patient("validation-hospital");
         AppointmentResponse checkedIn = appointments.checkIn(patient.getTenantId(),
                 new AppointmentRequest(patient.getId(), null, null, "Review", false));
@@ -70,10 +74,12 @@ class EncounterServiceTests {
         EncounterResponse updated = encounters.save(patient.getTenantId(), "Dr Test", draft.id(),
                 request(patient, checkedIn, "Diagnosis", "Plan"));
         encounters.finalizeEncounter(patient.getTenantId(), updated.id());
+        pharmacy.checkOut(patient.getTenantId(), patient.getId());
+
         assertThatThrownBy(() -> encounters.save(patient.getTenantId(), "Dr Test", updated.id(),
                 request(patient, checkedIn, "Changed", "Changed")))
                 .isInstanceOf(ConflictException.class)
-                .hasMessageContaining("cannot be changed");
+                .hasMessageContaining("the patient has left");
     }
 
     @Test
@@ -190,6 +196,45 @@ class EncounterServiceTests {
                 request(patient, checkedIn, "Malaria", "Treat")))
                 .isInstanceOf(ConflictException.class)
                 .hasMessageContaining("must be in session");
+    }
+
+    /**
+     * Signing off is not the same as the patient leaving. While they are still at the
+     * counter a wrong dose can be put right — and a medicine added in that window has to
+     * reach the counter, not just the note.
+     */
+    @Test
+    void aSignedNoteCanBeCorrectedWhileThePatientIsStillInTheBuilding() {
+        Patient patient = patient("correction-hospital");
+        String tenantId = patient.getTenantId();
+        AppointmentResponse checkedIn = appointments.checkIn(tenantId,
+                new AppointmentRequest(patient.getId(), null, null, "Fever", false));
+        appointments.startSession(tenantId, patient.getId());
+        EncounterResponse draft = encounters.save(tenantId, "Dr Test", null,
+                request(patient, checkedIn, "Malaria", "Treat"));
+        encounters.finalizeEncounter(tenantId, draft.id());
+
+        // Sent on to the counter, so they have not left.
+        assertThat(patients.findById(patient.getId()).orElseThrow().getActiveCareStatus())
+                .isEqualTo(PatientCareStatus.PHARMACY);
+        EncounterRequest corrected = new EncounterRequest(patient.getId(), checkedIn.id(),
+                "Fever", 120, 80, 37.2, 80, 65.0, 162.0, "Fever and chills", "Alert",
+                "Malaria", "Treat", "Medication once daily\nParacetamol 500mg",
+                "Full blood count", null);
+        EncounterResponse fixed = encounters.save(tenantId, "Dr Test", draft.id(), corrected);
+
+        assertThat(fixed.status()).isEqualTo(EncounterStatus.FINALIZED);
+        assertThat(fixed.prescriptions()).contains("Paracetamol 500mg");
+        // The added medicine reached the counter rather than only the note.
+        assertThat(pharmacy.listForPatient(tenantId, patient.getId()))
+                .extracting(PrescriptionResponse::medication)
+                .contains("Medication once daily", "Paracetamol 500mg");
+
+        // They collect and go, and the record shuts for good.
+        pharmacy.checkOut(tenantId, patient.getId());
+        assertThatThrownBy(() -> encounters.save(tenantId, "Dr Test", draft.id(), corrected))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("the patient has left");
     }
 
     @Test

@@ -150,7 +150,15 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
       appointmentId: activeAppointment?.id || value.appointmentId || '' }))
   }, [activeAppointment?.id, encounterId, patientId])
 
-  const locked = encounterQuery.data?.status === 'FINALIZED'
+  /*
+   * Signed off is not the same as gone. Between finalizing and the patient walking out
+   * they are still in the building — at the counter, or coming back from the bench — and
+   * a clinician who spots a wrong dose in that window has to be able to fix it. Their
+   * care status is exactly "are they still here", so it is what decides.
+   */
+  const signed = encounterQuery.data?.status === 'FINALIZED'
+  const correcting = signed && Boolean(patientQuery.data?.activeCareStatus)
+  const locked = signed && !correcting
   // Sent, and nothing back yet: sending the same tests again would only raise duplicates.
   const awaitingLab = Boolean(encounterQuery.data?.sentToLabAt)
     && !encounterQuery.data?.labResultsReadyAt
@@ -167,7 +175,8 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
         await queryClient.invalidateQueries()
         navigate(`/patients/${saved.patientId}`)
       } else {
-        setMessage('Draft saved')
+        await queryClient.invalidateQueries()
+        setMessage(correcting ? 'Correction saved' : 'Draft saved')
         navigate(`/records?encounterId=${saved.id}`, { replace: true })
         await queryClient.invalidateQueries({ queryKey: ['encounters'] })
       }
@@ -216,9 +225,15 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
 
   return <div className="encounter-page">
     <Link className="detail-back-link" to={patientId ? `/patients/${patientId}` : '/records'}>← Back to patient</Link>
-    <div className="page-header"><h2>{locked ? 'Clinical encounter' : 'Document clinical encounter'}</h2>
+    <div className="page-header"><h2>{signed ? 'Clinical encounter' : 'Document clinical encounter'}</h2>
       <p>{patientQuery.data ? `${patientQuery.data.firstName} ${patientQuery.data.lastName}` : encounterQuery.data?.patientName}</p></div>
-    {locked && <div className="record-locked">Finalized {formatDateTime(encounterQuery.data!.finalizedAt!)} · This record is read-only.</div>}
+    {locked && <div className="record-locked">
+      Finalized {formatDateTime(encounterQuery.data!.finalizedAt!)} · The patient has left
+      and this record is read-only.</div>}
+    {correcting && <div className="record-correcting">
+      Signed off {formatDateTime(encounterQuery.data!.finalizedAt!)} ·{' '}
+      {patientQuery.data?.firstName} is still in the building, so this can still be put
+      right. A correction overwrites what is here rather than being filed beside it.</div>}
     {patientQuery.data
       && <PatientContext patient={patientQuery.data} currentEncounterId={savedId || encounterId} />}
     {encounterQuery.data && <LabTrip encounter={encounterQuery.data} />}
@@ -271,7 +286,13 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
           screen is busy" when the honest answer is "this one thing is". A second action
           during that moment is refused by the guard in `once` rather than by disabling
           everything, which is what actually keeps two saves out of the air at once. */}
-      {!locked && <div className="encounter-actions">
+      {/* A signed note is corrected, not re-signed: it is already finalized, the visit is
+          already closed, and the orders it raised are already out. */}
+      {correcting && <div className="encounter-actions">
+        <button className="btn" disabled={busy === 'draft'}>
+          {busy === 'draft' ? 'Saving...' : 'Save correction'}</button>
+      </div>}
+      {!signed && <div className="encounter-actions">
         <button className="btn ghost" disabled={busy === 'draft'}>
           {busy === 'draft' ? 'Saving...' : 'Save draft'}</button>
         {/* The visit pauses here rather than ending: no diagnosis is asked for, because

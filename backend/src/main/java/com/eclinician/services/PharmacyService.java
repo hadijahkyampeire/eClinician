@@ -13,7 +13,9 @@ import com.eclinician.web.ConflictException;
 import com.eclinician.web.NotFoundException;
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,18 +31,28 @@ public class PharmacyService {
     }
 
     /**
-     * Called when an encounter is finalized. Splits the clinician's free-text block
-     * into one PENDING order per line.
+     * Called when an encounter is finalized, and again whenever a clinician corrects one
+     * while the patient is still in the building. Splits the free-text block into one
+     * PENDING order per line.
+     *
+     * <p>Only lines this encounter has not already raised are created. It used to skip the
+     * whole block if any order existed, which was fine while finalize was the only caller
+     * — but a medicine added during a correction would then have been written on the note
+     * and never reached the counter, which is the worst way for this to fail.
      */
     @Transactional
     public void createFromEncounter(String tenantId, UUID encounterId, UUID patientId,
                                     String prescriptions) {
         if (prescriptions == null || prescriptions.isBlank()) return;
-        if (orders.existsByTenantIdAndEncounterId(tenantId, encounterId)) return;
+        Set<String> already = orders
+                .findByTenantIdAndPatientIdOrderByCreatedAtDesc(tenantId, patientId).stream()
+                .filter(order -> encounterId.equals(order.getEncounterId()))
+                .map(PrescriptionOrder::getMedication)
+                .collect(Collectors.toSet());
 
         prescriptions.lines()
                 .map(String::trim)
-                .filter(line -> !line.isEmpty())
+                .filter(line -> !line.isEmpty() && already.add(line))
                 .forEach(line -> orders.save(order(tenantId, encounterId, patientId, line)));
     }
 
