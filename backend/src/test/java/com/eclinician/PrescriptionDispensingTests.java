@@ -1,13 +1,16 @@
 package com.eclinician;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.eclinician.domains.dtos.DispenseRequest;
 import com.eclinician.domains.dtos.PrescriptionResponse;
 import com.eclinician.domains.entities.Patient;
+import com.eclinician.domains.enums.PatientCareStatus;
 import com.eclinician.domains.enums.PrescriptionStatus;
 import com.eclinician.repositories.PatientRepository;
 import com.eclinician.services.PharmacyService;
+import com.eclinician.web.ConflictException;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -137,6 +140,71 @@ class PrescriptionDispensingTests {
         assertThat(given.quantityDispensed()).isNull();
         assertThat(given.dispenseUnit()).isNull();
         assertThat(given.packSize()).isNull();
+    }
+
+    /**
+     * An out-of-stock medicine used to pin the patient at the counter for good: the check
+     * asked whether anything was "not dispensed", and an unavailable line is exactly that.
+     * The desk's Check in button only appears once a patient has no active status, so that
+     * patient could never be checked in again.
+     */
+    @Test
+    void aMedicineThePharmacyCannotSupplyStillLetsThePatientGo() {
+        Patient patient = atTheCounter("Insulin glargine");
+        PrescriptionResponse order = pharmacy.listForPatient(TENANT, patient.getId()).getFirst();
+
+        pharmacy.update(TENANT, "P. Harmacist", order.id(),
+                new DispenseRequest(PrescriptionStatus.UNAVAILABLE, "No cold chain today"));
+
+        assertThat(patients.findById(patient.getId()).orElseThrow().getActiveCareStatus()).isNull();
+    }
+
+    /** A forgotten line from an old visit is not what this patient is standing there for. */
+    @Test
+    void anOldUnfinishedPrescriptionDoesNotHoldThemAtTheCounter() {
+        Patient patient = atTheCounter("Amoxicillin 500mg");
+        pharmacy.createFromEncounter(TENANT, UUID.randomUUID(), patient.getId(), "Last year's tablets");
+        PrescriptionResponse today = pharmacy.listForPatient(TENANT, patient.getId()).stream()
+                .filter(order -> order.medication().equals("Amoxicillin 500mg")).findFirst().orElseThrow();
+
+        pharmacy.update(TENANT, "P. Harmacist", today.id(),
+                new DispenseRequest(PrescriptionStatus.DISPENSED, null, 15, "tablets", null));
+
+        assertThat(patients.findById(patient.getId()).orElseThrow().getActiveCareStatus()).isNull();
+    }
+
+    /** The counter serves people, and the pharmacist is the one who says they have gone. */
+    @Test
+    void thePharmacistSeesWhoIsThereAndChecksThemOut() {
+        Patient patient = atTheCounter("Amoxicillin 500mg");
+
+        assertThat(pharmacy.atTheCounter(TENANT))
+                .singleElement()
+                .satisfies(waiting -> {
+                    assertThat(waiting.patientName()).isEqualTo("Dis Pensing");
+                    assertThat(waiting.medicines()).hasSize(1);
+                    assertThat(waiting.ready()).isFalse();
+                });
+
+        // They gave up waiting and left without it — the counter can still close them out.
+        pharmacy.checkOut(TENANT, patient.getId());
+        assertThat(patients.findById(patient.getId()).orElseThrow().getActiveCareStatus()).isNull();
+        assertThat(pharmacy.atTheCounter(TENANT)).isEmpty();
+        assertThatThrownBy(() -> pharmacy.checkOut(TENANT, patient.getId()))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("not at the pharmacy counter");
+    }
+
+    /** A patient sent to the counter by a finalized visit, with one medicine waiting. */
+    private Patient atTheCounter(String medication) {
+        Patient patient = new Patient();
+        patient.setTenantId(TENANT);
+        patient.setFirstName("Dis");
+        patient.setLastName("Pensing");
+        patient.setActiveCareStatus(PatientCareStatus.PHARMACY);
+        Patient saved = patients.save(patient);
+        pharmacy.createFromEncounter(TENANT, UUID.randomUUID(), saved.getId(), medication);
+        return saved;
     }
 
     /** One prescription, freshly written by a clinician finalizing a visit. */

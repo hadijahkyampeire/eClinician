@@ -1,7 +1,9 @@
 package com.eclinician.services;
 
+import com.eclinician.domains.dtos.CounterPatient;
 import com.eclinician.domains.dtos.DispenseRequest;
 import com.eclinician.domains.dtos.PrescriptionResponse;
+import com.eclinician.domains.entities.Patient;
 import com.eclinician.domains.entities.PrescriptionOrder;
 import com.eclinician.domains.enums.PrescriptionStatus;
 import com.eclinician.domains.enums.PatientCareStatus;
@@ -49,6 +51,41 @@ public class PharmacyService {
         return found.stream().map(value -> response(tenantId, value)).toList();
     }
 
+    /**
+     * Who is at the counter, and what each of them is waiting for.
+     *
+     * A pharmacist opening the app should see people, not a flat list of boxes — three
+     * medicines for one patient is one person standing there, not three.
+     */
+    public List<CounterPatient> atTheCounter(String tenantId) {
+        return patients.findByTenantIdAndActiveCareStatus(tenantId, PatientCareStatus.PHARMACY)
+                .stream()
+                .map(patient -> {
+                    List<PrescriptionResponse> medicines = listForPatient(tenantId, patient.getId());
+                    boolean ready = medicines.stream()
+                            .noneMatch(order -> order.status() == PrescriptionStatus.PENDING);
+                    return new CounterPatient(patient.getId(),
+                            patient.getFirstName() + " " + patient.getLastName(), medicines, ready);
+                })
+                .toList();
+    }
+
+    /**
+     * The patient has their medicines and has gone. Their visit is already closed — this
+     * is the last thing still open on them, and clearing it is what lets the desk check
+     * them in again next time.
+     */
+    @Transactional
+    public void checkOut(String tenantId, UUID patientId) {
+        Patient patient = patients.findByIdAndTenantId(patientId, tenantId)
+                .orElseThrow(() -> new NotFoundException("Patient not found"));
+        if (patient.getActiveCareStatus() != PatientCareStatus.PHARMACY) {
+            throw new ConflictException("This patient is not at the pharmacy counter");
+        }
+        patient.setActiveCareStatus(null);
+        patients.save(patient);
+    }
+
     /** SRS 4.1.1: the doctor reads the prescriptions they issued, with their dispensed status. */
     public List<PrescriptionResponse> listForPatient(String tenantId, UUID patientId) {
         return orders.findByTenantIdAndPatientIdOrderByCreatedAtDesc(tenantId, patientId)
@@ -84,18 +121,34 @@ public class PharmacyService {
             value.setDispensedAt(Instant.now());
         }
         PrescriptionOrder saved = orders.save(value);
-        // Keep the patient at Pharmacy until every medicine from their active visit
-        // has been dispensed. UNAVAILABLE remains actionable and therefore stays active.
-        if (!orders.existsByTenantIdAndPatientIdAndStatusNot(
-                tenantId, value.getPatientId(), PrescriptionStatus.DISPENSED)) {
-            patients.findByIdAndTenantId(value.getPatientId(), tenantId).ifPresent(patient -> {
-                if (patient.getActiveCareStatus() == PatientCareStatus.PHARMACY) {
-                    patient.setActiveCareStatus(null);
-                    patients.save(patient);
-                }
-            });
-        }
+        releaseFromTheCounter(tenantId, saved);
         return response(tenantId, saved);
+    }
+
+    /**
+     * Nothing left waiting to be handed over, so the patient is free to go.
+     *
+     * Two things used to keep them pinned here. "Not dispensed" counted an out-of-stock
+     * line as outstanding, so a medicine the pharmacy could not supply held the patient
+     * at the counter for good — and because the desk's Check in button only appears once
+     * a patient has no active status, that patient could never be checked in again. And
+     * the question was asked of every prescription they had ever been given, so one
+     * forgotten line from a visit last year did the same thing.
+     */
+    private void releaseFromTheCounter(String tenantId, PrescriptionOrder touched) {
+        boolean stillWaiting = orders
+                .findByTenantIdAndPatientIdOrderByCreatedAtDesc(tenantId, touched.getPatientId())
+                .stream()
+                .filter(order -> touched.getEncounterId().equals(order.getEncounterId()))
+                .anyMatch(order -> order.getStatus() == PrescriptionStatus.PENDING);
+        if (stillWaiting) return;
+
+        patients.findByIdAndTenantId(touched.getPatientId(), tenantId).ifPresent(patient -> {
+            if (patient.getActiveCareStatus() == PatientCareStatus.PHARMACY) {
+                patient.setActiveCareStatus(null);
+                patients.save(patient);
+            }
+        });
     }
 
     private PrescriptionOrder order(String tenantId, UUID encounterId, UUID patientId,

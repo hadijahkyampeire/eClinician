@@ -4,6 +4,7 @@ import { Button, TextField } from '@mui/material'
 import { getPrescriptions, updatePrescription } from '../api/pharmacy'
 import { useAuth } from '../auth/AuthContext'
 import ConfirmDialog from '../components/ConfirmDialog'
+import AtTheCounter from '../components/pharmacy/AtTheCounter'
 import DispenseDialog from '../components/pharmacy/DispenseDialog'
 import RowActions from '../components/RowActions'
 import BlockOutlinedIcon from '@mui/icons-material/BlockOutlined'
@@ -48,6 +49,7 @@ export default function Pharmacy() {
       void queryClient.invalidateQueries({ queryKey: ['prescriptions'] })
       void queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
       void queryClient.invalidateQueries({ queryKey: ['patients'] })
+      void queryClient.invalidateQueries({ queryKey: ['pharmacy-counter'] })
       void queryClient.invalidateQueries({ queryKey: ['patient'] })
     },
     onError: (err: Error) => {
@@ -63,6 +65,8 @@ export default function Pharmacy() {
   return (
     <>
        <div className="page-header"><h2>Pharmacy</h2><p>Prescriptions raised by clinicians</p></div>
+
+    <AtTheCounter busy={mutation.isPending} />
 
     <div className="pharmacy-filters">
       {FILTERS.map(item => (

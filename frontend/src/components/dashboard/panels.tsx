@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { getAppointments, markAppointmentWaiting, startPatientSession } from '../../api/appointments'
 import { getEncounters } from '../../api/encounters'
 import { getLabOrders } from '../../api/lab'
-import { getPrescriptions } from '../../api/pharmacy'
+import { getCounter } from '../../api/pharmacy'
 import { useAuth } from '../../auth/AuthContext'
 import { byQueueOrder } from '../../lib/queue'
 import { Panel, Row } from './Panel'
@@ -122,21 +122,28 @@ export function UnfinishedNotes({ readOnly }: { readOnly?: boolean }) {
   )
 }
 
-/** Medicines waiting to be handed over. */
+/**
+ * Who is at the counter. A pharmacist opening the app is looking at a room, and three
+ * medicines for one patient is one person standing there rather than three.
+ */
 export function PendingMedicines() {
   const tenantId = useAuth().session?.tenant?.id
   const { data = [] } = useQuery({
-    queryKey: ['prescriptions', tenantId, 'PENDING'],
-    queryFn: () => getPrescriptions('PENDING'), ...LIVE,
+    queryKey: ['pharmacy-counter', tenantId], queryFn: getCounter, ...LIVE,
   })
 
   return (
-    <Panel title="Waiting to be dispensed" count={data.length} to="/pharmacy" seeAll="Open the queue"
+    <Panel title="At the counter" count={data.length} to="/pharmacy" seeAll="Open the queue"
       first={{ label: 'See what has been dispensed', to: '/pharmacy' }}
-      empty="The queue is clear. A medicine lands here the moment a clinician finalizes a visit.">
-      {data.map(order => (
-        <Row key={order.id} primary={order.medication} secondary={order.patientName}
-          action={<Link className="btn small" to="/pharmacy">Dispense</Link>} />
+      empty="Nobody is waiting. A patient lands here the moment a clinician finalizes a visit with medicine on it.">
+      {data.map(person => (
+        <Row key={person.patientId} primary={person.patientName}
+          to={`/patients/${person.patientId}`}
+          secondary={person.medicines.map(order => order.medication).join(' · ')}
+          meta={person.ready ? 'Ready to go' : undefined}
+          tone={person.ready ? 'ready' : undefined}
+          action={<Link className="btn small" to="/pharmacy">
+            {person.ready ? 'Check out' : 'Dispense'}</Link>} />
       ))}
     </Panel>
   )
