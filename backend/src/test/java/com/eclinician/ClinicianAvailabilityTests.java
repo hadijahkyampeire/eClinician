@@ -3,7 +3,9 @@ package com.eclinician;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.eclinician.domains.dtos.AppointmentRequest;
 import com.eclinician.domains.dtos.AvailabilityRequest;
+import com.eclinician.domains.dtos.PatientRequest;
 import com.eclinician.domains.dtos.StaffRequest;
 import com.eclinician.domains.entities.AppUser;
 import com.eclinician.domains.entities.Tenant;
@@ -11,7 +13,9 @@ import com.eclinician.domains.enums.ClinicModule;
 import com.eclinician.domains.enums.UserRole;
 import com.eclinician.repositories.TenantRepository;
 import com.eclinician.repositories.UserRepository;
+import com.eclinician.services.AppointmentService;
 import com.eclinician.services.ClinicianAvailabilityService;
+import com.eclinician.services.PatientService;
 import com.eclinician.services.StaffService;
 import com.eclinician.web.ConflictException;
 import java.time.DayOfWeek;
@@ -20,6 +24,7 @@ import java.time.LocalTime;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -29,6 +34,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 class ClinicianAvailabilityTests {
     @Autowired ClinicianAvailabilityService availability;
+    @Autowired AppointmentService appointments;
+    @Autowired PatientService patients;
     @Autowired StaffService staff;
     @Autowired UserRepository users;
     @Autowired TenantRepository tenants;
@@ -186,6 +193,39 @@ class ClinicianAvailabilityTests {
         assertThat(staff.clinicians("split-hospital", atLocalHour(9))).hasSize(1);
         assertThat(staff.clinicians("split-hospital", atLocalHour(16))).isEmpty();
         assertThat(staff.clinicians("split-hospital", atLocalHour(21))).hasSize(1);
+    }
+
+    /**
+     * The queue tells reception which door to point the patient at, so a row carries the
+     * clinician's specialty and the room they hold on the shift covering the appointment.
+     */
+    @Test
+    void aQueueRowNamesTheClinicansSpecialtyAndRoom() {
+        hospital("queue-hospital", "Africa/Kampala");
+        AppUser doctor = clinician("queue-hospital", "queue@rota.test");
+        doctor.setSpecialty("Paediatrics");
+        users.save(doctor);
+        availability.replaceMine("queue-hospital", doctor.getEmail(),
+                new AvailabilityRequest(List.of(new AvailabilityRequest.Shift(
+                        DayOfWeek.MONDAY, LocalTime.of(8, 0), LocalTime.of(17, 0), "Room 4"))));
+
+        assertThat(appointments.schedule("queue-hospital", new AppointmentRequest(
+                queuePatient("+256700920001"), doctor.getId(), atLocalHour(10), "Review")))
+                .satisfies(row -> {
+                    assertThat(row.doctorSpecialty()).isEqualTo("Paediatrics");
+                    assertThat(row.room()).isEqualTo("Room 4");
+                });
+
+        // Outside the shift there is no room to name, and the row says so rather than guessing.
+        assertThat(appointments.schedule("queue-hospital", new AppointmentRequest(
+                queuePatient("+256700920002"), doctor.getId(), atLocalHour(20), "Late review"))
+                .room()).isNull();
+    }
+
+    private UUID queuePatient(String phone) {
+        return patients.create("queue-hospital", new PatientRequest("Queue", "Patient",
+                LocalDate.of(1990, 1, 1), "Other", phone,
+                null, null, null, null, null, null, "UG")).id();
     }
 
     /**

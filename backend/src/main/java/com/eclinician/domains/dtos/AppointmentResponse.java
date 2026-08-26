@@ -11,6 +11,8 @@ public record AppointmentResponse(
         String patientName,
         UUID doctorId,
         String doctorName,
+        String doctorSpecialty,
+        String room,
         AppointmentStatus status,
         Instant scheduledAt,
         Instant checkedInAt,
@@ -21,14 +23,16 @@ public record AppointmentResponse(
         Instant createdAt,
         Instant updatedAt) {
 
-    public static AppointmentResponse from(
-            Appointment appointment, String patientName, String doctorName) {
+    public static AppointmentResponse from(Appointment appointment, String patientName,
+            String doctorName, String doctorSpecialty, String room) {
         return new AppointmentResponse(
                 appointment.getId(),
                 appointment.getPatientId(),
                 patientName,
                 appointment.getDoctorId(),
                 doctorName,
+                doctorSpecialty,
+                room,
                 appointment.getStatus(),
                 appointment.getScheduledAt(),
                 appointment.getCheckedInAt(),

@@ -9,11 +9,13 @@ import com.eclinician.domains.enums.AppointmentStatus;
 import com.eclinician.domains.enums.PatientCareStatus;
 import com.eclinician.domains.enums.UserRole;
 import com.eclinician.repositories.AppointmentRepository;
+import com.eclinician.repositories.ClinicianAvailabilityRepository;
 import com.eclinician.repositories.PatientRepository;
 import com.eclinician.repositories.UserRepository;
 import com.eclinician.web.ConflictException;
 import com.eclinician.web.NotFoundException;
 import java.time.Instant;
+import java.time.ZonedDateTime;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.UUID;
@@ -31,13 +33,18 @@ public class AppointmentService {
     private final AppointmentRepository appointments;
     private final PatientRepository patients;
     private final UserRepository users;
+    private final ClinicianAvailabilityRepository availability;
+    private final ClinicClock clock;
     private final CheckInExpiry expiry;
 
     public AppointmentService(AppointmentRepository appointments, PatientRepository patients,
-            UserRepository users, CheckInExpiry expiry) {
+            UserRepository users, ClinicianAvailabilityRepository availability,
+            ClinicClock clock, CheckInExpiry expiry) {
         this.appointments = appointments;
         this.patients = patients;
         this.users = users;
+        this.availability = availability;
+        this.clock = clock;
         this.expiry = expiry;
     }
 
@@ -279,10 +286,28 @@ public class AppointmentService {
     }
 
     private AppointmentResponse response(Patient patient, Appointment appointment) {
-        String doctorName = appointment.getDoctorId() == null ? null
+        AppUser doctor = appointment.getDoctorId() == null ? null
                 : users.findByIdAndTenantId(appointment.getDoctorId(), appointment.getTenantId())
-                        .map(AppUser::getName).orElse(null);
+                        .orElse(null);
         return AppointmentResponse.from(appointment,
-                patient.getFirstName() + " " + patient.getLastName(), doctorName);
+                patient.getFirstName() + " " + patient.getLastName(),
+                doctor == null ? null : doctor.getName(),
+                doctor == null ? null : doctor.getSpecialty(),
+                room(appointment));
+    }
+
+    /**
+     * The room the patient is waiting for: the one the clinician holds on the shift covering
+     * this appointment, read in the clinic's own hours rather than the server's.
+     */
+    private String room(Appointment appointment) {
+        if (appointment.getDoctorId() == null) {
+            return null;
+        }
+        ZonedDateTime local = appointment.getScheduledAt()
+                .atZone(clock.zoneOf(appointment.getTenantId()));
+        return availability.findShiftAt(appointment.getTenantId(), appointment.getDoctorId(),
+                        local.getDayOfWeek(), local.toLocalTime())
+                .stream().findFirst().map(shift -> shift.getRoom()).orElse(null);
     }
 }

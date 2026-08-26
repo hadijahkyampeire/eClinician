@@ -38,7 +38,8 @@ export default function AppointmentTable({
     <div className="table-wrap">
       <table className="patient-table appointment-table">
         <thead><tr>
-          <th>Patient</th><th>Doctor</th><th>Status</th><th>Scheduled</th>
+          <th>Patient</th><th>Doctor</th><th>Specialty</th><th>Room</th>
+          <th>Status</th><th>Scheduled</th>
           <th>Checked in</th><th>Waiting since</th><th>Actions</th>
         </tr></thead>
         <tbody>
@@ -47,10 +48,14 @@ export default function AppointmentTable({
               <td><Link className="patient-name-link"
                 to={`/patients/${appointment.patientId}`}>{appointment.patientName}</Link></td>
               <td>{appointment.doctorName || 'Unassigned'}</td>
+              <td>{appointment.doctorSpecialty || '—'}</td>
+              <td>{appointment.room || '—'}</td>
               <td><AppointmentBadge status={appointment.status} /></td>
-              <td>{formatDateTime(appointment.scheduledAt)}</td>
-              <td>{appointment.checkedInAt ? formatDateTime(appointment.checkedInAt) : '—'}</td>
-              <td>{appointment.waitingAt ? formatDateTime(appointment.waitingAt) : '—'}</td>
+              <td>{formatDateTime(appointment.scheduledAt, active)}</td>
+              <td>{appointment.checkedInAt
+                ? formatDateTime(appointment.checkedInAt, active) : '—'}</td>
+              <td>{appointment.waitingAt
+                ? formatDateTime(appointment.waitingAt, active) : '—'}</td>
               <td className="table-actions">
                 {desk && appointment.status === 'CHECKED_IN' && (
                   <IconAction title="Take to the waiting room" disabled={busy}
@@ -117,9 +122,22 @@ function AppointmentBadge({ status }: { status: AppointmentStatus }) {
   </span>
 }
 
-function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat('en', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(new Date(value))
+// Intl refuses dateStyle alongside weekday, so the parts are spelled out. 'medium' is the
+// shape the rest of the app uses: Aug 25, 2026, 10:30 PM.
+const stamp = new Intl.DateTimeFormat('en', {
+  weekday: 'short', year: 'numeric', month: 'short', day: 'numeric',
+  hour: 'numeric', minute: '2-digit',
+})
+const clockTime = new Intl.DateTimeFormat('en', { hour: 'numeric', minute: '2-digit' })
+
+const isToday = (when: Date) => when.toDateString() === new Date().toDateString()
+
+/**
+ * The queue is today's arrivals, so a row shows the time alone and the wait reads at a
+ * glance; the history spans weeks, so a row names its weekday. A check-in left standing
+ * overnight still gives its date rather than passing itself off as this morning.
+ */
+function formatDateTime(value: string, timeOnly?: boolean) {
+  const when = new Date(value)
+  return timeOnly && isToday(when) ? clockTime.format(when) : stamp.format(when)
 }
