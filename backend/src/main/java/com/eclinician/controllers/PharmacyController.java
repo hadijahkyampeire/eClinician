@@ -45,6 +45,16 @@ public class PharmacyController {
         return pharmacyService.update(tenantId, pharmacistName, id, request);
     }
 
+    /**
+     * What the pharmacy could not supply, for patients still in the building. The clinician
+     * reads this to prescribe something else while there is still time to.
+     */
+    @PreAuthorize("hasAnyRole('CLINICIAN', 'PHARMACIST', 'ADMINISTRATOR')")
+    @GetMapping("/unsupplied")
+    public List<PrescriptionResponse> unsupplied(@CurrentTenant String tenantId) {
+        return pharmacyService.unsupplied(tenantId);
+    }
+
     /** Who is standing at the counter, and what each of them is waiting for. */
     @PreAuthorize("hasAnyRole('PHARMACIST', 'ADMINISTRATOR')")
     @GetMapping("/counter")

@@ -24,6 +24,7 @@ export default function AtTheCounter({ busy }: { busy: boolean }) {
     mutationFn: checkOutOfPharmacy,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['pharmacy-counter'] })
+      void queryClient.invalidateQueries({ queryKey: ['unsupplied'] })
       void queryClient.invalidateQueries({ queryKey: ['patients'] })
       void queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
     },

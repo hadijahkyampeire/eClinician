@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { getAppointments, markAppointmentWaiting, startPatientSession } from '../../api/appointments'
 import { getEncounters } from '../../api/encounters'
 import { getLabOrders } from '../../api/lab'
-import { getCounter } from '../../api/pharmacy'
+import { getCounter, getUnsupplied } from '../../api/pharmacy'
 import { useAuth } from '../../auth/AuthContext'
 import { byQueueOrder } from '../../lib/queue'
 import { Panel, Row } from './Panel'
@@ -117,6 +117,34 @@ export function UnfinishedNotes({ readOnly }: { readOnly?: boolean }) {
               {draft.labResultsReadyAt ? 'Read results' : 'Continue'}
             </Link>
           )} />
+      ))}
+    </Panel>
+  )
+}
+
+/**
+ * What the pharmacy could not supply, while the patient is still here to be given
+ * something else. A clinician finding this out by chance, after the patient has gone
+ * home without their medicine, is the failure this panel exists to prevent.
+ */
+export function CouldNotBeSupplied() {
+  const tenantId = useAuth().session?.tenant?.id
+  const { data = [] } = useQuery({
+    queryKey: ['unsupplied', tenantId], queryFn: getUnsupplied, ...LIVE,
+  })
+
+  return (
+    <Panel title="The pharmacy could not supply" count={data.length} to="/records"
+      seeAll="All records"
+      first={{ label: 'See who is booked today', to: '/appointments' }}
+      empty="Nothing is out of stock. A medicine lands here if the counter cannot fill it.">
+      {data.map(order => (
+        <Row key={order.id} primary={order.patientName}
+          to={`/patients/${order.patientId}`}
+          secondary={`${order.medication}${order.notes ? ` — ${order.notes}` : ''}`}
+          meta="Still at the counter" tone="waiting"
+          action={<Link className="btn small" to={`/records?encounterId=${order.encounterId}`}>
+            Prescribe instead</Link>} />
       ))}
     </Panel>
   )

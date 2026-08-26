@@ -143,20 +143,27 @@ class PrescriptionDispensingTests {
     }
 
     /**
-     * An out-of-stock medicine used to pin the patient at the counter for good: the check
-     * asked whether anything was "not dispensed", and an unavailable line is exactly that.
-     * The desk's Check in button only appears once a patient has no active status, so that
-     * patient could never be checked in again.
+     * A medicine the pharmacy cannot supply keeps the patient here on purpose: the
+     * clinician may want to prescribe something else, and can only do that while they are
+     * still in care. They are never stuck — the counter checks them out by hand.
      */
     @Test
-    void aMedicineThePharmacyCannotSupplyStillLetsThePatientGo() {
+    void aMedicineThePharmacyCannotSupplyKeepsThePatientAtTheCounter() {
         Patient patient = atTheCounter("Insulin glargine");
         PrescriptionResponse order = pharmacy.listForPatient(TENANT, patient.getId()).getFirst();
 
         pharmacy.update(TENANT, "P. Harmacist", order.id(),
                 new DispenseRequest(PrescriptionStatus.UNAVAILABLE, "No cold chain today"));
 
+        assertThat(patients.findById(patient.getId()).orElseThrow().getActiveCareStatus())
+                .isEqualTo(PatientCareStatus.PHARMACY);
+        // And the clinician is told, rather than left to notice.
+        assertThat(pharmacy.unsupplied(TENANT)).singleElement()
+                .extracting(PrescriptionResponse::medication).isEqualTo("Insulin glargine");
+
+        pharmacy.checkOut(TENANT, patient.getId());
         assertThat(patients.findById(patient.getId()).orElseThrow().getActiveCareStatus()).isNull();
+        assertThat(pharmacy.unsupplied(TENANT)).isEmpty();
     }
 
     /** A forgotten line from an old visit is not what this patient is standing there for. */

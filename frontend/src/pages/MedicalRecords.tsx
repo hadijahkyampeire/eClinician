@@ -301,13 +301,14 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
           disabled={busy === 'lab' || !form.labRequests.trim() || awaitingLab}
           onClick={() => void sendToLab()}>{busy === 'lab' ? 'Sending...'
             : awaitingLab ? 'Waiting on the lab' : 'Send to lab'}</button>
-        {/* Signing off does two different things depending on what was prescribed — it
-            walks the patient to the counter, or it ends their visit — so the button says
-            which one it is about to do rather than leaving it to be found out. */}
+        {/* The clinician sends the patient onward; they do not close the visit. Whoever
+            is last to see them does that, and with medicine on the note that is the
+            counter. With nothing prescribed nobody else is going to see them, so ending
+            it here is the one case where the visit stops with the clinician. */}
         <button type="button" className="btn"
           disabled={busy === 'finalize' || !form.diagnosis.trim() || !form.treatmentPlan.trim()}
-          onClick={() => void persist(true)}>{busy === 'finalize' ? 'Finalizing...'
-            : form.prescriptions.trim() ? 'Finalize & send to pharmacy' : 'Finalize visit'}</button>
+          onClick={() => void persist(true)}>{busy === 'finalize' ? 'Sending...'
+            : form.prescriptions.trim() ? 'Send to pharmacy' : 'End visit'}</button>
       </div>}
     </form>
   </div>
