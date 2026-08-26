@@ -79,7 +79,13 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
     label: item.name, group: item.category ?? 'Other',
   }))
   const [savedId, setSavedId] = useState(encounterId)
-  const [message, setMessage] = useState('')
+  /**
+   * What just happened, and whether it went wrong. The tone used to be guessed from the
+   * text — two hard-coded prefixes counted as good news and everything else was drawn as
+   * an error, so "Sent to the lab" came out red. Whoever writes the message says which
+   * it is; nothing reads it back to find out.
+   */
+  const [message, setMessage] = useState<{ text: string; failed?: boolean } | null>(null)
   /**
    * Which action is running, so a button says what it is doing rather than every button
    * greying out together. The ref is the guard: `busy` is state, so it does not take
@@ -97,11 +103,12 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
   async function once(action: typeof busy, work: () => Promise<void>) {
     if (running.current) return
     running.current = true
-    setBusy(action); setMessage('')
+    setBusy(action); setMessage(null)
     try {
       await work()
     } catch (caught) {
-      setMessage(caught instanceof Error ? caught.message : 'Something went wrong')
+      setMessage({ failed: true,
+        text: caught instanceof Error ? caught.message : 'Something went wrong' })
     } finally {
       running.current = false
       setBusy('')
@@ -176,7 +183,7 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
         navigate(`/patients/${saved.patientId}`)
       } else {
         await queryClient.invalidateQueries()
-        setMessage(correcting ? 'Correction saved' : 'Draft saved')
+        setMessage({ text: correcting ? 'Correction saved' : 'Draft saved' })
         navigate(`/records?encounterId=${saved.id}`, { replace: true })
         await queryClient.invalidateQueries({ queryKey: ['encounters'] })
       }
@@ -195,8 +202,11 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
       setSavedId(saved.id)
       await sendEncounterToLab(saved.id)
       await queryClient.invalidateQueries()
-      setMessage('Sent to the lab — this note stays open until the results come back')
-      navigate(`/records?encounterId=${saved.id}`, { replace: true })
+      // The patient has walked off to the bench, so the clinician's next move is the next
+      // patient — not this note, which they can do nothing more with until results land.
+      // The dashboard is where both live: the queue to call from, and this note waiting
+      // under unfinished work.
+      navigate('/dashboard')
     })
   }
 
@@ -211,7 +221,7 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
       setSavedId(saved.id)
       const drafted = await draftEncounterSummary(saved.id)
       setForm(current => ({ ...current, visitSummary: drafted.visitSummary || '' }))
-      setMessage('Summary drafted — read it before you finalize')
+      setMessage({ text: 'Summary drafted — read it before you finalize' })
       navigate(`/records?encounterId=${saved.id}`, { replace: true })
     })
   }
@@ -280,8 +290,8 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
         <TextField label="Summary" hint="Yours to correct — the draft is a starting point"
           value={form.visitSummary} onChange={v => set('visitSummary', v)} disabled={locked} />
       </FormSection>
-      {message && <p className={message.startsWith('Draft saved') || message.startsWith('Summary drafted')
-        ? 'record-success' : 'patient-error'}>{message}</p>}
+      {message && <p className={message.failed ? 'patient-error' : 'record-success'}>
+        {message.text}</p>}
       {/* Only the button that was pressed goes quiet. Greying all four out said "the
           screen is busy" when the honest answer is "this one thing is". A second action
           during that moment is refused by the guard in `once` rather than by disabling
