@@ -8,6 +8,7 @@ import { getAppointments } from '../api/appointments'
 import { getPatient } from '../api/patients'
 import { useAuth } from '../auth/AuthContext'
 import OrderPicker from '../components/records/OrderPicker'
+import PatientContext from '../components/records/PatientContext'
 import { useLabTests, useMedications } from '../hooks/useCatalog'
 import type { Encounter, EncounterForm } from '../types/encounter'
 
@@ -158,6 +159,8 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
     <div className="page-header"><h2>{locked ? 'Clinical encounter' : 'Document clinical encounter'}</h2>
       <p>{patientQuery.data ? `${patientQuery.data.firstName} ${patientQuery.data.lastName}` : encounterQuery.data?.patientName}</p></div>
     {locked && <div className="record-locked">Finalized {formatDateTime(encounterQuery.data!.finalizedAt!)} · This record is read-only.</div>}
+    {patientQuery.data
+      && <PatientContext patient={patientQuery.data} currentEncounterId={savedId || encounterId} />}
     <form className="encounter-form" onSubmit={submit}>
       <FormSection title="Visit overview">
         {/* Not a field: the API records whoever's token signed the request. */}

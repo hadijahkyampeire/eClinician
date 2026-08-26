@@ -99,12 +99,15 @@ export default function Appointments() {
       const name = patientQuery.data
         ? `${patientQuery.data.firstName} ${patientQuery.data.lastName}`
         : 'The patient'
-      setConfirmation(action === 'check-in'
-        ? `${name} is checked in and now in today’s queue.`
-        : `Session started for ${name}.`)
-      // The arrival is recorded, so drop the intent from the URL: the card has done its job.
-      navigate('/appointments', { replace: true })
+      // Only the desk needs telling. The clinician is about to land on the chart, which
+      // says more than a banner would.
+      if (action === 'check-in') setConfirmation(`${name} is checked in and now in today’s queue.`)
       await refresh()
+      // Check-in ends at the desk, so the card just drops its intent from the URL. A
+      // session ends in the consulting room, so it opens the chart it is about to fill.
+      navigate(action === 'check-in'
+        ? '/appointments'
+        : `/records?patientId=${patientId}`, { replace: true })
     },
   })
   const transition = useMutation({
