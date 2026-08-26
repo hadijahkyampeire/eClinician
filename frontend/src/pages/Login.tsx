@@ -60,8 +60,8 @@ export default function Login() {
         <p className="subtitle">Sign in to continue</p>
 
         {expiredNotice && !error && (
-          <p className="form-error" role="status">
-            Your session ended, so you were signed out. Sign in to pick up where you were.
+          <p className="form-note" role="status">
+            You are logged out. Sign in to pick up where you were.
           </p>
         )}
 
@@ -95,11 +95,6 @@ export default function Login() {
         <button type="submit" className="btn block" disabled={!canSubmit}>
           Sign in →
         </button>
-
-        <p className="demo-hint">
-          Your account decides what you can open — the server reads the role and answers
-          with it. There is nothing to choose here.
-        </p>
       </form>
     </div>
   )
