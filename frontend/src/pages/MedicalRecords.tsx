@@ -254,8 +254,12 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
             the test is what will decide it. */}
         <button type="button" className="btn ghost" disabled={busy || !form.labRequests.trim() || awaitingLab}
           onClick={() => void sendToLab()}>{awaitingLab ? 'Waiting on the lab' : 'Send to lab'}</button>
+        {/* Signing off does two different things depending on what was prescribed — it
+            walks the patient to the counter, or it ends their visit — so the button says
+            which one it is about to do rather than leaving it to be found out. */}
         <button type="button" className="btn" disabled={busy || !form.diagnosis.trim() || !form.treatmentPlan.trim()}
-          onClick={() => void persist(true)}>{busy ? 'Saving...' : 'Finalize encounter'}</button></div>}
+          onClick={() => void persist(true)}>{busy ? 'Saving...'
+            : form.prescriptions.trim() ? 'Finalize & send to pharmacy' : 'Finalize visit'}</button></div>}
     </form>
   </div>
 }
