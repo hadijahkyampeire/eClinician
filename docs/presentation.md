@@ -1,8 +1,13 @@
 # Presentation guide
 
 **Time budget:** 12 minutes of slides, 10–12 minutes of demo, 5–10 minutes of questions.
-The demo itself, and where each artefact lives, are both in the
-[README](../README.md#project-walkthrough); this page is the frame around them.
+
+**Warm the instance first.** The free tier sleeps after 15 minutes and takes about 90
+seconds to wake. Open the app ten minutes early, sign in once, and leave the tab open.
+
+Where each artefact lives is in the [README](../README.md#project-walkthrough); the demo
+itself, role by role, is in the [demo script](demo-script.md). This page is the frame
+around them.
 
 ## Slide plan — 12 slides
 
