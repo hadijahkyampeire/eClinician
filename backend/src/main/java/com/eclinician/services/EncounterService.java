@@ -2,6 +2,7 @@ package com.eclinician.services;
 
 import com.eclinician.domains.dtos.request.EncounterRequest;
 import com.eclinician.domains.dtos.response.EncounterResponse;
+import com.eclinician.domains.dtos.response.SummaryResponse;
 import com.eclinician.domains.entities.Appointment;
 import com.eclinician.domains.entities.Encounter;
 import com.eclinician.domains.entities.Patient;
@@ -180,23 +181,23 @@ public class EncounterService {
     }
 
     /**
-     * Drafts the visit summary from the notes and saves it on the encounter. The clinician
-     * edits it afterwards like any other field — the draft is a starting point, not the
-     * record, which is why a closed encounter refuses one.
+     * Drafts the visit summary from the notes as they stand, and hands the text back.
      *
-     * <p>Open to correction means open to redrafting, on the same test the note itself
-     * uses. A medicine added at the counter changes what the visit was, and a summary
-     * written before it is out of date — refusing to redraft it left the clinician
-     * holding a stale summary and a message saying the patient had left, while they
-     * were standing right there.
+     * <p>Nothing here reads or writes a stored encounter. Drafting is a rewrite of what
+     * the clinician has already typed — including the diagnosis they added a second ago
+     * and have not saved — so it asks nothing about whose visit it is, whether the note
+     * is signed, or where the patient is standing. Those rules belong to saving the note,
+     * and saving is still the only thing that puts the summary in the record.
+     *
+     * <p>It used to save first so the summarizer would read the screen rather than the
+     * database, which quietly put every rule about documenting a visit in front of a
+     * button that only rewrites a paragraph. A clinician back from the lab, not yet
+     * called in, was told to be in session before they could redraft.
      */
-    @Transactional
-    public EncounterResponse draftSummary(String tenantId, UUID id) {
-        Encounter value = encounter(tenantId, id);
-        Patient patient = patient(tenantId, value.getPatientId());
-        if (!correctable(value, patient)) requireDraft(value);
-        value.setVisitSummary(summaries.draftFor(value));
-        return response(patient, encounters.save(value));
+    public SummaryResponse draftSummary(EncounterRequest request) {
+        Encounter note = new Encounter();
+        copy(request, note);
+        return new SummaryResponse(summaries.draftFor(note));
     }
 
     private void copy(EncounterRequest source, Encounter target) {

@@ -317,13 +317,13 @@ class EncounterServiceTests {
     }
 
     /**
-     * The lab-then-medicine round trip, all the way to the summary. A note corrected
-     * after sign-off has changed, so the summary drafted before the change is stale —
-     * redrafting it is part of the same correction window as fixing a dose, and refusing
-     * it told the clinician the patient had left while they stood at the counter.
+     * Redrafting is a rewrite of what the clinician has typed, so no state can refuse it.
+     * The states that used to: back from the lab and not yet called in, and a note signed
+     * off without a prescription, which locks the moment it is signed. Both told the
+     * clinician to be somewhere they already were.
      */
     @Test
-    void theSummaryCanBeRedraftedWhileThePatientIsStillInTheBuilding() {
+    void theSummaryCanBeRedraftedInAnyStateTheVisitIsIn() {
         Patient patient = patient("redraft-hospital");
         String tenantId = patient.getTenantId();
         AppointmentResponse checkedIn = appointments.checkIn(tenantId,
@@ -334,29 +334,37 @@ class EncounterServiceTests {
                         120, 80, 37.2, 80, 65.0, 162.0, null, null, null, null, null,
                         "Full blood count"));
 
-        // To the bench and back with a result.
+        // To the bench and back. The appointment is WAITING now — they have not been
+        // called in, and until this stopped being a save that is where redrafting failed.
         encounters.sendToLab(tenantId, draft.id());
         labs.update(tenantId, "Tech", labs.listForPatient(tenantId, patient.getId()).getFirst().id(),
                 new LabResultRequest(LabStatus.COMPLETED, "Haemoglobin 11.2 g/dl", null));
+        assertThat(appointments.list(tenantId, patient.getId()).getFirst().status())
+                .isEqualTo(AppointmentStatus.WAITING);
+        assertDrafts(patient, checkedIn, "Anaemia");
+
+        // Signed off with no medicine, so the patient is marked gone the same instant and
+        // the note locks. The paragraph can still be rewritten; only saving it is closed.
         appointments.startSession(tenantId, patient.getId());
-
-        // The medicine goes on, and the visit is signed off to the counter.
         encounters.save(tenantId, "Dr Test", draft.id(), new EncounterRequest(patient.getId(),
-                checkedIn.id(), "Fever", 120, 80, 37.2, 80, 65.0, 162.0, null, null,
-                "Anaemia", "Iron supplements", "Ferrous sulphate 200mg", "Full blood count", null));
+                checkedIn.id(), "Fever", 120, 80, 37.2, 80, 65.0, 162.0, "chills", "Alert",
+                "Anaemia", "Diet advice, review in a month", null, "Full blood count"));
         encounters.finalizeEncounter(tenantId, draft.id());
-        assertThat(patients.findById(patient.getId()).orElseThrow().getActiveCareStatus())
-                .isEqualTo(PatientCareStatus.PHARMACY);
+        assertThat(patients.findById(patient.getId()).orElseThrow().getActiveCareStatus()).isNull();
+        assertDrafts(patient, checkedIn, "Anaemia, iron deficient");
 
-        // Still at the counter: the draft is attempted, and only the absent key stops it.
-        assertThatThrownBy(() -> encounters.draftSummary(tenantId, draft.id()))
+        // And before the note exists at all — no id to hang it on, and it still drafts.
+        assertThatThrownBy(() -> encounters.draftSummary(new EncounterRequest(null, null,
+                "Fever", 120, 80, 37.2, 80, 65.0, 162.0, null, null, "Malaria", "Treat",
+                null, null)))
                 .isInstanceOf(ServiceUnavailableException.class);
+    }
 
-        // They collect and go, and now it is shut for good.
-        pharmacy.checkOut(tenantId, patient.getId());
-        assertThatThrownBy(() -> encounters.draftSummary(tenantId, draft.id()))
-                .isInstanceOf(ConflictException.class)
-                .hasMessageContaining("the patient has left");
+    /** Reaching the summarizer is the assertion; only the absent key stops it there. */
+    private void assertDrafts(Patient patient, AppointmentResponse appointment, String diagnosis) {
+        assertThatThrownBy(() -> encounters.draftSummary(
+                request(patient, appointment, diagnosis, "Iron supplements")))
+                .isInstanceOf(ServiceUnavailableException.class);
     }
 
     private Patient patient(String tenantId) {

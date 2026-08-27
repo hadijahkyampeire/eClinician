@@ -211,18 +211,17 @@ function EncounterEditor({ patientId: routePatientId, encounterId }: {
   }
 
   /**
-   * Saves first so the summarizer reads what is on screen, then drops its draft into the
-   * field. It stays editable: the clinician signs the record, not the model.
+   * Rewrites the summary from what is on screen and drops it into the field. It saves
+   * nothing — the note is saved the same way it always is, and the summary goes with it.
+   * Drafting used to save first, which put every rule about documenting a visit in front
+   * of a button that only rewrites a paragraph.
    */
   function draftSummary() {
     if (!tenantId) return
     return once('summary', async () => {
-      const saved = await saveEncounter(form, noteId || undefined)
-      setSavedId(saved.id)
-      const drafted = await draftEncounterSummary(saved.id)
-      setForm(current => ({ ...current, visitSummary: drafted.visitSummary || '' }))
-      setMessage({ text: 'Summary drafted — read it before you finalize' })
-      navigate(`/records?encounterId=${saved.id}`, { replace: true })
+      const drafted = await draftEncounterSummary(form)
+      setForm(current => ({ ...current, visitSummary: drafted || '' }))
+      setMessage({ text: 'Summary drafted — read it, then save the note to keep it' })
     })
   }
 

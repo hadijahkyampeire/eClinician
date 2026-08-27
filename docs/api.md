@@ -26,7 +26,7 @@ names one.
 | `POST` | `/api/appointments/patients/{id}/start-session` | Clinician takes the patient |
 | `POST` | `/api/appointments/{id}/complete` | Close the visit |
 | `GET` `POST` `PUT` | `/api/encounters` `/{id}` | Read and document the encounter |
-| `POST` | `/api/encounters/{id}/summary` | Draft this visit's summary from its notes — `503` when no summarizer key is configured |
+| `POST` | `/api/encounters/summary` | Draft a summary from the notes in the body and return the text — writes nothing; `503` when no summarizer key is configured |
 | `GET` `PUT` | `/api/clinic` | The signed-in user's own clinic; the administrator changes its name and colour |
 | `POST` | `/api/encounters/{id}/finalize` | Sign off — completes the visit and raises the prescription and lab orders |
 | `GET` | `/api/pharmacy/prescriptions` | The dispensing queue, filterable by `?status=` |
@@ -91,7 +91,7 @@ listed is open to any authenticated member of the tenant.
 | `POST` `PUT` `DELETE /api/patients` | Receptionist |
 | `POST` `PUT /api/appointments`, `/{id}/cancel`, `/check-in`, `/{id}/waiting` | Receptionist |
 | `POST /api/appointments/.../start-session`, `/{id}/complete` | Clinician |
-| `POST` `PUT /api/encounters`, `/{id}/finalize`, `/{id}/summary` | Clinician |
+| `POST` `PUT /api/encounters`, `/{id}/finalize`, `/summary` | Clinician |
 | `GET /api/pharmacy/prescriptions` | Pharmacist · Administrator (oversight: reads the queue, cannot dispense) |
 | `POST /api/pharmacy/prescriptions/{id}` | Pharmacist |
 | `GET /api/lab/orders` | Lab Technician · Administrator |

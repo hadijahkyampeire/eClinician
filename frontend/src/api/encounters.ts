@@ -17,29 +17,41 @@ export function getEncounter(id: string) {
   return request<Encounter>(`/api/encounters/${id}`)
 }
 
-export function saveEncounter(form: EncounterForm, id?: string) {
+/**
+ * The form as the API takes it. One box on screen holds the blood pressure, two columns
+ * hold it in the record, and half a reading is no reading — anything that is not "120/80"
+ * is sent as neither number rather than a guess.
+ */
+function body(form: EncounterForm) {
   const number = (value: string) => value === '' ? null : Number(value)
-  // One box on screen, two columns in the record. Half a reading is no reading, so
-  // anything that is not "120/80" is sent as neither number rather than a guess.
   const { bloodPressure, ...rest } = form
   const pressure = parseBloodPressure(bloodPressure)
-  return request<Encounter>(id ? `/api/encounters/${id}` : '/api/encounters', {
-    method: id ? 'PUT' : 'POST',
-    body: JSON.stringify({
-      ...rest,
-      systolicBp: pressure?.systolic ?? null,
-      diastolicBp: pressure?.diastolic ?? null,
-      temperatureCelsius: number(form.temperatureCelsius),
-      pulseBpm: number(form.pulseBpm),
-      weightKg: number(form.weightKg),
-      heightCm: number(form.heightCm),
-    }),
+  return JSON.stringify({
+    ...rest,
+    systolicBp: pressure?.systolic ?? null,
+    diastolicBp: pressure?.diastolic ?? null,
+    temperatureCelsius: number(form.temperatureCelsius),
+    pulseBpm: number(form.pulseBpm),
+    weightKg: number(form.weightKg),
+    heightCm: number(form.heightCm),
   })
 }
 
-/** Asks the API to draft this visit's summary from the notes already saved on it. */
-export function draftEncounterSummary(id: string) {
-  return request<Encounter>(`/api/encounters/${id}/summary`, { method: 'POST' })
+export function saveEncounter(form: EncounterForm, id?: string) {
+  return request<Encounter>(id ? `/api/encounters/${id}` : '/api/encounters', {
+    method: id ? 'PUT' : 'POST',
+    body: body(form),
+  })
+}
+
+/**
+ * Drafts a summary from the notes on screen and returns the paragraph. Nothing is saved:
+ * the summarizer reads the diagnosis just typed, and the clinician keeps or rewrites it
+ * before the note is saved like any other field.
+ */
+export function draftEncounterSummary(form: EncounterForm) {
+  return request<{ visitSummary: string }>('/api/encounters/summary',
+    { method: 'POST', body: body(form) }).then(drafted => drafted.visitSummary)
 }
 
 /**

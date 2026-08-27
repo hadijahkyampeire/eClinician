@@ -2,6 +2,7 @@ package com.eclinician.controllers;
 
 import com.eclinician.domains.dtos.request.EncounterRequest;
 import com.eclinician.domains.dtos.response.EncounterResponse;
+import com.eclinician.domains.dtos.response.SummaryResponse;
 import com.eclinician.security.CurrentTenant;
 import com.eclinician.security.CurrentUserName;
 import com.eclinician.services.EncounterService;
@@ -65,13 +66,17 @@ public class EncounterController {
         return service.save(tenantId, clinicianName, id, request);
     }
 
-    /** Drafts the visit summary from the notes already written on this encounter. */
+    /**
+     * Drafts the visit summary from the notes as sent, and returns the text alone.
+     *
+     * <p>No id, and no {@code @Valid}: this writes nothing, so it needs neither a saved
+     * encounter nor a patient to hang it on. The clinician gets a paragraph back into an
+     * editable field, and saving the note is what commits it.
+     */
     @PreAuthorize("hasRole('CLINICIAN')")
-    @PostMapping("/{id}/summary")
-    public EncounterResponse draftSummary(
-            @CurrentTenant String tenantId,
-            @PathVariable UUID id) {
-        return service.draftSummary(tenantId, id);
+    @PostMapping("/summary")
+    public SummaryResponse draftSummary(@RequestBody EncounterRequest request) {
+        return service.draftSummary(request);
     }
 
     /** Sends the patient for the tests already listed, without closing the visit. */
