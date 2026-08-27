@@ -153,7 +153,7 @@ The three that carry the system:
 Class-by-class detail in **[docs/testing.md](docs/testing.md)**.
 
 ```
-[INFO] Tests run: 60, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Tests run: 100, Failures: 0, Errors: 0, Skipped: 0
 [INFO] BUILD SUCCESS
 ```
 

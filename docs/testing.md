@@ -4,7 +4,7 @@
 make test        # or: cd backend && ./mvnw test
 ```
 
-**60 tests, all green.** They run against in-memory H2, so CI needs no database, and they
+**100 tests, all green.** They run against in-memory H2, so CI needs no database, and they
 point at the service layer where every rule lives.
 
 ## What each test proves
@@ -13,18 +13,22 @@ point at the service layer where every rule lives.
 |---|---|---|
 | `RoleAuthorizationTests` | 9 | A role may do only its own work — a receptionist cannot dispense, a pharmacist cannot register a patient or take one into session, pharmacy and lab cannot read each other's queues, an administrator reads every department and writes to none |
 | `PatientRuleTests` | 6 | The SRS patient rules: no shared phone or national ID inside one clinic, the same number is fine in another clinic, an update does not collide with itself, a patient with visits cannot be deleted, and the national ID cannot be changed after registration |
-| `PlatformConsoleTests` | 6 | The console is closed to a hospital administrator, the platform administrator cannot read a patient, onboarding decides what a hospital's staff see, an identifier cannot be reused, and suspending a hospital stops its staff signing in |
+| `PlatformConsoleTests` | 12 | The console is closed to a hospital administrator, the platform administrator cannot read a patient, onboarding decides what a hospital's staff see while the core modules arrive whether asked for or not, an identifier cannot be reused, suspending a hospital stops its staff signing in, and a hospital is found by name, country and subdivision in its own time zone |
 | `RefreshTokenTests` | 8 | A session can be continued without the password: signing in hands back both tokens, a refresh token buys a fresh pair and is spent doing so, a replayed token ends every session the account holds, signing out stops renewal, and a deactivated account cannot renew its way past being closed |
 | `AuthTests` | 7 | Login, credential rejection, a closed API, tenant isolation, a clinician having no patient directory, and a user editing only their own profile — with a non-image rejected |
 | `StaffManagementTests` | 4 | An administrator adds an account that can then sign in, deactivating it stops the login, an email is unique, and an administrator cannot deactivate themselves |
 | `AppointmentSchedulingTests` | 3 | The SRS scheduling rules: one doctor cannot hold two appointments at a time, cancelling frees the slot, and a visit that has taken place cannot be cancelled |
 | `PasswordChangeTests` | 3 | The owner changes their own password and signs in with it, the current password is required, and the new one must differ |
 | `SummaryDraftingTests` | 3 | Without a key the summarizer reports itself off rather than failing, and an empty encounter is refused before anything would be sent — no test calls a model API |
-| `EncounterServiceTests` | 2 | A draft finalizes and completes its visit; finalization is refused without a diagnosis and plan, and a finalized record is locked |
+| `EncounterServiceTests` | 10 | A draft finalizes and completes its visit; finalization is refused without a diagnosis and plan, and a signed note is locked but correctable while the patient is still in the building; a trip to the lab pauses the visit and sends the patient back with results; the bench queue is first-come unless the desk marks someone urgent |
 | `ClinicalEncounterFlowTests` | 1 | The whole loop over HTTP: log in → check in → start session → document → finalize → result the lab order |
 | `AppointmentServiceTests` | 2 | Completing a visit clears the patient's care status while the appointment history survives |
 | `StaleCheckInTests` | 3 | A check-in left open overnight is settled as a no-show rather than blocking the patient forever: it frees them, it stops blocking today's booking, and arriving again today starts a fresh visit |
-| `ClinicianAvailabilityTests` | 2 | Published weekly hours drive the receptionist's dropdown for that hospital only, and a shift cannot end before it starts |
+| `ClinicianAvailabilityTests` | 9 | Published weekly hours drive the receptionist's dropdown for that hospital only, read in that hospital's own zone; a shift cannot end before it starts; a new clinician is bookable the moment the account exists, on the default rota until they publish their own |
+| `TenantIsolationTests` | 3 | A hospital sees only its own patients, cannot fetch another's by id, and sees only its own staff and clinicians |
+| `PrescriptionDispensingTests` | 11 | What the pharmacist handed over is recorded beside what was ordered, so a substitution is visible; a count always carries a unit; a medicine the pharmacy cannot supply records no dispensing and keeps the patient at the counter, while yesterday's unfinished prescription does not |
+| `OrderCatalogTests` | 4 | The picker's label is composed from name, strength and form; every clinical role may read the catalogue and the reception desk may not; a withdrawn medicine is no longer offered |
+| `EnumsMatchTheSchemaTests` | 1 | Every value of every enum is one the database's check constraints accept — a new status cannot be added in Java alone |
 | `BackendApplicationTests` | 1 | The Spring context loads — every bean wires |
 
 ## The three worth showing
