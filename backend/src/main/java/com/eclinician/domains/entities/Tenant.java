@@ -98,13 +98,18 @@ public class Tenant {
         }
     }
 
+    /**
+     * Core modules are added back on the way out as well as on the way in, so a hospital
+     * onboarded before they existed — or edited straight through the API — still has them.
+     */
     public List<ClinicModule> moduleList() {
-        if (modules == null || modules.isBlank()) return List.of();
-        return Arrays.stream(modules.split(",")).map(String::trim).filter(v -> !v.isEmpty())
-                .map(ClinicModule::valueOf).toList();
+        if (modules == null || modules.isBlank()) return ClinicModule.withCore(List.of());
+        return ClinicModule.withCore(Arrays.stream(modules.split(",")).map(String::trim)
+                .filter(v -> !v.isEmpty()).map(ClinicModule::valueOf).toList());
     }
 
     public void setModuleList(List<ClinicModule> values) {
-        this.modules = values.stream().map(Enum::name).reduce((a, b) -> a + "," + b).orElse("");
+        this.modules = ClinicModule.withCore(values).stream().map(Enum::name)
+                .reduce((a, b) -> a + "," + b).orElse("");
     }
 }

@@ -62,7 +62,7 @@ class PlatformConsoleTests {
     @Test
     void onboardingAHospitalDecidesWhatItsStaffSee() {
         tenants.create(new TenantRequest("clinic-two", "Clinic Two", "#123456",
-                List.of(ClinicModule.PATIENTS, ClinicModule.APPOINTMENTS)));
+                List.of(ClinicModule.PATIENTS, ClinicModule.APPOINTMENTS, ClinicModule.PHARMACY)));
         String email = accounts.create("clinic-two", UserRole.RECEPTIONIST);
 
         assertThat(auth.login(new LoginRequest(email, TestAccounts.PASSWORD)).tenant())
@@ -70,8 +70,22 @@ class PlatformConsoleTests {
                     assertThat(tenant.name()).isEqualTo("Clinic Two");
                     assertThat(tenant.primaryColor()).isEqualTo("#123456");
                     assertThat(tenant.enabledModules())
-                            .containsExactly("patients", "appointments");
+                            .containsExactly("patients", "appointments", "records", "pharmacy")
+                            .doesNotContain("laboratory");
                 });
+    }
+
+    /** Reception and the consulting room are not a subscription: nobody can sell a
+     *  hospital a system that cannot register a patient or record a consultation. */
+    @Test
+    void theCoreModulesArriveEvenWhenNobodyAsksForThem() {
+        assertThat(tenants.create(new TenantRequest("clinic-six", "Clinic Six", "#123456",
+                List.of(ClinicModule.LABORATORY))).enabledModules())
+                .containsExactly("patients", "appointments", "records", "laboratory");
+
+        assertThat(tenants.update("clinic-six", new TenantRequest("clinic-six", "Clinic Six",
+                "#123456", List.of())).enabledModules())
+                .containsExactly("patients", "appointments", "records");
     }
 
     /** A hospital nobody can sign in to is not onboarded, so the console creates its first
