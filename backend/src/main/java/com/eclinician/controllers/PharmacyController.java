@@ -1,8 +1,8 @@
 package com.eclinician.controllers;
 
-import com.eclinician.domains.dtos.CounterPatient;
-import com.eclinician.domains.dtos.DispenseRequest;
-import com.eclinician.domains.dtos.PrescriptionResponse;
+import com.eclinician.domains.dtos.request.DispenseRequest;
+import com.eclinician.domains.dtos.response.CounterPatient;
+import com.eclinician.domains.dtos.response.PrescriptionResponse;
 import com.eclinician.domains.enums.PrescriptionStatus;
 import com.eclinician.security.CurrentTenant;
 import com.eclinician.security.CurrentUserName;

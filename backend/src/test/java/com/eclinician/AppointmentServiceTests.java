@@ -1,9 +1,9 @@
 package com.eclinician;
 
-import com.eclinician.domains.dtos.AppointmentRequest;
-import com.eclinician.domains.dtos.AppointmentResponse;
-import com.eclinician.domains.entities.Patient;
+import com.eclinician.domains.dtos.request.AppointmentRequest;
+import com.eclinician.domains.dtos.response.AppointmentResponse;
 import com.eclinician.domains.entities.AppUser;
+import com.eclinician.domains.entities.Patient;
 import com.eclinician.domains.enums.AppointmentStatus;
 import com.eclinician.domains.enums.PatientCareStatus;
 import com.eclinician.domains.enums.UserRole;
@@ -58,7 +58,7 @@ class AppointmentServiceTests {
                 .isEqualTo(PatientCareStatus.WAITING);
         String tenantId = patient.getTenantId();
         assertThatThrownBy(() -> service.markWaiting(tenantId, checkedIn.id()))
-                .isInstanceOf(com.eclinician.web.ConflictException.class)
+                .isInstanceOf(com.eclinician.exceptions.ConflictException.class)
                 .hasMessageContaining("checked_in");
 
         AppointmentResponse inSession = service.startSession(
@@ -98,7 +98,7 @@ class AppointmentServiceTests {
         assertThat(service.list(tenant, null, pediatrician.getEmail())).isEmpty();
         java.util.UUID patientId = patient.getId();
         assertThatThrownBy(() -> service.startSession(tenant, patientId, pediatrician.getEmail()))
-                .isInstanceOf(com.eclinician.web.ConflictException.class)
+                .isInstanceOf(com.eclinician.exceptions.ConflictException.class)
                 .hasMessageContaining("assigned to you");
         assertThat(service.startSession(tenant, patientId, dentist.getEmail()).doctorId())
                 .isEqualTo(dentist.getId());

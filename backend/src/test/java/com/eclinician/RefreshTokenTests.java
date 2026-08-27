@@ -6,8 +6,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.eclinician.domains.dtos.LoginRequest;
-import com.eclinician.domains.dtos.LoginResponse;
+import com.eclinician.domains.dtos.request.LoginRequest;
+import com.eclinician.domains.dtos.response.LoginResponse;
 import com.eclinician.domains.entities.AppUser;
 import com.eclinician.repositories.UserRepository;
 import com.eclinician.services.AuthService;

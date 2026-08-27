@@ -1,15 +1,15 @@
 package com.eclinician.services;
 
-import com.eclinician.domains.dtos.LoginRequest;
-import com.eclinician.domains.dtos.PasswordChangeRequest;
-import com.eclinician.domains.dtos.ProfileRequest;
-import com.eclinician.domains.dtos.ProfileResponse;
-import com.eclinician.domains.dtos.LoginResponse;
-import com.eclinician.domains.dtos.TenantResponse;
+import com.eclinician.domains.dtos.request.LoginRequest;
+import com.eclinician.domains.dtos.request.PasswordChangeRequest;
+import com.eclinician.domains.dtos.request.ProfileRequest;
+import com.eclinician.domains.dtos.response.LoginResponse;
+import com.eclinician.domains.dtos.response.ProfileResponse;
+import com.eclinician.domains.dtos.response.TenantResponse;
 import com.eclinician.domains.entities.AppUser;
 import com.eclinician.domains.entities.Tenant;
+import com.eclinician.exceptions.ConflictException;
 import com.eclinician.repositories.UserRepository;
-import com.eclinician.web.ConflictException;
 import java.time.Duration;
 import java.time.Instant;
 import org.springframework.beans.factory.annotation.Value;

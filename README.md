@@ -74,8 +74,10 @@ backend/src/main/java/com/eclinician/
 ├── repositories/         B.6 — Spring Data JPA. Every finder takes a tenantId.
 ├── domains/
 │   ├── entities/         B.7 — 9 JPA entities.
-│   ├── dtos/             Request/response records — entities never leave the service.
+│   ├── dtos/request/     What comes in — the records controllers validate.
+│   ├── dtos/response/    What goes out — entities never leave the service.
 │   └── enums/            The state machines: AppointmentStatus, EncounterStatus, …
+├── exceptions/           The API's error vocabulary and the one handler that renders it.
 ├── security/             SecurityConfig, and the tenant resolved from the token
 └── resources/db/migration/   Flyway — the schema, versioned
 

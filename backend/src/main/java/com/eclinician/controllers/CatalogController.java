@@ -1,7 +1,7 @@
 package com.eclinician.controllers;
 
-import com.eclinician.domains.dtos.CatalogResponse.LabTestOption;
-import com.eclinician.domains.dtos.CatalogResponse.MedicationOption;
+import com.eclinician.domains.dtos.response.CatalogResponse.LabTestOption;
+import com.eclinician.domains.dtos.response.CatalogResponse.MedicationOption;
 import com.eclinician.repositories.LabTestRepository;
 import com.eclinician.repositories.MedicationRepository;
 import java.util.List;

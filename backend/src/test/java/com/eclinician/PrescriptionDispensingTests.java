@@ -3,14 +3,14 @@ package com.eclinician;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.eclinician.domains.dtos.DispenseRequest;
-import com.eclinician.domains.dtos.PrescriptionResponse;
+import com.eclinician.domains.dtos.request.DispenseRequest;
+import com.eclinician.domains.dtos.response.PrescriptionResponse;
 import com.eclinician.domains.entities.Patient;
 import com.eclinician.domains.enums.PatientCareStatus;
 import com.eclinician.domains.enums.PrescriptionStatus;
+import com.eclinician.exceptions.ConflictException;
 import com.eclinician.repositories.PatientRepository;
 import com.eclinician.services.PharmacyService;
-import com.eclinician.web.ConflictException;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

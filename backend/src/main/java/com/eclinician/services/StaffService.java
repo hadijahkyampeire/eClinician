@@ -1,13 +1,13 @@
 package com.eclinician.services;
 
-import com.eclinician.domains.dtos.StaffRequest;
-import com.eclinician.domains.dtos.StaffResponse;
+import com.eclinician.domains.dtos.request.StaffRequest;
+import com.eclinician.domains.dtos.response.StaffResponse;
 import com.eclinician.domains.entities.AppUser;
 import com.eclinician.domains.enums.UserRole;
-import com.eclinician.repositories.UserRepository;
+import com.eclinician.exceptions.ConflictException;
+import com.eclinician.exceptions.NotFoundException;
 import com.eclinician.repositories.ClinicianAvailabilityRepository;
-import com.eclinician.web.ConflictException;
-import com.eclinician.web.NotFoundException;
+import com.eclinician.repositories.UserRepository;
 import java.util.List;
 import java.util.UUID;
 import java.time.Instant;

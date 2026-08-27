@@ -1,0 +1,19 @@
+package com.eclinician.domains.dtos.response;
+
+/** Live counts behind the role dashboards. Every figure is tenant-scoped. */
+public record DashboardStats(
+        long totalPatients,
+        long newPatientsToday,
+        long checkedIn,
+        long waiting,
+        long inSession,
+        long appointmentsToday,
+        long draftEncounters,
+        long finalizedToday,
+        long clinicians,
+        long prescriptionsPending,
+        long prescriptionsDispensedToday,
+        long prescriptionsUnavailable,
+        long labPending,
+        long labResultedToday,
+        long labCancelled) {}

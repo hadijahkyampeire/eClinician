@@ -1,18 +1,18 @@
 package com.eclinician.services;
 
-import com.eclinician.domains.dtos.BenchPatient;
-import com.eclinician.domains.dtos.LabOrderResponse;
-import com.eclinician.domains.dtos.LabResultRequest;
+import com.eclinician.domains.dtos.request.LabResultRequest;
+import com.eclinician.domains.dtos.response.BenchPatient;
+import com.eclinician.domains.dtos.response.LabOrderResponse;
 import com.eclinician.domains.entities.LabOrder;
 import com.eclinician.domains.enums.AppointmentStatus;
 import com.eclinician.domains.enums.LabStatus;
 import com.eclinician.domains.enums.PatientCareStatus;
+import com.eclinician.exceptions.ConflictException;
+import com.eclinician.exceptions.NotFoundException;
 import com.eclinician.repositories.AppointmentRepository;
 import com.eclinician.repositories.EncounterRepository;
 import com.eclinician.repositories.LabOrderRepository;
 import com.eclinician.repositories.PatientRepository;
-import com.eclinician.web.ConflictException;
-import com.eclinician.web.NotFoundException;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.LinkedHashMap;

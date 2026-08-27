@@ -1,6 +1,6 @@
 package com.eclinician;
 
-import com.eclinician.domains.dtos.LoginRequest;
+import com.eclinician.domains.dtos.request.LoginRequest;
 import com.eclinician.domains.entities.AppUser;
 import com.eclinician.domains.enums.UserRole;
 import com.eclinician.repositories.UserRepository;

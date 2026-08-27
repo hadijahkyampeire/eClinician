@@ -6,16 +6,16 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.eclinician.domains.dtos.LoginRequest;
-import com.eclinician.domains.dtos.TenantRequest;
-import com.eclinician.domains.dtos.TenantResponse;
+import com.eclinician.domains.dtos.request.LoginRequest;
+import com.eclinician.domains.dtos.request.TenantRequest;
+import com.eclinician.domains.dtos.response.TenantResponse;
 import com.eclinician.domains.entities.AppUser;
 import com.eclinician.domains.enums.ClinicModule;
 import com.eclinician.domains.enums.UserRole;
+import com.eclinician.exceptions.ConflictException;
 import com.eclinician.repositories.UserRepository;
 import com.eclinician.services.AuthService;
 import com.eclinician.services.TenantService;
-import com.eclinician.web.ConflictException;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

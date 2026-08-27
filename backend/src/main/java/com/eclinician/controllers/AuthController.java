@@ -1,11 +1,11 @@
 package com.eclinician.controllers;
 
-import com.eclinician.domains.dtos.LoginRequest;
-import com.eclinician.domains.dtos.LoginResponse;
-import com.eclinician.domains.dtos.PasswordChangeRequest;
-import com.eclinician.domains.dtos.ProfileRequest;
-import com.eclinician.domains.dtos.ProfileResponse;
-import com.eclinician.domains.dtos.RefreshRequest;
+import com.eclinician.domains.dtos.request.LoginRequest;
+import com.eclinician.domains.dtos.request.PasswordChangeRequest;
+import com.eclinician.domains.dtos.request.ProfileRequest;
+import com.eclinician.domains.dtos.request.RefreshRequest;
+import com.eclinician.domains.dtos.response.LoginResponse;
+import com.eclinician.domains.dtos.response.ProfileResponse;
 import com.eclinician.services.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;

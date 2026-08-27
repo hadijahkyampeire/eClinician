@@ -1,14 +1,14 @@
 package com.eclinician.services;
 
-import com.eclinician.domains.dtos.AvailabilityRequest;
-import com.eclinician.domains.dtos.AvailabilityResponse;
+import com.eclinician.domains.dtos.request.AvailabilityRequest;
+import com.eclinician.domains.dtos.response.AvailabilityResponse;
 import com.eclinician.domains.entities.AppUser;
 import com.eclinician.domains.entities.ClinicianAvailability;
 import com.eclinician.domains.enums.UserRole;
+import com.eclinician.exceptions.ConflictException;
+import com.eclinician.exceptions.NotFoundException;
 import com.eclinician.repositories.ClinicianAvailabilityRepository;
 import com.eclinician.repositories.UserRepository;
-import com.eclinician.web.ConflictException;
-import com.eclinician.web.NotFoundException;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

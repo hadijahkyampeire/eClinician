@@ -1,24 +1,25 @@
 package com.eclinician;
 
-import com.eclinician.domains.dtos.AppointmentRequest;
-import com.eclinician.domains.dtos.AppointmentResponse;
-import com.eclinician.domains.dtos.EncounterRequest;
-import com.eclinician.domains.dtos.EncounterResponse;
-import com.eclinician.domains.dtos.BenchPatient;
-import com.eclinician.domains.dtos.LabOrderResponse;
-import com.eclinician.domains.dtos.LabResultRequest;
-import com.eclinician.domains.dtos.PrescriptionResponse;
+import com.eclinician.domains.dtos.request.AppointmentRequest;
+import com.eclinician.domains.dtos.request.EncounterRequest;
+import com.eclinician.domains.dtos.request.LabResultRequest;
+import com.eclinician.domains.dtos.response.AppointmentResponse;
+import com.eclinician.domains.dtos.response.BenchPatient;
+import com.eclinician.domains.dtos.response.EncounterResponse;
+import com.eclinician.domains.dtos.response.LabOrderResponse;
+import com.eclinician.domains.dtos.response.PrescriptionResponse;
 import com.eclinician.domains.entities.Patient;
 import com.eclinician.domains.enums.AppointmentStatus;
 import com.eclinician.domains.enums.EncounterStatus;
 import com.eclinician.domains.enums.LabStatus;
 import com.eclinician.domains.enums.PatientCareStatus;
+import com.eclinician.exceptions.ConflictException;
+import com.eclinician.exceptions.ServiceUnavailableException;
 import com.eclinician.repositories.PatientRepository;
 import com.eclinician.services.AppointmentService;
 import com.eclinician.services.EncounterService;
 import com.eclinician.services.LabService;
 import com.eclinician.services.PharmacyService;
-import com.eclinician.web.ConflictException;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -313,6 +314,49 @@ class EncounterServiceTests {
         assertThatThrownBy(() -> encounters.sendToLab(tenantId, draft.id()))
                 .isInstanceOf(ConflictException.class)
                 .hasMessageContaining("Add the tests");
+    }
+
+    /**
+     * The lab-then-medicine round trip, all the way to the summary. A note corrected
+     * after sign-off has changed, so the summary drafted before the change is stale —
+     * redrafting it is part of the same correction window as fixing a dose, and refusing
+     * it told the clinician the patient had left while they stood at the counter.
+     */
+    @Test
+    void theSummaryCanBeRedraftedWhileThePatientIsStillInTheBuilding() {
+        Patient patient = patient("redraft-hospital");
+        String tenantId = patient.getTenantId();
+        AppointmentResponse checkedIn = appointments.checkIn(tenantId,
+                new AppointmentRequest(patient.getId(), null, null, "Fever", false));
+        appointments.startSession(tenantId, patient.getId());
+        EncounterResponse draft = encounters.save(tenantId, "Dr Test", null,
+                new EncounterRequest(patient.getId(), checkedIn.id(), "Fever",
+                        120, 80, 37.2, 80, 65.0, 162.0, null, null, null, null, null,
+                        "Full blood count"));
+
+        // To the bench and back with a result.
+        encounters.sendToLab(tenantId, draft.id());
+        labs.update(tenantId, "Tech", labs.listForPatient(tenantId, patient.getId()).getFirst().id(),
+                new LabResultRequest(LabStatus.COMPLETED, "Haemoglobin 11.2 g/dl", null));
+        appointments.startSession(tenantId, patient.getId());
+
+        // The medicine goes on, and the visit is signed off to the counter.
+        encounters.save(tenantId, "Dr Test", draft.id(), new EncounterRequest(patient.getId(),
+                checkedIn.id(), "Fever", 120, 80, 37.2, 80, 65.0, 162.0, null, null,
+                "Anaemia", "Iron supplements", "Ferrous sulphate 200mg", "Full blood count", null));
+        encounters.finalizeEncounter(tenantId, draft.id());
+        assertThat(patients.findById(patient.getId()).orElseThrow().getActiveCareStatus())
+                .isEqualTo(PatientCareStatus.PHARMACY);
+
+        // Still at the counter: the draft is attempted, and only the absent key stops it.
+        assertThatThrownBy(() -> encounters.draftSummary(tenantId, draft.id()))
+                .isInstanceOf(ServiceUnavailableException.class);
+
+        // They collect and go, and now it is shut for good.
+        pharmacy.checkOut(tenantId, patient.getId());
+        assertThatThrownBy(() -> encounters.draftSummary(tenantId, draft.id()))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("the patient has left");
     }
 
     private Patient patient(String tenantId) {

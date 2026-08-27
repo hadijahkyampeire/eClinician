@@ -1,8 +1,8 @@
 package com.eclinician.services;
 
 import com.eclinician.domains.entities.Encounter;
-import com.eclinician.web.ConflictException;
-import com.eclinician.web.ServiceUnavailableException;
+import com.eclinician.exceptions.ConflictException;
+import com.eclinician.exceptions.ServiceUnavailableException;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;

@@ -1,14 +1,14 @@
 package com.eclinician.services;
 
-import com.eclinician.domains.dtos.PatientRequest;
-import com.eclinician.domains.dtos.PatientResponse;
+import com.eclinician.domains.dtos.request.PatientRequest;
+import com.eclinician.domains.dtos.response.PatientResponse;
 import com.eclinician.domains.entities.Patient;
 import com.eclinician.domains.enums.PatientCareStatus;
+import com.eclinician.exceptions.ConflictException;
+import com.eclinician.exceptions.NotFoundException;
 import com.eclinician.repositories.AppointmentRepository;
 import com.eclinician.repositories.EncounterRepository;
 import com.eclinician.repositories.PatientRepository;
-import com.eclinician.web.ConflictException;
-import com.eclinician.web.NotFoundException;
 import jakarta.persistence.criteria.Predicate;
 import java.time.Instant;
 import java.time.LocalDate;

@@ -1,19 +1,19 @@
 package com.eclinician.services;
 
-import com.eclinician.domains.dtos.AppointmentRequest;
-import com.eclinician.domains.dtos.AppointmentResponse;
+import com.eclinician.domains.dtos.request.AppointmentRequest;
+import com.eclinician.domains.dtos.response.AppointmentResponse;
 import com.eclinician.domains.entities.AppUser;
 import com.eclinician.domains.entities.Appointment;
 import com.eclinician.domains.entities.Patient;
 import com.eclinician.domains.enums.AppointmentStatus;
 import com.eclinician.domains.enums.PatientCareStatus;
 import com.eclinician.domains.enums.UserRole;
+import com.eclinician.exceptions.ConflictException;
+import com.eclinician.exceptions.NotFoundException;
 import com.eclinician.repositories.AppointmentRepository;
 import com.eclinician.repositories.ClinicianAvailabilityRepository;
 import com.eclinician.repositories.PatientRepository;
 import com.eclinician.repositories.UserRepository;
-import com.eclinician.web.ConflictException;
-import com.eclinician.web.NotFoundException;
 import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.util.EnumSet;

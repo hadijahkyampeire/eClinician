@@ -1,16 +1,16 @@
 package com.eclinician.services;
 
-import com.eclinician.domains.dtos.CounterPatient;
-import com.eclinician.domains.dtos.DispenseRequest;
-import com.eclinician.domains.dtos.PrescriptionResponse;
+import com.eclinician.domains.dtos.request.DispenseRequest;
+import com.eclinician.domains.dtos.response.CounterPatient;
+import com.eclinician.domains.dtos.response.PrescriptionResponse;
 import com.eclinician.domains.entities.Patient;
 import com.eclinician.domains.entities.PrescriptionOrder;
-import com.eclinician.domains.enums.PrescriptionStatus;
 import com.eclinician.domains.enums.PatientCareStatus;
+import com.eclinician.domains.enums.PrescriptionStatus;
+import com.eclinician.exceptions.ConflictException;
+import com.eclinician.exceptions.NotFoundException;
 import com.eclinician.repositories.PatientRepository;
 import com.eclinician.repositories.PrescriptionOrderRepository;
-import com.eclinician.web.ConflictException;
-import com.eclinician.web.NotFoundException;
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;

@@ -1,7 +1,7 @@
 package com.eclinician.controllers;
 
-import com.eclinician.domains.dtos.EncounterRequest;
-import com.eclinician.domains.dtos.EncounterResponse;
+import com.eclinician.domains.dtos.request.EncounterRequest;
+import com.eclinician.domains.dtos.response.EncounterResponse;
 import com.eclinician.security.CurrentTenant;
 import com.eclinician.security.CurrentUserName;
 import com.eclinician.services.EncounterService;

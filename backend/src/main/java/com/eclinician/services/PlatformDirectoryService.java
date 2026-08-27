@@ -1,7 +1,7 @@
 package com.eclinician.services;
 
-import com.eclinician.domains.dtos.PlatformPatientRow;
-import com.eclinician.domains.dtos.PlatformStaffRow;
+import com.eclinician.domains.dtos.response.PlatformPatientRow;
+import com.eclinician.domains.dtos.response.PlatformStaffRow;
 import com.eclinician.domains.entities.Tenant;
 import com.eclinician.repositories.PatientRepository;
 import com.eclinician.repositories.TenantRepository;
