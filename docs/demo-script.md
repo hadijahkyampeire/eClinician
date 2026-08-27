@@ -86,8 +86,8 @@ Runs one hospital. Sees the work, does not do the clinical work.
    cannot deactivate yourself.
 3. **Rename the clinic and change its colour** — Clinic settings. The colour takes effect
    the next time staff sign in.
-4. **See the subscription** — the modules this hospital bought, read-only. Only the
-   platform team changes them.
+4. **See the subscription** — the core modules every hospital has, plus whatever else this
+   one bought, read-only. Only the platform team changes them.
 5. **Oversight** — totals across the facility, who is in the clinic, and unfinished notes
    across every clinician, read-only.
 
@@ -99,7 +99,8 @@ the platform cannot read anyone's medical record.
 1. **Onboard a hospital** — *Onboard hospital*, then sign in as the administrator it made.
    See [Onboarding a new clinic](#onboarding-a-new-clinic) below.
 2. **Turn a module off** — uncheck Pharmacy, and that hospital's pharmacist loses the nav
-   item *and* the endpoint.
+   item *and* the endpoint. Patients, Appointments and Records stay ticked and locked: a
+   hospital that cannot register a patient or record a consultation is not a hospital.
 3. **Suspend a hospital** — its staff can no longer sign in; every row it owns is kept.
 4. **Edit a hospital** — name, colour and modules. The identifier stays greyed out.
 
@@ -113,7 +114,7 @@ no configuration file.
 | **Name** | Sits beside the HK CLINIC mark for that hospital's staff |
 | **Identifier** | Written into every row the hospital will ever own, so it is permanent and cannot be edited afterwards |
 | **Brand colour** | Mixed into the accent every screen is drawn with |
-| **Subscription** | Which of Patients, Appointments, Records, Pharmacy and Laboratory they bought — a module they did not buy has no nav item *and* no endpoint |
+| **Subscription** | Patients, Appointments and Records come with every hospital; Pharmacy and Laboratory are bought — a module they did not buy has no nav item *and* no endpoint |
 | **First administrator** | Name, email, password |
 
 The hospital and its first administrator are created in **one transaction**

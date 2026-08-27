@@ -27,7 +27,10 @@ export default function Subscriptions() {
     <>
       <div className="page-header">
         <h2>Subscriptions</h2>
-        <p>A module a hospital has not bought never appears in its staff's navigation.</p>
+        <p>
+          A module a hospital has not bought never appears in its staff's navigation. The
+          core modules — Patients, Appointments, Records — come with every hospital.
+        </p>
       </div>
 
       {hospitals.error && <p className="patient-error">{hospitals.error.message}</p>}

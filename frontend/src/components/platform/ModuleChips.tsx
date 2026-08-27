@@ -5,9 +5,7 @@ import { MODULES, type Hospital } from '../../types/tenant'
 export default function ModuleChips({ hospital }: { hospital: Hospital }) {
   const all = hospital.enabledModules.length === MODULES.length
   if (all) return <Chip size="small" color="success" variant="outlined" label="All modules" />
-  if (!hospital.enabledModules.length) {
-    return <Chip size="small" variant="outlined" label="No modules" />
-  }
+  // The core modules are always in here, so the list is never empty.
   return (
     <Stack direction="row" spacing={0.5} useFlexGap sx={{ flexWrap: 'wrap' }}>
       {MODULES.filter((module) => hospital.enabledModules.includes(module.key)).map((module) => (

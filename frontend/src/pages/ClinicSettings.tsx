@@ -59,7 +59,10 @@ export default function ClinicSettings() {
                 {module.label}
               </label>
             ))}
-            <small>Modules are part of your plan — ask the platform team to change them.</small>
+            <small>
+              Patients, Appointments and Records come with every hospital. The rest are part
+              of your plan — ask the platform team to change them.
+            </small>
           </fieldset>
 
           {save.error && <p className="patient-error">{save.error.message}</p>}

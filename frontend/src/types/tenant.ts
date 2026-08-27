@@ -64,13 +64,19 @@ export interface PlatformStats {
   users: number
 }
 
-export const MODULES: { key: ModuleKey; label: string }[] = [
-  { key: 'patients', label: 'Patients' },
-  { key: 'appointments', label: 'Appointments' },
-  { key: 'records', label: 'Records' },
-  { key: 'pharmacy', label: 'Pharmacy' },
-  { key: 'laboratory', label: 'Laboratory' },
+/**
+ * Mirrors ClinicModule. `core` modules are the front desk and the consulting room — a
+ * hospital without them is not running on this system at all — so no plan can drop them.
+ */
+export const MODULES: { key: ModuleKey; label: string; core: boolean }[] = [
+  { key: 'patients', label: 'Patients', core: true },
+  { key: 'appointments', label: 'Appointments', core: true },
+  { key: 'records', label: 'Records', core: true },
+  { key: 'pharmacy', label: 'Pharmacy', core: false },
+  { key: 'laboratory', label: 'Laboratory', core: false },
 ]
+
+export const CORE_MODULES = MODULES.filter((module) => module.core).map((module) => module.key)
 
 /** Mirrors PlatformStaffRow: an account the console can see but never edit. */
 export interface PlatformStaff {

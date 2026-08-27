@@ -9,7 +9,7 @@ import { BROWSER_ZONE } from '../../lib/timeZones'
 import ModulePicker from './ModulePicker'
 import FirstAdminFields from './FirstAdminFields'
 import HospitalAddressFields from './HospitalAddressFields'
-import type { Hospital, HospitalForm as Form } from '../../types/tenant'
+import { CORE_MODULES, type Hospital, type HospitalForm as Form } from '../../types/tenant'
 
 interface Props {
   hospital: Hospital | null
@@ -25,7 +25,7 @@ export default function HospitalForm({ hospital, isSaving, error, onClose, onSav
     id: hospital?.id || '',
     name: hospital?.name || '',
     primaryColor: hospital?.primaryColor || '#0f766e',
-    modules: hospital?.enabledModules || ['patients', 'appointments', 'records'],
+    modules: hospital?.enabledModules || CORE_MODULES,
     addressLine: hospital?.addressLine || '',
     city: hospital?.city || '',
     subdivision: hospital?.subdivision || '',

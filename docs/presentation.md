@@ -72,8 +72,11 @@ encounter, the appointment, the care status and both sets of orders.
 
 **"Why is the prescription free text?"**
 The pharmacy queue needs one row per medicine and the clinician needs to write the way they
-already write; splitting on line breaks at finalization gets both. Structured dosage needs a
-drug catalogue — named as not built in [roadmap.md](roadmap.md).
+already write; splitting on line breaks at finalization gets both. The clinician picks from
+a medication catalogue that composes the line — name, strength, form — so the text is
+usually chosen rather than typed, and the pharmacist records what was actually handed over
+beside it. What is still missing is the layer above: a per-hospital formulary with stock and
+price, named as not built in [roadmap.md](roadmap.md).
 
 **"How does one deployment serve many hospitals?"**
 Every row carries a tenant, every finder takes it, and it travels as a signed token claim.
