@@ -153,7 +153,7 @@ The three that carry the system:
 Class-by-class detail in **[docs/testing.md](docs/testing.md)**.
 
 ```
-[INFO] Tests run: 100, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Tests run: 102, Failures: 0, Errors: 0, Skipped: 0
 [INFO] BUILD SUCCESS
 ```
 
@@ -163,7 +163,7 @@ Class-by-class detail in **[docs/testing.md](docs/testing.md)**.
   session → document → finalize → result the lab order, asserting each status. It uses
   **three tokens**, one per role, and **sends no tenant anywhere** — the token carries it.
 - Normal, boundary and error cases: no double-booking (`AppointmentSchedulingTests`), same
-  phone legal across clinics (`PatientRuleTests`), nine refusals asserted against the API
+  phone shared by a family (`PatientRuleTests`), nine refusals asserted against the API
   (`RoleAuthorizationTests`).
 
 ## C. Code and presentation
