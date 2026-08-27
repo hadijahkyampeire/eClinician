@@ -137,17 +137,32 @@ public class PatientService {
         repo.delete(patient);
     }
 
-    /** SRS: no two patients in one clinic may share a phone number or national ID. */
+    /**
+     * The national ID identifies a person, so it stays unique per clinic. The phone number
+     * does not: the SRS made it unique, but a clinic registering a child on their mother's
+     * number would be refused, which is the ordinary case rather than the exception. The
+     * pair — this name on this number — is the one that means the same person twice.
+     *
+     * <p>Everything looser than that is the receptionist's job: asking whether the patient
+     * has been here before is a better duplicate check than any column.
+     */
     private void requireUnique(String tenantId, PatientRequest req, UUID selfId) {
-        if (req.phone() != null && !req.phone().isBlank()
-                && repo.existsByTenantIdAndPhoneAndIdNot(tenantId, req.phone().trim(), selfId)) {
-            throw new ConflictException("Another patient already uses this phone number");
+        if (isPresent(req.phone()) && isPresent(req.firstName()) && isPresent(req.lastName())
+                && repo.existsByTenantIdAndFirstNameIgnoreCaseAndLastNameIgnoreCaseAndPhoneAndIdNot(
+                        tenantId, req.firstName().trim(), req.lastName().trim(),
+                        req.phone().trim(), selfId)) {
+            throw new ConflictException(
+                    "This clinic already has a patient with this name on this number");
         }
         if (req.nationalId() != null && !req.nationalId().isBlank()
                 && repo.existsByTenantIdAndNationalIdIgnoreCaseAndIdNot(
                         tenantId, req.nationalId().trim(), selfId)) {
             throw new ConflictException("Another patient already uses this national ID");
         }
+    }
+
+    private static boolean isPresent(String value) {
+        return value != null && !value.isBlank();
     }
 
     /** SRS 1.2: the national ID / passport number identifies the patient, so it is unwritable. */

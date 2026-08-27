@@ -98,6 +98,14 @@ answers `503` while the visit is documented exactly as before.
 Managing a clinic and practising in it are different jobs, and the audit trail says who
 dispensed. `RoleAuthorizationTests` asserts both halves.
 
+**"Your SRS says a phone number is unique per clinic. Why isn't it?"**
+Because a phone number is a household's, not a person's — a child is registered on their
+mother's number. Enforcing it refused the ordinary case. The rule is now the name *and* the
+number together, which is what "the same person twice" actually looks like; the national ID
+is still one person. The rest is the receptionist asking whether they have been here before,
+which no column can do. Written down as a deviation in
+[as-built.md](as-built.md#where-the-implementation-is-looser-than-the-srs-on-purpose).
+
 **"What is the weakest part?"**
 Account recovery. A forgotten password still needs the administrator, because a reset link
 means email delivery this system does not have, and there is no lockout after repeated

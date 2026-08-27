@@ -30,8 +30,13 @@ public interface PatientRepository
     /** Who is standing at a given point of care right now — the pharmacy counter's queue. */
     List<Patient> findByTenantIdAndActiveCareStatus(String tenantId, PatientCareStatus status);
 
-    /** SRS: a patient is uniquely identified by phone or national ID within a clinic. */
-    boolean existsByTenantIdAndPhoneAndIdNot(String tenantId, String phone, UUID id);
+    /**
+     * A phone number belongs to a household, not to a person: a child is registered on a
+     * parent's number, and so is a husband on his wife's. The duplicate worth refusing is
+     * the same *name* on the same number — one person entered twice.
+     */
+    boolean existsByTenantIdAndFirstNameIgnoreCaseAndLastNameIgnoreCaseAndPhoneAndIdNot(
+            String tenantId, String firstName, String lastName, String phone, UUID id);
 
     boolean existsByTenantIdAndNationalIdIgnoreCaseAndIdNot(
             String tenantId, String nationalId, UUID id);

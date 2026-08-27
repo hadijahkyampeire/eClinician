@@ -25,15 +25,33 @@ class PatientRuleTests {
     @Autowired PatientService patients;
     @Autowired AppointmentService appointments;
 
+    /** A child is registered on a parent's number, so the number alone cannot be the rule. */
     @Test
-    void twoPatientsCannotShareAPhoneNumberOrNationalId() {
+    void aFamilyMayShareOnePhoneNumber() {
         patients.create(TENANT, request("Mary", "+256700900001", "CF900001"));
 
-        assertThatThrownBy(() -> patients.create(TENANT, request("Imposter", "+256700900001", "CF999999")))
-                .isInstanceOf(ConflictException.class)
-                .hasMessageContaining("phone number");
+        PatientResponse child = patients.create(TENANT,
+                request("Junior", "+256700900001", "CF900011"));
 
-        assertThatThrownBy(() -> patients.create(TENANT, request("Imposter", "+256700900002", "CF900001")))
+        assertThat(child.id()).isNotNull();
+    }
+
+    @Test
+    void theSameNameOnTheSameNumberIsTheSamePersonTwice() {
+        patients.create(TENANT, request("Mary", "+256700900002", "CF900002"));
+
+        assertThatThrownBy(() -> patients.create(TENANT,
+                request("mary", "+256700900002", "CF999999")))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("this name on this number");
+    }
+
+    @Test
+    void aNationalIdIsStillOnePerson() {
+        patients.create(TENANT, request("Mary", "+256700900012", "CF900012"));
+
+        assertThatThrownBy(() -> patients.create(TENANT,
+                request("Imposter", "+256700900013", "CF900012")))
                 .isInstanceOf(ConflictException.class)
                 .hasMessageContaining("national ID");
     }

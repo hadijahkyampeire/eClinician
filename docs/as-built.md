@@ -30,7 +30,7 @@ shown here rather than quietly reconciled.
 
 | # | Use case | Built? | Where | Deviation from the SRS |
 |---|---|---|---|---|
-| 1 | Patient Management | ✅ Full CRUD | `PatientController` | Matches the specification, all three business rules included. A patient registered without a national ID may still have it filled in later — the field is unwritable, not permanently empty. |
+| 1 | Patient Management | ✅ Full CRUD | `PatientController` | Matches the specification, except that **a phone number is no longer unique on its own** — see below. A patient registered without a national ID may still have it filled in later — the field is unwritable, not permanently empty. |
 | 2 | Appointment Management | ✅ Both models | `AppointmentController` | Scheduling as specified, plus the **arrival** model the clinic runs on: check in → waiting → in session → completed. "Cannot cancel an appointment that has taken place" is read as *has started or finished*. `NO_SHOW` stays unused — no SRS flow sets it. |
 | 3 | Medical Record Management | ✅ Plus more | `EncounterController` | Called an **encounter**, and carries more than the SRS listed: vitals, chief complaint, examination notes, treatment plan. Adds **finalization** — the act that closes the visit and raises pharmacy and lab work. |
 | 4 | Prescription Management | ✅ Reshaped | `PharmacyController` | Free text, one medicine per line, split into one order per line at finalization — not a form with dosage fields. Adds `UNAVAILABLE`, because a pharmacy that cannot supply a medicine still has to record that. |
@@ -64,6 +64,19 @@ Not itemized in the SRS, but the implementation answers them explicitly.
 | NFR-7 | **Testability** | Rules tested against in-memory H2, no database needed in CI |
 | NFR-8 | **Maintainability** | Proven twice: pharmacy, then lab, each one line inside `finalizeEncounter` |
 | NFR-9 | **Error clarity** | One `@RestControllerAdvice` maps 400/401/404/409 |
+
+### Where the implementation is looser than the SRS, on purpose
+
+**A phone number no longer identifies a patient; a name on a phone number does.** The SRS
+made the number unique within a clinic. In practice a child is registered on their mother's
+number and a husband on his wife's, so the rule refused the ordinary case and called it a
+duplicate. What means "this person is already here" is the pair — this name, this number —
+and that is what `ux_patients_tenant_name_phone` now enforces
+(`V26__patient_identity_by_name_and_phone.sql`).
+
+Anything looser than that is the receptionist's job. Asking whether the patient has been to
+this clinic before is a better duplicate check than any column, and the national ID — which
+really does identify one person — is still unique per clinic.
 
 ### Where the implementation is stricter than the SRS
 
