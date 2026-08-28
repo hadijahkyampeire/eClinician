@@ -3,21 +3,21 @@ package com.eclinician;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.eclinician.domains.dtos.AppointmentRequest;
-import com.eclinician.domains.dtos.AvailabilityRequest;
-import com.eclinician.domains.dtos.PatientRequest;
-import com.eclinician.domains.dtos.StaffRequest;
+import com.eclinician.domains.dtos.request.AppointmentRequest;
+import com.eclinician.domains.dtos.request.AvailabilityRequest;
+import com.eclinician.domains.dtos.request.PatientRequest;
+import com.eclinician.domains.dtos.request.StaffRequest;
 import com.eclinician.domains.entities.AppUser;
 import com.eclinician.domains.entities.Tenant;
 import com.eclinician.domains.enums.ClinicModule;
 import com.eclinician.domains.enums.UserRole;
+import com.eclinician.exceptions.ConflictException;
 import com.eclinician.repositories.TenantRepository;
 import com.eclinician.repositories.UserRepository;
 import com.eclinician.services.AppointmentService;
 import com.eclinician.services.ClinicianAvailabilityService;
 import com.eclinician.services.PatientService;
 import com.eclinician.services.StaffService;
-import com.eclinician.web.ConflictException;
 import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalTime;
@@ -58,7 +58,7 @@ class ClinicianAvailabilityTests {
         assertThat(staff.clinicians("rota-hospital", atLocalHour(18)))
                 .isEmpty();
         assertThatThrownBy(() -> availability.getMine("other-hospital", doctor.getEmail()))
-                .isInstanceOf(com.eclinician.web.NotFoundException.class);
+                .isInstanceOf(com.eclinician.exceptions.NotFoundException.class);
     }
 
     @Test

@@ -1,7 +1,7 @@
 package com.eclinician.controllers;
 
-import com.eclinician.domains.dtos.PatientRequest;
-import com.eclinician.domains.dtos.PatientResponse;
+import com.eclinician.domains.dtos.request.PatientRequest;
+import com.eclinician.domains.dtos.response.PatientResponse;
 import com.eclinician.security.CurrentTenant;
 import com.eclinician.services.PatientService;
 import jakarta.validation.Valid;

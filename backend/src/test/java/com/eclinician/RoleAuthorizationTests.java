@@ -5,7 +5,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.eclinician.domains.dtos.TenantRequest;
+import com.eclinician.domains.dtos.request.TenantRequest;
 import com.eclinician.domains.enums.ClinicModule;
 import com.eclinician.domains.enums.UserRole;
 import com.eclinician.services.TenantService;

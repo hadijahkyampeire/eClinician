@@ -1,7 +1,7 @@
 package com.eclinician;
 
-import com.eclinician.domains.dtos.AppointmentRequest;
-import com.eclinician.domains.dtos.AppointmentResponse;
+import com.eclinician.domains.dtos.request.AppointmentRequest;
+import com.eclinician.domains.dtos.response.AppointmentResponse;
 import com.eclinician.domains.entities.Appointment;
 import com.eclinician.domains.entities.Patient;
 import com.eclinician.domains.enums.AppointmentStatus;

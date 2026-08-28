@@ -1,18 +1,19 @@
 package com.eclinician.services;
 
-import com.eclinician.domains.dtos.EncounterRequest;
-import com.eclinician.domains.dtos.EncounterResponse;
+import com.eclinician.domains.dtos.request.EncounterRequest;
+import com.eclinician.domains.dtos.response.EncounterResponse;
+import com.eclinician.domains.dtos.response.SummaryResponse;
 import com.eclinician.domains.entities.Appointment;
 import com.eclinician.domains.entities.Encounter;
 import com.eclinician.domains.entities.Patient;
 import com.eclinician.domains.enums.AppointmentStatus;
 import com.eclinician.domains.enums.EncounterStatus;
 import com.eclinician.domains.enums.PatientCareStatus;
+import com.eclinician.exceptions.ConflictException;
+import com.eclinician.exceptions.NotFoundException;
 import com.eclinician.repositories.AppointmentRepository;
 import com.eclinician.repositories.EncounterRepository;
 import com.eclinician.repositories.PatientRepository;
-import com.eclinician.web.ConflictException;
-import com.eclinician.web.NotFoundException;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -180,16 +181,23 @@ public class EncounterService {
     }
 
     /**
-     * Drafts the visit summary from the notes and saves it on the encounter. The clinician
-     * edits it afterwards like any other field — the draft is a starting point, not the
-     * record, which is why a finalized encounter refuses one.
+     * Drafts the visit summary from the notes as they stand, and hands the text back.
+     *
+     * <p>Nothing here reads or writes a stored encounter. Drafting is a rewrite of what
+     * the clinician has already typed — including the diagnosis they added a second ago
+     * and have not saved — so it asks nothing about whose visit it is, whether the note
+     * is signed, or where the patient is standing. Those rules belong to saving the note,
+     * and saving is still the only thing that puts the summary in the record.
+     *
+     * <p>It used to save first so the summarizer would read the screen rather than the
+     * database, which quietly put every rule about documenting a visit in front of a
+     * button that only rewrites a paragraph. A clinician back from the lab, not yet
+     * called in, was told to be in session before they could redraft.
      */
-    @Transactional
-    public EncounterResponse draftSummary(String tenantId, UUID id) {
-        Encounter value = encounter(tenantId, id);
-        requireDraft(value);
-        value.setVisitSummary(summaries.draftFor(value));
-        return response(tenantId, encounters.save(value));
+    public SummaryResponse draftSummary(EncounterRequest request) {
+        Encounter note = new Encounter();
+        copy(request, note);
+        return new SummaryResponse(summaries.draftFor(note));
     }
 
     private void copy(EncounterRequest source, Encounter target) {

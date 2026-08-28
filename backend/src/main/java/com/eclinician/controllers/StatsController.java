@@ -1,6 +1,6 @@
 package com.eclinician.controllers;
 
-import com.eclinician.domains.dtos.DashboardStats;
+import com.eclinician.domains.dtos.response.DashboardStats;
 import com.eclinician.security.CurrentTenant;
 import com.eclinician.services.StatsService;
 import org.springframework.web.bind.annotation.GetMapping;

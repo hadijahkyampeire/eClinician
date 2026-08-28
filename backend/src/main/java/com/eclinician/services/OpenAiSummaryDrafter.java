@@ -1,6 +1,6 @@
 package com.eclinician.services;
 
-import com.eclinician.web.ServiceUnavailableException;
+import com.eclinician.exceptions.ServiceUnavailableException;
 import java.util.List;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;

@@ -1,24 +1,25 @@
 package com.eclinician;
 
-import com.eclinician.domains.dtos.AppointmentRequest;
-import com.eclinician.domains.dtos.AppointmentResponse;
-import com.eclinician.domains.dtos.EncounterRequest;
-import com.eclinician.domains.dtos.EncounterResponse;
-import com.eclinician.domains.dtos.BenchPatient;
-import com.eclinician.domains.dtos.LabOrderResponse;
-import com.eclinician.domains.dtos.LabResultRequest;
-import com.eclinician.domains.dtos.PrescriptionResponse;
+import com.eclinician.domains.dtos.request.AppointmentRequest;
+import com.eclinician.domains.dtos.request.EncounterRequest;
+import com.eclinician.domains.dtos.request.LabResultRequest;
+import com.eclinician.domains.dtos.response.AppointmentResponse;
+import com.eclinician.domains.dtos.response.BenchPatient;
+import com.eclinician.domains.dtos.response.EncounterResponse;
+import com.eclinician.domains.dtos.response.LabOrderResponse;
+import com.eclinician.domains.dtos.response.PrescriptionResponse;
 import com.eclinician.domains.entities.Patient;
 import com.eclinician.domains.enums.AppointmentStatus;
 import com.eclinician.domains.enums.EncounterStatus;
 import com.eclinician.domains.enums.LabStatus;
 import com.eclinician.domains.enums.PatientCareStatus;
+import com.eclinician.exceptions.ConflictException;
+import com.eclinician.exceptions.ServiceUnavailableException;
 import com.eclinician.repositories.PatientRepository;
 import com.eclinician.services.AppointmentService;
 import com.eclinician.services.EncounterService;
 import com.eclinician.services.LabService;
 import com.eclinician.services.PharmacyService;
-import com.eclinician.web.ConflictException;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -313,6 +314,57 @@ class EncounterServiceTests {
         assertThatThrownBy(() -> encounters.sendToLab(tenantId, draft.id()))
                 .isInstanceOf(ConflictException.class)
                 .hasMessageContaining("Add the tests");
+    }
+
+    /**
+     * Redrafting is a rewrite of what the clinician has typed, so no state can refuse it.
+     * The states that used to: back from the lab and not yet called in, and a note signed
+     * off without a prescription, which locks the moment it is signed. Both told the
+     * clinician to be somewhere they already were.
+     */
+    @Test
+    void theSummaryCanBeRedraftedInAnyStateTheVisitIsIn() {
+        Patient patient = patient("redraft-hospital");
+        String tenantId = patient.getTenantId();
+        AppointmentResponse checkedIn = appointments.checkIn(tenantId,
+                new AppointmentRequest(patient.getId(), null, null, "Fever", false));
+        appointments.startSession(tenantId, patient.getId());
+        EncounterResponse draft = encounters.save(tenantId, "Dr Test", null,
+                new EncounterRequest(patient.getId(), checkedIn.id(), "Fever",
+                        120, 80, 37.2, 80, 65.0, 162.0, null, null, null, null, null,
+                        "Full blood count"));
+
+        // To the bench and back. The appointment is WAITING now — they have not been
+        // called in, and until this stopped being a save that is where redrafting failed.
+        encounters.sendToLab(tenantId, draft.id());
+        labs.update(tenantId, "Tech", labs.listForPatient(tenantId, patient.getId()).getFirst().id(),
+                new LabResultRequest(LabStatus.COMPLETED, "Haemoglobin 11.2 g/dl", null));
+        assertThat(appointments.list(tenantId, patient.getId()).getFirst().status())
+                .isEqualTo(AppointmentStatus.WAITING);
+        assertDrafts(patient, checkedIn, "Anaemia");
+
+        // Signed off with no medicine, so the patient is marked gone the same instant and
+        // the note locks. The paragraph can still be rewritten; only saving it is closed.
+        appointments.startSession(tenantId, patient.getId());
+        encounters.save(tenantId, "Dr Test", draft.id(), new EncounterRequest(patient.getId(),
+                checkedIn.id(), "Fever", 120, 80, 37.2, 80, 65.0, 162.0, "chills", "Alert",
+                "Anaemia", "Diet advice, review in a month", null, "Full blood count"));
+        encounters.finalizeEncounter(tenantId, draft.id());
+        assertThat(patients.findById(patient.getId()).orElseThrow().getActiveCareStatus()).isNull();
+        assertDrafts(patient, checkedIn, "Anaemia, iron deficient");
+
+        // And before the note exists at all — no id to hang it on, and it still drafts.
+        assertThatThrownBy(() -> encounters.draftSummary(new EncounterRequest(null, null,
+                "Fever", 120, 80, 37.2, 80, 65.0, 162.0, null, null, "Malaria", "Treat",
+                null, null)))
+                .isInstanceOf(ServiceUnavailableException.class);
+    }
+
+    /** Reaching the summarizer is the assertion; only the absent key stops it there. */
+    private void assertDrafts(Patient patient, AppointmentResponse appointment, String diagnosis) {
+        assertThatThrownBy(() -> encounters.draftSummary(
+                request(patient, appointment, diagnosis, "Iron supplements")))
+                .isInstanceOf(ServiceUnavailableException.class);
     }
 
     private Patient patient(String tenantId) {

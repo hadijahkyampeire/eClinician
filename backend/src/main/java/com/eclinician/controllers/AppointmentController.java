@@ -1,7 +1,7 @@
 package com.eclinician.controllers;
 
-import com.eclinician.domains.dtos.AppointmentRequest;
-import com.eclinician.domains.dtos.AppointmentResponse;
+import com.eclinician.domains.dtos.request.AppointmentRequest;
+import com.eclinician.domains.dtos.response.AppointmentResponse;
 import com.eclinician.security.CurrentTenant;
 import com.eclinician.services.AppointmentService;
 import jakarta.validation.Valid;

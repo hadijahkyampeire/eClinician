@@ -1,7 +1,7 @@
 package com.eclinician.controllers;
 
-import com.eclinician.domains.dtos.AvailabilityRequest;
-import com.eclinician.domains.dtos.AvailabilityResponse;
+import com.eclinician.domains.dtos.request.AvailabilityRequest;
+import com.eclinician.domains.dtos.response.AvailabilityResponse;
 import com.eclinician.security.CurrentTenant;
 import com.eclinician.services.ClinicianAvailabilityService;
 import jakarta.validation.Valid;

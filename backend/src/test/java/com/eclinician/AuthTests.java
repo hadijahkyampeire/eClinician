@@ -6,10 +6,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.eclinician.domains.dtos.AppointmentRequest;
+import com.eclinician.domains.dtos.request.AppointmentRequest;
 import com.eclinician.domains.entities.Patient;
-import com.eclinician.repositories.PatientRepository;
 import com.eclinician.domains.enums.UserRole;
+import com.eclinician.repositories.PatientRepository;
 import com.eclinician.services.AppointmentService;
 import java.time.LocalDate;
 import org.junit.jupiter.api.Test;

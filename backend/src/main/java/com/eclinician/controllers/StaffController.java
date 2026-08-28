@@ -1,7 +1,8 @@
 package com.eclinician.controllers;
 
-import com.eclinician.domains.dtos.StaffRequest;
-import com.eclinician.domains.dtos.StaffResponse;
+import com.eclinician.domains.dtos.request.ActiveRequest;
+import com.eclinician.domains.dtos.request.StaffRequest;
+import com.eclinician.domains.dtos.response.StaffResponse;
 import com.eclinician.security.CurrentTenant;
 import com.eclinician.services.StaffService;
 import jakarta.validation.Valid;
@@ -66,6 +67,4 @@ public class StaffController {
             @RequestBody ActiveRequest request, @AuthenticationPrincipal Jwt caller) {
         return staffService.setActive(tenantId, id, request.active(), caller.getSubject());
     }
-
-    public record ActiveRequest(boolean active) {}
 }

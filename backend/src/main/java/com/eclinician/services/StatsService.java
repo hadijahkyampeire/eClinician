@@ -1,6 +1,7 @@
 package com.eclinician.services;
 
-import com.eclinician.domains.dtos.DashboardStats;
+import com.eclinician.domains.dtos.response.DashboardStats;
+import com.eclinician.domains.entities.AppUser;
 import com.eclinician.domains.enums.EncounterStatus;
 import com.eclinician.domains.enums.LabStatus;
 import com.eclinician.domains.enums.PatientCareStatus;
@@ -11,7 +12,6 @@ import com.eclinician.repositories.LabOrderRepository;
 import com.eclinician.repositories.PatientRepository;
 import com.eclinician.repositories.PrescriptionOrderRepository;
 import com.eclinician.repositories.UserRepository;
-import com.eclinician.domains.entities.AppUser;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;

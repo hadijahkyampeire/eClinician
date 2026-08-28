@@ -4,10 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.eclinician.domains.entities.Encounter;
+import com.eclinician.exceptions.ConflictException;
+import com.eclinician.exceptions.ServiceUnavailableException;
 import com.eclinician.services.ClinicalSummaryService;
 import com.eclinician.services.SummaryDrafter;
-import com.eclinician.web.ConflictException;
-import com.eclinician.web.ServiceUnavailableException;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

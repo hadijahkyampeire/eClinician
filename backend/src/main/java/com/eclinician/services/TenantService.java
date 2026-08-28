@@ -1,17 +1,17 @@
 package com.eclinician.services;
 
-import com.eclinician.domains.dtos.ClinicSettingsRequest;
-import com.eclinician.domains.dtos.HospitalFilterOptions;
-import com.eclinician.domains.dtos.PlatformStats;
-import com.eclinician.domains.dtos.TenantRequest;
-import com.eclinician.domains.dtos.TenantResponse;
+import com.eclinician.domains.dtos.request.ClinicSettingsRequest;
+import com.eclinician.domains.dtos.request.TenantRequest;
+import com.eclinician.domains.dtos.response.HospitalFilterOptions;
+import com.eclinician.domains.dtos.response.PlatformStats;
+import com.eclinician.domains.dtos.response.TenantResponse;
 import com.eclinician.domains.entities.AppUser;
 import com.eclinician.domains.entities.Tenant;
 import com.eclinician.domains.enums.UserRole;
+import com.eclinician.exceptions.ConflictException;
+import com.eclinician.exceptions.NotFoundException;
 import com.eclinician.repositories.TenantRepository;
 import com.eclinician.repositories.UserRepository;
-import com.eclinician.web.ConflictException;
-import com.eclinician.web.NotFoundException;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.security.crypto.password.PasswordEncoder;

@@ -74,8 +74,10 @@ backend/src/main/java/com/eclinician/
 ├── repositories/         B.6 — Spring Data JPA. Every finder takes a tenantId.
 ├── domains/
 │   ├── entities/         B.7 — 9 JPA entities.
-│   ├── dtos/             Request/response records — entities never leave the service.
+│   ├── dtos/request/     What comes in — the records controllers validate.
+│   ├── dtos/response/    What goes out — entities never leave the service.
 │   └── enums/            The state machines: AppointmentStatus, EncounterStatus, …
+├── exceptions/           The API's error vocabulary and the one handler that renders it.
 ├── security/             SecurityConfig, and the tenant resolved from the token
 └── resources/db/migration/   Flyway — the schema, versioned
 
@@ -153,7 +155,7 @@ The three that carry the system:
 Class-by-class detail in **[docs/testing.md](docs/testing.md)**.
 
 ```
-[INFO] Tests run: 100, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Tests run: 102, Failures: 0, Errors: 0, Skipped: 0
 [INFO] BUILD SUCCESS
 ```
 
@@ -163,7 +165,7 @@ Class-by-class detail in **[docs/testing.md](docs/testing.md)**.
   session → document → finalize → result the lab order, asserting each status. It uses
   **three tokens**, one per role, and **sends no tenant anywhere** — the token carries it.
 - Normal, boundary and error cases: no double-booking (`AppointmentSchedulingTests`), same
-  phone legal across clinics (`PatientRuleTests`), nine refusals asserted against the API
+  phone shared by a family (`PatientRuleTests`), nine refusals asserted against the API
   (`RoleAuthorizationTests`).
 
 ## C. Code and presentation

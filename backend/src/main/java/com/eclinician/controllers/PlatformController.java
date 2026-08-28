@@ -1,11 +1,12 @@
 package com.eclinician.controllers;
 
-import com.eclinician.domains.dtos.HospitalFilterOptions;
-import com.eclinician.domains.dtos.PlatformPatientRow;
-import com.eclinician.domains.dtos.PlatformStaffRow;
-import com.eclinician.domains.dtos.PlatformStats;
-import com.eclinician.domains.dtos.TenantRequest;
-import com.eclinician.domains.dtos.TenantResponse;
+import com.eclinician.domains.dtos.request.ActiveRequest;
+import com.eclinician.domains.dtos.request.TenantRequest;
+import com.eclinician.domains.dtos.response.HospitalFilterOptions;
+import com.eclinician.domains.dtos.response.PlatformPatientRow;
+import com.eclinician.domains.dtos.response.PlatformStaffRow;
+import com.eclinician.domains.dtos.response.PlatformStats;
+import com.eclinician.domains.dtos.response.TenantResponse;
 import com.eclinician.services.PlatformDirectoryService;
 import com.eclinician.services.TenantService;
 import jakarta.validation.Valid;
@@ -88,6 +89,4 @@ public class PlatformController {
             @RequestBody ActiveRequest request) {
         return tenantService.setActive(id, request.active());
     }
-
-    public record ActiveRequest(boolean active) {}
 }

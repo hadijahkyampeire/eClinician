@@ -7,7 +7,7 @@ import com.anthropic.errors.RateLimitException;
 import com.anthropic.models.messages.Message;
 import com.anthropic.models.messages.MessageCreateParams;
 import com.anthropic.models.messages.OutputConfig;
-import com.eclinician.web.ServiceUnavailableException;
+import com.eclinician.exceptions.ServiceUnavailableException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;

@@ -1,8 +1,8 @@
 package com.eclinician.controllers;
 
-import com.eclinician.domains.dtos.BenchPatient;
-import com.eclinician.domains.dtos.LabOrderResponse;
-import com.eclinician.domains.dtos.LabResultRequest;
+import com.eclinician.domains.dtos.request.LabResultRequest;
+import com.eclinician.domains.dtos.response.BenchPatient;
+import com.eclinician.domains.dtos.response.LabOrderResponse;
 import com.eclinician.domains.enums.LabStatus;
 import com.eclinician.security.CurrentTenant;
 import com.eclinician.security.CurrentUserName;
