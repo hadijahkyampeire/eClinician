@@ -1,7 +1,7 @@
 # API Reference
 
 **Browsable and generated from the controllers:**
-[swagger-ui.html](https://eclinician-api.onrender.com/swagger-ui.html) — log in through
+[swagger-ui.html](https://eclinician.api.hadijahk.com/swagger-ui.html) — log in through
 `POST /api/auth/login`, press Authorize, paste the token, call anything.
 
 Every endpoint except `/api/health` and `/api/auth/login` needs an
@@ -12,7 +12,7 @@ names one.
 
 | Method | Path | Purpose |
 |---|---|---|
-| `GET` | `/api/health` | Liveness probe (used by Render) — open |
+| `GET` | `/api/health` | Liveness probe (checked after every deploy) — open |
 | `POST` | `/api/auth/login` | Email + password → a signed token carrying the tenant, plus that hospital's branding and modules — open |
 | `POST` | `/api/auth/password` | Change your own password; the current one is required |
 | `GET` | `/api/patients` | Paged list — search, filter, sort |

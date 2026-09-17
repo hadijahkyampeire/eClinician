@@ -2,15 +2,11 @@
 
 | | |
 |---|---|
-| **App** | https://eclinician-web.onrender.com/login |
-| **API health** | https://eclinician-api.onrender.com/api/health |
-| Hosting | Render — managed Postgres + Dockerized API + static site, from [`render.yaml`](../render.yaml) |
+| **App** | https://eclinician.hadijahk.com/login |
+| **API health** | https://eclinician.api.hadijahk.com/api/health |
+| Hosting | Contabo VPS — Postgres, API and web app in Docker Compose, from [`deploy/`](../deploy/) |
+| Pipeline | [`deploy.yml`](../.github/workflows/deploy.yml) — every merge to `main` |
 | Sign in | Any demo account, password `demo1234` |
-
-> **Cold start: ~96 seconds measured.** The free instance sleeps after 15 minutes idle and
-> a JVM on 0.1 CPU is slow to wake. `.github/workflows/keep-warm.yml` pings `/api/health`
-> every ten minutes, but GitHub's schedulers fire late, so before anything that matters
-> open the app yourself ten minutes early and leave the tab open.
 
 ## Running locally
 
@@ -43,14 +39,12 @@ Open http://localhost:5173 and sign in — the six staff accounts are seeded on 
 - `JWT_SECRET` must be at least 32 bytes; the app refuses to start on a shorter one.
   Changing it signs out everyone holding an old token. **No key is committed** — unset, a
   random per-process key is generated with a warning, so sign-ins break after a restart.
-  Render generates a real one per deployment.
+  The server's `.env` holds a real one.
 - The summarizer takes whichever AI key is present (`auto` prefers OpenAI). With neither,
   the drafting endpoint answers `503` and everything else runs normally.
 - `VITE_API_URL` is read at **build** time — changing it needs a rebuild, not a restart.
-  It is written out in full in the blueprint: Render's `fromService … property: host`
-  resolves to the *private* hostname (`eclinician-api`), which a browser cannot resolve,
-  and the symptom is `ERR_NAME_NOT_RESOLVED` on every API call while the API itself is
-  healthy.
+  It must be the *public* API address: the browser calls it, so a container name like
+  `eclinician-api` gives `ERR_NAME_NOT_RESOLVED` on every call while the API is healthy.
 
 ## Database migrations
 
@@ -67,30 +61,61 @@ migrations fails the boot instead of altering a live table.
 - If a migration fails on deploy the service does not start and the database stays at the
   last good version; each migration runs in a transaction. Fix it in a new migration.
 
-## Deploying to Render
+## Deploying to Contabo
 
-1. Push to GitHub → in Render, **New → Blueprint** → pick this repo → **Apply**.
-2. Wait for `eclinician-api` to go live (~5 minutes; Maven downloads inside the image).
-3. Set `CORS_ALLOWED_ORIGINS` on `eclinician-api` to the `eclinician-web` hostname and let
-   it redeploy. This one variable is manual because Render rejects a dependency cycle.
-4. Optionally set `DEMO_PASSWORD`.
-5. Open the `eclinician-web` URL and log in.
+```
+eclinician.hadijahk.com      ─┐                     ┌─ eclinician-web (Caddy, React build)
+                              ├─ shared Caddy (TLS) ┤
+eclinician.api.hadijahk.com  ─┘                     └─ eclinician-api ── eclinician-db
+```
+
+The server also hosts another app, whose Caddy owns ports 80/443 on the `hkls-edge`
+Docker network. eClinician joins that network and adds its own vhost file,
+[`deploy/eclinician.caddy`](../deploy/eclinician.caddy), rather than running a second proxy.
+
+**On every merge to `main`**, [`deploy.yml`](../.github/workflows/deploy.yml):
+
+1. Builds `eclinician-api` and `eclinician-web` in GitHub Actions and pushes them to GHCR,
+   tagged with the commit SHA.
+2. SSHes into the server, checks out that commit in `/srv/eclinician`, pulls the images and
+   restarts — the server never builds, so a deploy takes no memory from the other app.
+3. Validates the vhost in a throwaway container before copying it into the shared Caddy's
+   `conf.d/` and reloading — a broken file would take the other app's sites down too.
+4. Waits for `/api/health` to answer.
+
+### First-time setup
+
+1. DNS: `A` records for `eclinician` and `eclinician.api` → the server's IP.
+2. Repo secrets `VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY` — a key used only by this workflow.
+3. On the server: `git clone` this repo into `/srv/eclinician`, then create
+   `deploy/.env` with `chmod 600`:
+   ```
+   DB_PASSWORD=<openssl rand -hex 24>
+   JWT_SECRET=<openssl rand -base64 48>
+   OPENAI_API_KEY=
+   ANTHROPIC_API_KEY=
+   ```
+   Leave `DEMO_PASSWORD` out to keep `demo1234`, which the docs quote.
+4. Merge. GHCR packages start private, so the first pull fails: make `eclinician-api` and
+   `eclinician-web` **Public** under the account's Packages, then re-run the job.
 
 | Secret | How it is handled |
 |---|---|
-| Database password | Injected by Render from the managed Postgres; never in the repo |
-| `JWT_SECRET` | `generateValue: true` — Render creates and keeps it |
-| `DEMO_PASSWORD` | `sync: false` — set by hand in the dashboard |
+| Database password, `JWT_SECRET`, AI keys | `deploy/.env` on the server only — git-ignored, never in an image |
+| SSH deploy key | A GitHub Actions secret |
 | Staff passwords | Stored only as BCrypt hashes |
 
-## Free-tier limits
+### Operating it
 
-| | Allowance | Catch |
-|---|---|---|
-| Postgres | 1 GB | Expires **30 days** after creation, 14-day grace, then deleted. No backups — re-provision if it is older than that. |
-| API | 750 instance-hours/month | 512 MB RAM, 0.1 CPU, sleeps after 15 min idle |
-| Frontend | Free | Counts toward bandwidth and build minutes |
+| Task | Command (in `/srv/eclinician/deploy`) |
+|---|---|
+| Logs | `docker compose logs -f eclinician-api` |
+| Restart | `docker compose restart eclinician-api` |
+| Roll back | Re-run an older **Deploy to Contabo** run, or `IMAGE_TAG=<sha> docker compose up -d` |
+| Database shell | `docker compose exec eclinician-db psql -U eclinician` |
+| Backup | `docker compose exec eclinician-db pg_dump -U eclinician eclinician > backup.sql` |
 
-`TZ=Africa/Kampala` in the blueprint decides what "today" means on the dashboards, and the
-Dockerfile raises the JVM heap ceiling to 75% of the container with the serial collector —
-the defaults leave ~128 MB of heap and thrash.
+- The database is a Docker volume on the server, with no automatic backups yet.
+- The API is capped at 768 MB (`mem_limit`); the Dockerfile gives the JVM 75% of that as
+  heap with the serial collector. Without the cap, 75% would mean 75% of the whole server.
+- `TZ=Africa/Kampala` in the compose file decides what "today" means on the dashboards.

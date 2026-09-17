@@ -60,7 +60,7 @@ Not itemized in the SRS, but the implementation answers them explicitly.
 | NFR-3 | **Secret handling** | `JWT_SECRET` comes from the environment, generated per deployment |
 | NFR-4 | **Consistency** — a visit must never be half-closed | Finalization is one `@Transactional` method |
 | NFR-5 | **Referential integrity** (SRS business rule) | Orders carry `encounterId` and `patientId`; encounters carry `appointmentId` (unique) |
-| NFR-6 | **Portability** | Docker Compose locally; a Render blueprint in the cloud |
+| NFR-6 | **Portability** | Docker Compose locally, and the same containers on a VPS in the cloud |
 | NFR-7 | **Testability** | Rules tested against in-memory H2, no database needed in CI |
 | NFR-8 | **Maintainability** | Proven twice: pharmacy, then lab, each one line inside `finalizeEncounter` |
 | NFR-9 | **Error clarity** | One `@RestControllerAdvice` maps 400/401/404/409 |

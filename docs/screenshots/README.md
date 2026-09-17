@@ -21,7 +21,7 @@ resized browser.
 
 | File | What it shows |
 |---|---|
-| `render-services.png` | The Render dashboard: `eclinician-api` and `eclinician-web` deployed, `eclinician-db` available |
+| `render-services.png` | The earlier Render deployment, before the move to Contabo — no longer linked from the README |
 
 ## tests/ — still to add
 
