@@ -1,0 +1,52 @@
+# Production stack on the Contabo server, in /srv/eclinician/deploy.
+# Images are built by .github/workflows/deploy.yml; this file only runs them.
+name: eclinician
+
+services:
+  eclinician-db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: eclinician
+      POSTGRES_USER: eclinician
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U eclinician"]
+      interval: 5s
+      retries: 10
+    # No ports: — the database is reachable only from the API, never the internet.
+
+  eclinician-api:
+    image: ghcr.io/hadijahkyampeire/eclinician-api:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DB_HOST: eclinician-db
+      DB_PORT: 5432
+      DB_NAME: eclinician
+      DB_USER: eclinician
+      CORS_ALLOWED_ORIGINS: https://eclinician.hadijahk.com
+      TZ: Africa/Kampala
+    # The Dockerfile sizes the heap at 75% of available memory. Without a limit
+    # that means 75% of the whole server, crowding out the kids' app.
+    mem_limit: 768m
+    depends_on:
+      eclinician-db:
+        condition: service_healthy
+    networks: [default, edge]
+
+  eclinician-web:
+    image: ghcr.io/hadijahkyampeire/eclinician-web:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    networks: [default, edge]
+
+volumes:
+  pgdata:
+
+# The shared network the server's Caddy (from the kids' app) lives on.
+networks:
+  edge:
+    external: true
+    name: hkls-edge
