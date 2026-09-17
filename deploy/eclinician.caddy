@@ -1,0 +1,12 @@
+# Copied by the deploy into /srv/hkls/caddy/conf.d/ on the server, where the
+# shared Caddy imports it. Validated before copying: a broken file here would
+# break the kids' app's vhosts too.
+eclinician.hadijahk.com {
+	encode zstd gzip
+	reverse_proxy eclinician-web:80
+}
+
+eclinician.api.hadijahk.com {
+	encode zstd gzip
+	reverse_proxy eclinician-api:8080
+}

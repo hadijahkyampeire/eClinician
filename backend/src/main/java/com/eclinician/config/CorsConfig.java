@@ -20,7 +20,7 @@ public class CorsConfig implements WebMvcConfigurer {
                 .toArray(String[]::new);
     }
 
-    /** Render can only hand us a bare hostname, so assume https when no scheme is given. */
+    /** Accept a bare hostname too, assuming https when no scheme is given. */
     private static String withScheme(String origin) {
         return origin.contains("://") ? origin : "https://" + origin;
     }

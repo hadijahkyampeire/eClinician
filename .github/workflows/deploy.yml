@@ -1,0 +1,92 @@
+# Every merge to main: build the API and web images here, push them to GHCR, then
+# have the Contabo server pull and restart. The server never builds, so a deploy
+# takes no memory or CPU away from the kids' app running beside it.
+name: Deploy to Contabo
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency: deploy
+
+env:
+  REGISTRY: ghcr.io/hadijahkyampeire
+  TAG: ${{ github.sha }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push the API
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/eclinician-api:${{ env.TAG }}
+            ${{ env.REGISTRY }}/eclinician-api:latest
+          # Reuse Maven layers between runs so unchanged dependencies are not re-downloaded.
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,scope=api,mode=max
+
+      - name: Build and push the web app
+        uses: docker/build-push-action@v6
+        with:
+          context: frontend
+          push: true
+          build-args: VITE_API_URL=https://eclinician.api.hadijahk.com
+          tags: |
+            ${{ env.REGISTRY }}/eclinician-web:${{ env.TAG }}
+            ${{ env.REGISTRY }}/eclinician-web:latest
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,scope=web,mode=max
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pull and restart on the server
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -e
+            cd /srv/eclinician
+            git fetch --quiet origin main && git reset --hard ${{ env.TAG }}
+            cd deploy
+            export IMAGE_TAG=${{ env.TAG }}
+            docker compose pull
+            docker compose up -d --remove-orphans
+            # Remove only old eClinician images, never the kids' app images.
+            docker images 'ghcr.io/hadijahkyampeire/eclinician-*' --format '{{.Repository}}:{{.Tag}}' \
+              | grep -v -e "$IMAGE_TAG" -e ':latest' | xargs -r docker rmi || true
+            # Validate the vhost before the shared Caddy ever sees it.
+            edge=/srv/hkls/caddy
+            if ! cmp -s eclinician.caddy $edge/conf.d/eclinician.caddy; then
+              docker run --rm -v "$PWD/eclinician.caddy:/etc/caddy/Caddyfile:ro" \
+                caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile
+              cp eclinician.caddy $edge/conf.d/
+              cd $edge && docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile
+            fi
+
+      - name: Wait for the API to answer
+        run: |
+          for i in $(seq 30); do
+            curl -fsS https://eclinician.api.hadijahk.com/api/health && exit 0
+            sleep 10
+          done
+          exit 1

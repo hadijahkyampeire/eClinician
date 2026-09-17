@@ -2,8 +2,9 @@
 
 **Time budget:** 12 minutes of slides, 10–12 minutes of demo, 5–10 minutes of questions.
 
-**Warm the instance first.** The free tier sleeps after 15 minutes and takes about 90
-seconds to wake. Open the app ten minutes early, sign in once, and leave the tab open.
+**Check it is up first.** The app runs on an always-on server, so there is no cold start —
+but open [the health check](https://eclinician.api.hadijahk.com/api/health) before you
+begin, and sign in once so the demo does not start on a login screen.
 
 Where each artefact lives is in the [README](../README.md#project-walkthrough); the demo
 itself, role by role, is in the [demo script](demo-script.md). This page is the frame

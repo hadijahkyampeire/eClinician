@@ -131,7 +131,7 @@ their name sits beside your mark rather than replacing it.
 
 ## Proving security without a browser
 
-Swap `localhost:8080` for `https://eclinician-api.onrender.com` to run these against the
+Swap `localhost:8080` for `https://eclinician.api.hadijahk.com` to run these against the
 live API.
 
 ```bash
